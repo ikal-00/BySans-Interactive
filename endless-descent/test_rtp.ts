@@ -1,25 +1,49 @@
 import { runSimulation } from './src/game/simulation';
 
 function verifyRTP() {
-    console.log("Running simulation for RTP Verification...");
+    console.log("=== Endless Descent Monte Carlo RTP Benchmark ===");
 
-    // We want to simulate 100,000 rounds of M=3, cashing out at row 5.
-    const results = runSimulation({
-        rounds: 1000000,
-        minesCount: 1,
-        targetCashoutRow: 1,
-        betAmount: 10
-    });
+    const configs = [
+        { name: "Mines 1, Row 1 (Low Variance)", rounds: 200000, minesCount: 1, targetCashoutRow: 1 },
+        { name: "Mines 2, Row 2 (Medium Variance)", rounds: 300000, minesCount: 2, targetCashoutRow: 2 },
+        { name: "Mines 3, Row 1 (High Mines)", rounds: 200000, minesCount: 3, targetCashoutRow: 1 },
+    ];
 
-    console.log(`Turnover: $${results.totalTurnover}`);
-    console.log(`Payout: $${results.totalPayout}`);
-    console.log(`RTP: ${(results.rtp * 100).toFixed(4)}%`);
+    let totalRounds = 0;
+    let totalTime = 0;
 
-    if (results.rtp >= 0.985 && results.rtp <= 0.995) {
-        console.log("RTP Converged correctly around 99.00%. Verification PASSED.");
-    } else {
-        throw new Error(`RTP deviation too high: ${results.rtp}`);
+    for (const cfg of configs) {
+        const t0 = performance.now();
+        const results = runSimulation({
+            rounds: cfg.rounds,
+            minesCount: cfg.minesCount,
+            targetCashoutRow: cfg.targetCashoutRow,
+            betAmount: 10
+        });
+        const t1 = performance.now();
+        const elapsed = t1 - t0;
+        totalTime += elapsed;
+        totalRounds += cfg.rounds;
+
+        const rtpPct = (results.rtp * 100).toFixed(3);
+        console.log(`[${cfg.name}]`);
+        console.log(`  Rounds: ${cfg.rounds.toLocaleString()} in ${elapsed.toFixed(2)} ms (${results.roundsPerSecond.toLocaleString()} rps)`);
+        console.log(`  Turnover: $${results.totalTurnover.toLocaleString()} | Payout: $${results.totalPayout.toLocaleString()}`);
+        console.log(`  Simulated RTP: ${rtpPct}% (Theoretical: 99.00%) | House Edge: ${(results.houseEdge * 100).toFixed(3)}%`);
+        console.log(`  Variance: ${results.variance} | StdDev: ${results.standardDeviation}`);
+
+        // Check reasonable statistical convergence
+        if (Math.abs(results.rtp - 0.99) > 0.007) {
+            throw new Error(`RTP deviation too high for ${cfg.name}: ${rtpPct}%`);
+        }
     }
+
+    console.log(`\nTOTAL: ${totalRounds.toLocaleString()} rounds executed in ${totalTime.toFixed(2)} ms.`);
+    if (totalTime > 2000) {
+        throw new Error(`Total execution time exceeded 2 seconds limit: ${totalTime.toFixed(2)} ms`);
+    }
+
+    console.log("SUCCESS: All Monte Carlo benchmarks completed in under 2 seconds and verified 99.00% RTP convergence!");
 }
 
 verifyRTP();

@@ -1,8 +1,8 @@
-// Most of the effect logic is integrated into CanvasRenderer directly for simplicity.
-// This module provides the central animation loop utility to drive the canvas.
-
 import { CanvasRenderer } from './canvasView';
-import { GameEngine, GameState } from '../game/engine';
+import { GameEngine } from '../game/engine';
+import { GameState } from '../math/types';
+import { sounds } from '../audio/sounds';
+import { formatMultiplier, formatCurrency } from '../math/multipliers';
 
 export class RenderLoop {
     private renderer: CanvasRenderer;
@@ -13,6 +13,45 @@ export class RenderLoop {
     constructor(renderer: CanvasRenderer, engine: GameEngine) {
         this.renderer = renderer;
         this.engine = engine;
+        this.bindEngineEvents();
+    }
+
+    private bindEngineEvents() {
+        // Safe step event
+        this.engine.onStep((pick) => {
+            if (pick.isSafe) {
+                sounds.playSafeStep(pick.row);
+                const quad = this.renderer.getCellQuad(pick.row, pick.lane);
+                this.renderer.addFloatingText(
+                    quad.cx,
+                    quad.cy - 10,
+                    `+${formatMultiplier(this.engine.currentMultiplier)}`,
+                    '#00e701'
+                );
+            } else {
+                sounds.playCrash();
+                const quad = this.renderer.getCellQuad(pick.row, pick.lane);
+                this.renderer.triggerCrashEffect(quad.cx, quad.cy);
+            }
+        });
+
+        // Cashout event
+        this.engine.onCashout((payout) => {
+            sounds.playCashout();
+            this.renderer.addFloatingText(
+                this.renderer.width / 2,
+                this.renderer.height * 0.42,
+                `WIN ${formatCurrency(payout)}`,
+                '#00e701'
+            );
+        });
+
+        // State changes
+        this.engine.onStateChange((state) => {
+            if (state === GameState.PLAYING) {
+                sounds.playClick();
+            }
+        });
     }
 
     public start() {
@@ -20,9 +59,7 @@ export class RenderLoop {
         this.isRunning = true;
 
         const loop = (time: number) => {
-            this.update(time);
             this.renderer.render(this.engine, time);
-
             if (this.isRunning) {
                 this.rafId = requestAnimationFrame(loop);
             }
@@ -34,20 +71,5 @@ export class RenderLoop {
     public stop() {
         this.isRunning = false;
         cancelAnimationFrame(this.rafId);
-    }
-
-    private update(_time: number) {
-        // Sync scroll target to engine state
-        // When currentRow increments, scroll offset goes up by row height
-        const rowHeight = 80; // Should match renderer config
-        this.renderer.targetScrollOffset = (this.engine.currentRow - 1) * rowHeight;
-
-        // Handle crash explosion
-        if (this.engine.state === GameState.CRASHED && this.renderer.explosionParticles.length === 0 && this.renderer.screenShake === 0) {
-            // Trigger explosion once per crash.
-            // In a fuller implementation, we'd trigger exactly at the clicked lane.
-            // For now, center trigger
-            this.renderer.triggerExplosion(this.renderer.width / 2, this.renderer.height - 180 + this.renderer.scrollOffset - ((this.engine.currentRow - 1) * rowHeight));
-        }
     }
 }

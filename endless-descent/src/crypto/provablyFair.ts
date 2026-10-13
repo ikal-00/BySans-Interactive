@@ -10,13 +10,19 @@ export function generateHMAC(serverSeed: string, clientSeed: string, nonce: numb
 
 /**
  * Derives hazard lanes for a given row.
- * Uses Fisher-Yates shuffle with exact byte consumption per standard provably fair algos.
+ * Uses Fisher-Yates shuffle with exact byte consumption per standard provably fair algos,
  * avoiding modulo bias by using rejection sampling.
  */
-export function deriveHazards(serverSeed: string, clientSeed: string, nonce: number, row: number, minesCount: number): number[] {
+export function deriveHazards(
+    serverSeed: string,
+    clientSeed: string,
+    nonce: number,
+    row: number,
+    minesCount: number
+): number[] {
     const hash = generateHMAC(serverSeed, clientSeed, nonce, row);
 
-    // We parse bytes from the hex hash
+    // Parse bytes from the hex hash
     const bytes: number[] = [];
     for (let i = 0; i < hash.length; i += 2) {
         bytes.push(parseInt(hash.substring(i, i + 2), 16));
@@ -29,31 +35,24 @@ export function deriveHazards(serverSeed: string, clientSeed: string, nonce: num
 
     // Pick minesCount hazards
     for (let i = 0; i < minesCount; i++) {
-        // We are drawing an item from the remaining lanes (which has length `lanes.length`)
         const numRemaining = lanes.length;
-
         let chosenIndex = -1;
+
         while (chosenIndex === -1) {
-             if (byteIndex >= bytes.length) {
-                 // Fallback if we run out of bytes (rare for a 32-byte hash when drawing up to 4 items out of 5)
-                 // A true implementation might hash the hash again, but 32 bytes is way more than enough
-                 // to pick 4 items from 5 with rejection sampling.
-                 break;
-             }
+            if (byteIndex >= bytes.length) {
+                // If bytes run out (exceedingly rare with 32 bytes picking <= 4 items), fallback deterministically
+                chosenIndex = 0;
+                break;
+            }
 
-             // rejection sampling: to pick from numRemaining evenly, we need a max value that is a multiple of numRemaining
-             const maxValidValue = 256 - (256 % numRemaining);
-             const randByte = bytes[byteIndex];
-             byteIndex++;
+            // Rejection sampling: pick from numRemaining evenly, avoiding modulo bias
+            const maxValidValue = 256 - (256 % numRemaining);
+            const randByte = bytes[byteIndex];
+            byteIndex++;
 
-             if (randByte < maxValidValue) {
-                 chosenIndex = randByte % numRemaining;
-             }
-        }
-
-        // Safety fallback if byte array exhausted
-        if (chosenIndex === -1) {
-            chosenIndex = 0; // deterministic fallback
+            if (randByte < maxValidValue) {
+                chosenIndex = randByte % numRemaining;
+            }
         }
 
         hazards.push(lanes[chosenIndex]);
@@ -64,7 +63,7 @@ export function deriveHazards(serverSeed: string, clientSeed: string, nonce: num
 }
 
 /**
- * Generate a random 64-char hex string for server seed
+ * Generate a cryptographically strong 64-char hex string for server seed
  */
 export function generateServerSeed(): string {
     const words = CryptoJS.lib.WordArray.random(32);
@@ -72,7 +71,19 @@ export function generateServerSeed(): string {
 }
 
 /**
- * Hash the server seed for public display
+ * Generate a randomized client seed
+ */
+export function generateClientSeed(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let res = '';
+    for (let i = 0; i < 16; i++) {
+        res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return res;
+}
+
+/**
+ * Hash the server seed using SHA-256 for public pre-round display
  */
 export function hashServerSeed(serverSeed: string): string {
     return CryptoJS.SHA256(serverSeed).toString(CryptoJS.enc.Hex);

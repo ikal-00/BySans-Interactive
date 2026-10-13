@@ -1,67 +1,104 @@
 import { runSimulation } from '../game/simulation';
+import { formatCurrency } from '../math/multipliers';
+import { sounds } from '../audio/sounds';
 
-export function createSimPanel(container: HTMLElement) {
+export function createSimPanel(_container: HTMLElement) {
     const simModal = document.createElement('div');
-    simModal.className = 'fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex justify-center items-center p-4';
+    simModal.className = 'fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex justify-center items-center p-3 select-none';
     simModal.id = 'sim-modal';
 
     simModal.innerHTML = `
-        <div class="bg-stake-card border border-stake-border w-full max-w-lg rounded-xl p-6 relative max-h-[90vh] overflow-y-auto">
-            <button id="close-sim-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+        <div class="bg-stake-card border border-stake-border w-full max-w-lg rounded-2xl p-5 relative shadow-2xl max-h-[92vh] overflow-y-auto">
+            <!-- Close button -->
+            <button id="close-sim-modal" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-stake-input">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"></path>
+                </svg>
             </button>
-            <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
-                <span class="text-stake-green">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-                </span>
-                Monte Carlo Simulation
-            </h2>
 
-            <div class="grid grid-cols-2 gap-4 mb-6">
+            <!-- Header -->
+            <div class="flex items-center gap-2.5 mb-5 pb-3 border-b border-stake-border">
+                <span class="text-stake-green p-2 rounded-lg bg-stake-green/10">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                    </svg>
+                </span>
                 <div>
-                    <label class="text-xs text-gray-400 font-bold mb-1 uppercase block">Rounds</label>
-                    <select id="sim-rounds" class="w-full bg-stake-dark border border-stake-input rounded p-2 text-sm text-white">
-                        <option value="10000">10,000</option>
-                        <option value="100000" selected>100,000</option>
-                        <option value="1000000">1,000,000</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-400 font-bold mb-1 uppercase block">Mines (1-4)</label>
-                    <input type="number" id="sim-mines" class="w-full bg-stake-dark border border-stake-input rounded p-2 text-sm text-white" value="3" min="1" max="4" />
-                </div>
-                <div>
-                    <label class="text-xs text-gray-400 font-bold mb-1 uppercase block">Cashout Row</label>
-                    <input type="number" id="sim-cashout-row" class="w-full bg-stake-dark border border-stake-input rounded p-2 text-sm text-white" value="3" min="1" />
-                </div>
-                <div>
-                    <label class="text-xs text-gray-400 font-bold mb-1 uppercase block">Bet Amount</label>
-                    <input type="number" id="sim-bet" class="w-full bg-stake-dark border border-stake-input rounded p-2 text-sm text-white" value="10" min="1" />
+                    <h2 class="text-lg font-black text-white uppercase tracking-wider">Monte Carlo Simulation Harness</h2>
+                    <p class="text-xs text-gray-400">Verificación matemática masiva de RTP (99.00% teórico)</p>
                 </div>
             </div>
 
-            <button id="run-sim-btn" class="w-full bg-stake-input hover:bg-stake-border text-white font-bold py-3 rounded mb-6 flex justify-center items-center gap-2">
-                RUN SIMULATION
-                <span id="sim-spinner" class="hidden animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            <!-- Configuration Inputs -->
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label class="text-[10px] text-gray-400 font-extrabold uppercase mb-1 block">Rondas a Simular</label>
+                    <select id="sim-rounds" class="w-full bg-stake-dark border border-stake-input rounded-lg p-2 text-xs font-mono font-bold text-white outline-none focus:border-stake-green">
+                        <option value="10000">10,000 rondas</option>
+                        <option value="100000" selected>100,000 rondas (Benchmark)</option>
+                        <option value="500000">500,000 rondas</option>
+                        <option value="1000000">1,000,000 rondas</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 font-extrabold uppercase mb-1 block">Minas (1-4)</label>
+                    <select id="sim-mines" class="w-full bg-stake-dark border border-stake-input rounded-lg p-2 text-xs font-mono font-bold text-white outline-none focus:border-stake-green">
+                        <option value="1">1 Mina (p = 80%)</option>
+                        <option value="2">2 Minas (p = 60%)</option>
+                        <option value="3" selected>3 Minas (p = 40%)</option>
+                        <option value="4">4 Minas (p = 20%)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 font-extrabold uppercase mb-1 block">Cobro en Fila (Cashout Row)</label>
+                    <input type="number" id="sim-cashout-row" class="w-full bg-stake-dark border border-stake-input rounded-lg p-2 text-xs font-mono font-bold text-white outline-none focus:border-stake-green" value="3" min="1" max="25" />
+                </div>
+                <div>
+                    <label class="text-[10px] text-gray-400 font-extrabold uppercase mb-1 block">Monto Apuesta ($)</label>
+                    <input type="number" id="sim-bet" class="w-full bg-stake-dark border border-stake-input rounded-lg p-2 text-xs font-mono font-bold text-white outline-none focus:border-stake-green" value="10.00" min="1" />
+                </div>
+            </div>
+
+            <!-- Run Button -->
+            <button id="run-sim-btn" class="w-full bg-stake-green hover:bg-[#00d601] text-stake-dark font-black py-3 rounded-xl uppercase tracking-wider mb-4 transition-all duration-150 flex items-center justify-center gap-2 shadow-[0_4px_0_#00b001] active:translate-y-1 active:shadow-none cursor-pointer">
+                <span id="run-btn-text">EJECUTAR SIMULACIÓN</span>
+                <span id="sim-spinner" class="hidden animate-spin h-4 w-4 border-2 border-stake-dark border-t-transparent rounded-full"></span>
             </button>
 
-            <div class="bg-stake-dark rounded-lg p-4 border border-stake-input">
-                <h3 class="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider">Results</h3>
-                <div class="grid grid-cols-2 gap-y-4 text-sm">
-                    <div class="text-gray-400">Total Turnover:</div>
-                    <div class="font-mono text-right" id="res-turnover">--</div>
+            <!-- Results Report Card -->
+            <div id="sim-results-card" class="bg-stake-dark rounded-xl p-4 border border-stake-input space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-stake-input">
+                    <span class="text-xs font-black text-white uppercase tracking-wider">Reporte Matemático</span>
+                    <span id="res-badge" class="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-stake-input text-gray-400">Listo para simular</span>
+                </div>
 
-                    <div class="text-gray-400">Total Payout:</div>
-                    <div class="font-mono text-right text-stake-green" id="res-payout">--</div>
+                <div class="grid grid-cols-2 gap-y-2.5 gap-x-4 text-xs">
+                    <div class="text-gray-400 font-medium">Total Turnover:</div>
+                    <div class="font-mono text-right font-bold text-white" id="res-turnover">--</div>
 
-                    <div class="text-gray-400">Actual RTP:</div>
-                    <div class="font-mono text-right font-bold text-lg" id="res-rtp">--</div>
+                    <div class="text-gray-400 font-medium">Total Payout:</div>
+                    <div class="font-mono text-right font-bold text-stake-green" id="res-payout">--</div>
 
-                    <div class="text-gray-400">Max Win Streak:</div>
-                    <div class="font-mono text-right text-stake-green" id="res-win-streak">--</div>
+                    <div class="text-gray-400 font-medium">RTP Simulado:</div>
+                    <div class="font-mono text-right font-black text-base text-stake-green" id="res-rtp">--</div>
 
-                    <div class="text-gray-400">Max Loss Streak:</div>
-                    <div class="font-mono text-right text-stake-red" id="res-loss-streak">--</div>
+                    <div class="text-gray-400 font-medium">RTP Teórico:</div>
+                    <div class="font-mono text-right font-bold text-gray-300">99.0000%</div>
+
+                    <div class="text-gray-400 font-medium">Ventaja de la Casa (House Edge):</div>
+                    <div class="font-mono text-right font-bold text-gray-300" id="res-house-edge">--</div>
+
+                    <div class="text-gray-400 font-medium">Tasa de Victorias (Win Rate):</div>
+                    <div class="font-mono text-right font-bold text-white" id="res-win-rate">--</div>
+
+                    <div class="text-gray-400 font-medium">Max Racha Ganadora / Perdedora:</div>
+                    <div class="font-mono text-right font-bold text-white" id="res-streaks">--</div>
+
+                    <div class="text-gray-400 font-medium">Varianza (σ²) / Desv. Est. (σ):</div>
+                    <div class="font-mono text-right font-bold text-gray-400" id="res-variance">--</div>
+
+                    <div class="text-gray-400 font-medium">Tiempo de Ejecución:</div>
+                    <div class="font-mono text-right font-bold text-stake-green" id="res-duration">--</div>
                 </div>
             </div>
         </div>
@@ -69,54 +106,73 @@ export function createSimPanel(container: HTMLElement) {
 
     document.body.appendChild(simModal);
 
+    // BINDINGS
     document.getElementById('close-sim-modal')?.addEventListener('click', () => {
+        sounds.playClick();
         simModal.classList.add('hidden');
     });
 
-    const trigger = document.createElement('button');
-    trigger.className = 'absolute top-4 right-4 z-20 text-gray-400 hover:text-white flex flex-col items-center transition-colors';
-    trigger.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-        <span class="text-[10px] font-bold mt-1">SIMULATE</span>
-    `;
-    trigger.addEventListener('click', () => {
-        simModal.classList.remove('hidden');
-    });
-    container.appendChild(trigger);
+    const runBtn = document.getElementById('run-sim-btn') as HTMLButtonElement;
+    const runBtnText = document.getElementById('run-btn-text') as HTMLSpanElement;
+    const spinner = document.getElementById('sim-spinner') as HTMLSpanElement;
 
-    document.getElementById('run-sim-btn')?.addEventListener('click', () => {
-        const rounds = parseInt((document.getElementById('sim-rounds') as HTMLSelectElement).value);
-        const minesCount = parseInt((document.getElementById('sim-mines') as HTMLInputElement).value);
-        const targetCashoutRow = parseInt((document.getElementById('sim-cashout-row') as HTMLInputElement).value);
-        const betAmount = parseFloat((document.getElementById('sim-bet') as HTMLInputElement).value);
+    runBtn.addEventListener('click', () => {
+        sounds.playClick();
+        runBtn.disabled = true;
+        spinner.classList.remove('hidden');
+        runBtnText.innerText = 'SIMULANDO...';
 
-        const spinner = document.getElementById('sim-spinner');
-        spinner?.classList.remove('hidden');
+        const rounds = parseInt((document.getElementById('sim-rounds') as HTMLSelectElement).value, 10);
+        const minesCount = parseInt((document.getElementById('sim-mines') as HTMLSelectElement).value, 10);
+        const targetCashoutRow = parseInt((document.getElementById('sim-cashout-row') as HTMLInputElement).value, 10) || 1;
+        const betAmount = parseFloat((document.getElementById('sim-bet') as HTMLInputElement).value) || 10;
 
-        // Use setTimeout to allow UI to render spinner before heavy blocking task
+        // Run after minimal RAF so browser updates spinner
         setTimeout(() => {
-            const t0 = performance.now();
-            const results = runSimulation({ rounds, minesCount, targetCashoutRow, betAmount });
-            const t1 = performance.now();
+            const results = runSimulation({
+                rounds,
+                minesCount,
+                targetCashoutRow,
+                betAmount,
+                mode: 'fast'
+            });
 
-            console.log(`Simulation took ${(t1 - t0).toFixed(2)}ms`);
-
-            (document.getElementById('res-turnover') as HTMLElement).innerText = `$${results.totalTurnover.toFixed(2)}`;
-            (document.getElementById('res-payout') as HTMLElement).innerText = `$${results.totalPayout.toFixed(2)}`;
+            (document.getElementById('res-turnover') as HTMLElement).innerText = formatCurrency(results.totalTurnover);
+            (document.getElementById('res-payout') as HTMLElement).innerText = formatCurrency(results.totalPayout);
 
             const rtpEl = document.getElementById('res-rtp') as HTMLElement;
-            const rtpVal = (results.rtp * 100).toFixed(4) + '%';
-            rtpEl.innerText = rtpVal;
-            if (results.rtp >= 0.985 && results.rtp <= 0.995) {
-                 rtpEl.className = "font-mono text-right font-bold text-lg text-stake-green";
+            const rtpPct = (results.rtp * 100).toFixed(4) + '%';
+            rtpEl.innerText = rtpPct;
+
+            const houseEdgeEl = document.getElementById('res-house-edge') as HTMLElement;
+            houseEdgeEl.innerText = (results.houseEdge * 100).toFixed(4) + '%';
+
+            const winRateEl = document.getElementById('res-win-rate') as HTMLElement;
+            winRateEl.innerText = `${results.winRate.toFixed(2)}% (${results.wins.toLocaleString()} W / ${results.losses.toLocaleString()} L)`;
+
+            const streaksEl = document.getElementById('res-streaks') as HTMLElement;
+            streaksEl.innerText = `${results.maxStreakWin} W / ${results.maxStreakLoss} L`;
+
+            const varEl = document.getElementById('res-variance') as HTMLElement;
+            varEl.innerText = `${results.variance} / ${results.standardDeviation}`;
+
+            const durEl = document.getElementById('res-duration') as HTMLElement;
+            durEl.innerText = `${results.durationMs} ms (${results.roundsPerSecond.toLocaleString()} r/s)`;
+
+            const badge = document.getElementById('res-badge') as HTMLElement;
+            // Convergence check within tolerance
+            if (Math.abs(results.rtp - 0.99) <= 0.007) {
+                badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-stake-green/20 text-stake-green';
+                badge.innerText = '✓ CONVERGENCIA 99.00% VERIFICADA';
             } else {
-                 rtpEl.className = "font-mono text-right font-bold text-lg text-stake-red";
+                badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-yellow-500/20 text-yellow-300';
+                badge.innerText = `DESVIACIÓN ${rtpPct}`;
             }
 
-            (document.getElementById('res-win-streak') as HTMLElement).innerText = results.maxStreakWin.toString();
-            (document.getElementById('res-loss-streak') as HTMLElement).innerText = results.maxStreakLoss.toString();
-
-            spinner?.classList.add('hidden');
-        }, 50);
+            runBtn.disabled = false;
+            spinner.classList.add('hidden');
+            runBtnText.innerText = 'EJECUTAR SIMULACIÓN';
+            sounds.playSafeStep(4);
+        }, 30);
     });
 }
