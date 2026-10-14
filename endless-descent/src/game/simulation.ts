@@ -5,7 +5,7 @@ import { deriveHazards, generateServerSeed } from '../crypto/provablyFair';
 /**
  * High-performance Monte Carlo simulation runner.
  * Evaluates the game mechanics over large sample sizes (e.g. 100,000 to 1,000,000 rounds)
- * in under 50ms, confirming exact convergence to 99.00% RTP.
+ * in under 50ms, confirming exact convergence to 96.00% RTP (4.00% House Edge).
  */
 export function runSimulation(config: SimulationConfig): SimulationResult {
     const { rounds, minesCount, targetCashoutRow, betAmount, mode = 'fast' } = config;

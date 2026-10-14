@@ -1,11 +1,12 @@
 export const MAX_PAYOUT = 250000;
 export const MAX_MULTIPLIER = 1000000;
-export const THEORETICAL_RTP = 0.99;
+export const THEORETICAL_RTP = 0.96; // 96.00% Return to Player (4.00% House Edge)
+export const THEORETICAL_HOUSE_EDGE = 0.04; // 4.00% House Edge
 export const BTC_USD_RATE = 20000; // Simulated rate: 1 BTC = $20,000 (0.0125 BTC = $250.00)
 
 /**
  * Calculates the exact multiplier for a given row and hazard count.
- * Multiplier Formula: floor(0.99 * ((5 / (5 - M)) ^ k) * 10000) / 10000
+ * Multiplier Formula: floor(0.96 * ((5 / (5 - M)) ^ k) * 10000) / 10000
  * @param row The row index (k >= 1, 1-indexed)
  * @param mines The number of hazards (M in {1, 2, 3, 4})
  * @returns The exact multiplier truncated to 4 decimals
@@ -51,7 +52,7 @@ export function calculatePayout(betAmount: number, multiplier: number): number {
 }
 
 /**
- * Formats a multiplier to 2 decimals for UI display (e.g. 1.23x, 3.12x)
+ * Formats a multiplier to 2 decimals for UI display (e.g. 1.20x, 2.40x)
  */
 export function formatMultiplier(mult: number): string {
   return `${mult.toFixed(2)}x`;
@@ -65,7 +66,7 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
- * Converts USD amount to simulated BTC amount string (e.g. 0.01250000 BTC)
+ * Converts USD amount to simulated BTC amount string (e.g. 0.0125 BTC)
  */
 export function formatBtc(usdAmount: number): string {
   const btc = usdAmount / BTC_USD_RATE;

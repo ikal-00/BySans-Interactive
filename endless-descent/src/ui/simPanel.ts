@@ -25,7 +25,7 @@ export function createSimPanel(_container: HTMLElement) {
                 </span>
                 <div>
                     <h2 class="text-lg font-black text-white uppercase tracking-wider">Monte Carlo Simulation Harness</h2>
-                    <p class="text-xs text-gray-400">Verificación matemática masiva de RTP (99.00% teórico)</p>
+                    <p class="text-xs text-gray-400">Verificación matemática masiva de RTP (96.00% teórico - 4.00% House Edge)</p>
                 </div>
             </div>
 
@@ -83,7 +83,7 @@ export function createSimPanel(_container: HTMLElement) {
                     <div class="font-mono text-right font-black text-base text-stake-green" id="res-rtp">--</div>
 
                     <div class="text-gray-400 font-medium">RTP Teórico:</div>
-                    <div class="font-mono text-right font-bold text-gray-300">99.0000%</div>
+                    <div class="font-mono text-right font-bold text-gray-300">96.0000% (4.00% Edge)</div>
 
                     <div class="text-gray-400 font-medium">Ventaja de la Casa (House Edge):</div>
                     <div class="font-mono text-right font-bold text-gray-300" id="res-house-edge">--</div>
@@ -160,10 +160,10 @@ export function createSimPanel(_container: HTMLElement) {
             durEl.innerText = `${results.durationMs} ms (${results.roundsPerSecond.toLocaleString()} r/s)`;
 
             const badge = document.getElementById('res-badge') as HTMLElement;
-            // Convergence check within tolerance
-            if (Math.abs(results.rtp - 0.99) <= 0.007) {
+            // Convergence check within tolerance (96.00% RTP)
+            if (Math.abs(results.rtp - 0.96) <= 0.007) {
                 badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-stake-green/20 text-stake-green';
-                badge.innerText = '✓ CONVERGENCIA 99.00% VERIFICADA';
+                badge.innerText = '✓ CONVERGENCIA 96.00% VERIFICADA (4.00% EDGE)';
             } else {
                 badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-yellow-500/20 text-yellow-300';
                 badge.innerText = `DESVIACIÓN ${rtpPct}`;
