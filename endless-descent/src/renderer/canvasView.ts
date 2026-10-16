@@ -45,23 +45,23 @@ export class CanvasRenderer {
     public canvas: HTMLCanvasElement;
     public ctx: CanvasRenderingContext2D;
 
-    // Uniform 1:1 coordinate system (width is fixed 430; height adapts dynamically to true aspect ratio so NOTHING ever stretches vertically!)
-    public width = 430;
-    public height = 430;
+    // Uniform 1:1 coordinate system (width fixed to 410; balanced sleek intermediate proportions)
+    public width = 410;
+    public height = 410;
 
     private lastPixelW = 0;
     private lastPixelH = 0;
 
     // Dynamic Corridor Geometry (recomputed cleanly from true height)
-    private horizonY = 64;
-    private bottomTrackY = 415;
-    private readonly topTrackWidth = 176;
-    private readonly bottomTrackWidth = 396;
+    private horizonY = 56;
+    private bottomTrackY = 405;
+    private readonly topTrackWidth = 152;
+    private readonly bottomTrackWidth = 368;
 
-    // Compact, balanced row spacing (never elongated)
-    private readonly activeRowCenterT = 0.72;
-    private readonly rowDepthStep = 0.15;
-    private readonly shipRestT = 0.41;
+    // Balanced intermediate row spacing
+    private readonly activeRowCenterT = 0.73;
+    private readonly rowDepthStep = 0.155;
+    private readonly shipRestT = 0.42;
 
     public hoverLane: number | null = null;
     private laneHoverProgress: number[] = [0, 0, 0, 0, 0];
@@ -70,8 +70,8 @@ export class CanvasRenderer {
     public cameraRow = 1;
 
     // Arrow Ship ("La Flechita") Physics State
-    public shipX = 215;
-    public shipY = 185;
+    public shipX = 205;
+    public shipY = 175;
     private shipAngle = 0;
     private shipDashImpulse = 0;
 
@@ -127,17 +127,17 @@ export class CanvasRenderer {
     public setupDPI(force = false) {
         const rect = this.canvas.getBoundingClientRect();
         const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-        const cssW = rect.width > 0 ? rect.width : 430;
-        const cssH = rect.height > 0 ? rect.height : 430;
+        const cssW = rect.width > 0 ? rect.width : 410;
+        const cssH = rect.height > 0 ? rect.height : 410;
         const pixelW = Math.round(cssW * dpr);
         const pixelH = Math.round(cssH * dpr);
 
-        this.width = 430;
-        this.height = Math.max(340, Math.round(430 * (cssH / cssW)));
+        this.width = 410;
+        this.height = Math.max(340, Math.round(410 * (cssH / cssW)));
 
         // Keep corridor compact and well-proportioned within the stage
-        this.horizonY = Math.round(this.height * 0.145);
-        this.bottomTrackY = Math.round(this.height * 0.945);
+        this.horizonY = Math.round(this.height * 0.135);
+        this.bottomTrackY = Math.round(this.height * 0.94);
 
         if (force || pixelW !== this.lastPixelW || pixelH !== this.lastPixelH) {
             this.lastPixelW = pixelW;
@@ -715,13 +715,12 @@ export class CanvasRenderer {
         const distFromCamera = Math.abs(row - this.cameraRow);
         const activeReadiness = Math.max(0, Math.min(1, 1 - distFromCamera * 0.85));
 
-        // 1. ACTIVE FOREGROUND ROW: Compact, wide-proportioned Stake Originals 3D tiles (never vertically stretched!)
+        // 1. ACTIVE FOREGROUND ROW: Balanced, sleek Stake Originals 3D tiles
         if (isActiveRow || isIdleFirstRow) {
             const hp = isActiveRow ? this.laneHoverProgress[lane] : 0;
-            const insetX = quad.w * 0.08;
+            const insetX = quad.w * 0.07;
             const cardW = quad.w - insetX * 2;
-            // Enforce a compact, chunky tile ratio (never taller than 0.82 * width)
-            const cardH = Math.min(quad.h * 0.84, cardW * 0.80);
+            const cardH = Math.min(quad.h * 0.86, cardW * 0.94);
             const liftY = hp * -3.5;
             const cardX = quad.cx - cardW / 2;
             const cardY = quad.cy - cardH / 2 + liftY;
