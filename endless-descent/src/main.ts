@@ -9,22 +9,19 @@ import { createSeedModal } from './ui/seedModal';
 import { createSimPanel } from './ui/simPanel';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div class="phone-mockup-wrapper" id="phone-wrapper">
-    <div class="phone-bezel">
-      <!-- Dynamic Island Notch -->
-      <div class="dynamic-island">
-        <div class="camera-lens"></div>
-      </div>
-
-      <!-- Main Game Screen Area -->
-      <div class="game-container" id="game-container">
-        <canvas id="game-canvas"></canvas>
-      </div>
+  <div class="viewport-shell" id="viewport-shell">
+    <!-- Dedicated Upper Stage: 3D Corridor Canvas + Top HUD -->
+    <div class="stage-container" id="stage-container">
+      <canvas id="game-canvas"></canvas>
     </div>
+
+    <!-- Dedicated Bottom Control Deck: Never obscures the active canvas lane -->
+    <div class="control-dock" id="control-dock"></div>
   </div>
 `;
 
-const container = document.getElementById('game-container') as HTMLElement;
+const stageContainer = document.getElementById('stage-container') as HTMLElement;
+const controlDock = document.getElementById('control-dock') as HTMLElement;
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 
 // Initialize Core Provably Fair Engine
@@ -32,14 +29,20 @@ const initialServerSeed = generateServerSeed();
 const initialClientSeed = 'stake_player_1';
 const engine = new GameEngine(initialServerSeed, initialClientSeed);
 
+// Initialize UI Modules first so stageContainer flex height settles before initial DPI measure
+createControlsUI(stageContainer, controlDock, engine);
+createSeedModal(stageContainer, engine);
+createSimPanel(stageContainer);
+
 // Initialize 3D Perspective Renderer & 60 FPS Loop
 const renderer = new CanvasRenderer(canvas);
 const loop = new RenderLoop(renderer, engine);
 
-// Assemble UI Modules
-createControlsUI(container, engine);
-createSeedModal(container, engine);
-createSimPanel(container);
+// Ensure resize observer keeps canvas sharp if dock height changes (e.g. Manual <-> Auto tab)
+const resizeObs = new ResizeObserver(() => {
+    renderer.setupDPI();
+});
+resizeObs.observe(stageContainer);
 
 // Wire Canvas Interactions with accurate 3D perspective hit testing
 canvas.addEventListener('pointerdown', (e) => {

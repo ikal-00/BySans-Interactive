@@ -18,6 +18,7 @@ export class RenderLoop {
 
     private bindEngineEvents() {
         this.engine.onStep((pick) => {
+            this.renderer.notifyStep(pick.row);
             const quad = this.renderer.getCellQuad(pick.row, pick.lane);
 
             if (pick.isSafe) {
@@ -27,9 +28,9 @@ export class RenderLoop {
                     this.renderer.addFloatingText(
                         quad.cx,
                         quad.cy - 14,
-                        `★ CARTA DORADA x${pick.boostApplied}! (${formatMultiplier(this.engine.currentMultiplier)})`,
-                        '#ffe680',
-                        1.15
+                        `GOLD x${pick.boostApplied} // ${formatMultiplier(this.engine.currentMultiplier)}`,
+                        '#ffc700',
+                        1.1
                     );
                 } else if (pick.specialType === 'ALIEN') {
                     sounds.playAlienLaser();
@@ -37,7 +38,7 @@ export class RenderLoop {
                     this.renderer.addFloatingText(
                         this.renderer.width / 2,
                         this.renderer.height * 0.36,
-                        `👽 ¡ATAQUE OVNI! +${pick.rowsSkipped} FILAS DESTRUIDAS`,
+                        `UFO INTERCEPT // +${pick.rowsSkipped} FILAS`,
                         '#00f0ff',
                         1.15
                     );
@@ -51,18 +52,16 @@ export class RenderLoop {
                     );
                 }
             } else if (pick.shieldSaved) {
-                // Shield absorbed a mine!
                 sounds.playShieldBreak();
                 this.renderer.triggerShieldBreakEffect(quad.cx, quad.cy);
                 this.renderer.addFloatingText(
                     this.renderer.width / 2,
                     quad.cy - 18,
-                    `🛡️ ¡ESCUDO ABSORBIÓ LA MINA!`,
+                    `ESCUDO ABSORBIO MINA`,
                     '#00f0ff',
                     1.15
                 );
             } else {
-                // Fatal crash
                 sounds.playCrash();
                 this.renderer.triggerCrashEffect(quad.cx, quad.cy);
             }
@@ -74,9 +73,9 @@ export class RenderLoop {
             this.renderer.addFloatingText(
                 this.renderer.width / 2,
                 this.renderer.height * 0.44,
-                `💰 50% ASEGURADO: +${formatCurrency(bankedAmount)}`,
-                '#ffe680',
-                1.1
+                `50% ASEGURADO // +${formatCurrency(bankedAmount)}`,
+                '#ffc700',
+                1.08
             );
         });
 
@@ -86,7 +85,7 @@ export class RenderLoop {
             this.renderer.addFloatingText(
                 this.renderer.width / 2,
                 this.renderer.height * 0.40,
-                `WIN ${formatCurrency(payout)}`,
+                `COBRADO ${formatCurrency(payout)}`,
                 '#00e701',
                 1.2
             );

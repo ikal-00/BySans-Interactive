@@ -1,42 +1,60 @@
 import { GameEngine } from '../game/engine';
 import { GameState } from '../math/types';
-import { formatCurrency, formatMultiplier, formatBtc, calculateEffectiveBet } from '../math/multipliers';
+import {
+    formatCurrency,
+    formatMultiplier,
+    formatBtc,
+    calculateEffectiveBet,
+    calculateNextStepMultiplier
+} from '../math/multipliers';
 import { sounds } from '../audio/sounds';
 
-export function createControlsUI(container: HTMLElement, engine: GameEngine) {
-    // 1. TOP HEADER HUD
+export function createControlsUI(
+    stageContainer: HTMLElement,
+    controlDock: HTMLElement,
+    engine: GameEngine
+) {
+    // 1. TOP STAGE HUD (Inside stageContainer)
     const topHeader = document.createElement('div');
-    topHeader.className = 'absolute top-0 left-0 w-full px-4 pt-3 pb-2 z-30 flex justify-between items-start pointer-events-auto';
+    topHeader.className =
+        'absolute top-0 left-0 w-full px-3.5 pt-2.5 pb-1.5 z-30 flex justify-between items-start pointer-events-auto bg-gradient-to-b from-[#071118]/90 via-[#071118]/50 to-transparent';
 
     topHeader.innerHTML = `
-        <!-- Left: BySans Branding & Provably Fair Shield -->
-        <div class="flex flex-col items-start select-none">
-            <div class="flex items-center gap-1.5 font-black text-sm tracking-widest text-white">
-                <span class="text-stake-green text-base">▼</span>
-                <span>BYSANS</span>
-                <span class="text-gray-400 font-semibold text-xs tracking-normal">INTERACTIVE</span>
-            </div>
-            <button id="header-fair-btn" class="mt-1 flex items-center gap-1 text-[10px] font-bold text-stake-green hover:underline cursor-pointer bg-stake-card/80 px-2 py-0.5 rounded border border-stake-border transition-colors">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C9.243 2 7 4.243 7 7v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7c0-2.757-2.243-5-5-5zM9 7c0-1.654 1.346-3 3-3s3 1.346 3 3v3H9V7zm4 10.723V20h-2v-2.277a1.993 1.993 0 01.5-3.723c1.104 0 2 .896 2 2 0 .738-.404 1.376-1 1.723z"/>
+        <!-- Left: Studio Brand & Provably Fair Trigger -->
+        <div class="flex flex-col items-start select-none gap-1">
+            <div class="flex items-center gap-1.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="text-[#00e701]">
+                    <path d="M12 21L3 5L12 9.5L21 5L12 21Z" fill="currentColor" stroke="#b8ffbc" stroke-width="1.5" stroke-linejoin="round"/>
                 </svg>
-                <span>PROVABLY FAIR</span>
+                <div class="flex items-baseline gap-1">
+                    <span class="font-black text-xs tracking-[0.16em] text-white">ENDLESS</span>
+                    <span class="font-bold text-[10px] tracking-[0.12em] text-[#7f96a7]">DESCENT</span>
+                </div>
+            </div>
+            <button id="header-fair-btn" class="flex items-center gap-1.5 text-[10px] font-bold text-[#b1bad3] hover:text-white cursor-pointer bg-[#15242e]/90 hover:bg-[#1e3240] px-2 py-0.5 rounded border border-[#2a4150] transition-colors">
+                <span class="w-1.5 h-1.5 rounded-full bg-[#00e701] shadow-[0_0_6px_#00e701]"></span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#00e701" stroke-width="2.2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span class="tracking-wider">PROVABLY FAIR</span>
             </button>
         </div>
 
-        <!-- Right: Real-time Balance Display & Tools -->
-        <div class="flex items-center gap-2 select-none">
-            <div class="flex flex-col items-end">
-                <span class="text-[10px] text-gray-400 font-bold tracking-wider">SALDO:</span>
-                <span id="balance-btc" class="text-xs font-mono font-bold text-white leading-tight">${formatBtc(engine.balance)}</span>
-                <span id="balance-usd" class="text-[11px] font-mono font-bold text-stake-green leading-tight">${formatCurrency(engine.balance)}</span>
+        <!-- Right: Precision Wallet Readout & Audio Toggle -->
+        <div class="flex items-center gap-1.5 select-none">
+            <div class="flex flex-col items-end bg-[#0c1821]/90 border border-[#243847] rounded-md px-2.5 py-1">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[9px] text-[#7f96a7] font-bold uppercase tracking-wider">SALDO</span>
+                    <span id="balance-usd" class="text-xs font-mono font-bold text-[#00e701] tabular-nums leading-none">${formatCurrency(engine.balance)}</span>
+                </div>
+                <span id="balance-btc" class="text-[10px] font-mono font-medium text-[#8a9e91] tabular-nums leading-tight mt-0.5">${formatBtc(engine.balance)}</span>
             </div>
-            <button id="sound-toggle-btn" class="p-1.5 rounded bg-stake-card border border-stake-border text-gray-400 hover:text-white transition-colors" title="Toggle Sound">
-                <svg id="sound-icon-on" class="${sounds.isMuted ? 'hidden' : ''}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button id="sound-toggle-btn" class="p-2 rounded-md bg-[#15242e]/90 border border-[#243847] text-[#8ea4b8] hover:text-white hover:border-[#3c5a70] transition-colors cursor-pointer" title="Audio">
+                <svg id="sound-icon-on" class="${sounds.isMuted ? 'hidden' : ''}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                     <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                 </svg>
-                <svg id="sound-icon-off" class="${sounds.isMuted ? '' : 'hidden'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg id="sound-icon-off" class="${sounds.isMuted ? '' : 'hidden'}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                     <line x1="23" y1="9" x2="17" y2="15"></line>
                     <line x1="17" y1="9" x2="23" y2="15"></line>
@@ -44,153 +62,160 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
             </button>
         </div>
     `;
-    container.appendChild(topHeader);
+    stageContainer.appendChild(topHeader);
 
-    // 2. CENTER MULTIPLIER BANNER & ACTIVE PERK BADGES
+    // 2. TELEMETRY MULTIPLIER HUD & ACTIVE PERK PILLS (Top-Center of Stage)
     const multHUD = document.createElement('div');
-    multHUD.className = 'absolute top-12 left-0 w-full flex flex-col items-center z-20 pointer-events-none select-none';
+    multHUD.className =
+        'absolute top-14 left-0 w-full flex flex-col items-center z-20 pointer-events-none select-none';
     multHUD.innerHTML = `
-        <div class="flex flex-col items-center">
-            <span class="text-[10px] text-gray-400 font-extrabold uppercase tracking-widest">MULTIPLICADOR:</span>
-            <span id="multiplier-text" class="text-3xl font-black text-stake-green tracking-tight drop-shadow-[0_0_12px_rgba(0,231,1,0.4)]">1.00x</span>
+        <div class="flex items-baseline gap-2 bg-[#0b161f]/80 border border-[#1f3342] px-3.5 py-1 rounded-full backdrop-blur-sm shadow-lg">
+            <span class="text-[9px] text-[#7f96a7] font-bold uppercase tracking-widest">MULT</span>
+            <span id="multiplier-text" class="text-2xl font-mono font-extrabold text-[#00e701] tabular-nums tracking-tight drop-shadow-[0_0_10px_rgba(0,231,1,0.35)]">1.00x</span>
+            <span class="text-[#2b4254]">|</span>
+            <span id="next-mult-preview" class="text-[10px] font-mono font-bold text-[#9cb2c5] tabular-nums">SIG: 1.60x</span>
         </div>
-        <div id="active-perks-strip" class="flex items-center gap-1.5 mt-0.5"></div>
+        <div id="active-perks-strip" class="flex items-center gap-1.5 mt-1"></div>
     `;
-    container.appendChild(multHUD);
+    stageContainer.appendChild(multHUD);
 
-    // 3. BOTTOM CONTROLS PANEL
-    const controlsPanel = document.createElement('div');
-    controlsPanel.className = 'absolute bottom-0 left-0 w-full bg-stake-card/95 backdrop-blur-md border-t border-stake-border rounded-t-2xl p-2.5 z-30 flex flex-col gap-2 shadow-2xl';
-
-    controlsPanel.innerHTML = `
-        <!-- Tabs & Simulation Button -->
-        <div class="flex justify-between items-center select-none">
-            <div class="flex bg-stake-dark p-0.5 rounded-lg border border-stake-input text-xs font-bold">
-                <button id="tab-manual" class="px-4 py-1 rounded-md bg-stake-input text-white transition-colors">MANUAL</button>
-                <button id="tab-auto" class="px-4 py-1 rounded-md text-gray-400 hover:text-white transition-colors">AUTO</button>
+    // 3. DEDICATED BOTTOM CONTROL DOCK
+    controlDock.className = 'control-dock px-3 pt-2.5 pb-2.5 flex flex-col gap-2 select-none';
+    controlDock.innerHTML = `
+        <!-- Top Row: Mode Switcher + RTP Benchmark Trigger -->
+        <div class="flex justify-between items-center">
+            <div class="flex bg-[#0f212e] p-0.5 rounded-md border border-[#243847] text-[11px] font-bold">
+                <button id="tab-manual" class="px-3.5 py-1 rounded bg-[#213743] text-white transition-colors cursor-pointer">MANUAL</button>
+                <button id="tab-auto" class="px-3.5 py-1 rounded text-[#8ea4b8] hover:text-white transition-colors cursor-pointer">AUTO</button>
             </div>
-            <div class="flex items-center gap-1.5">
-                <button id="btn-sim-panel" class="text-[11px] font-bold text-gray-300 hover:text-white px-2.5 py-1 rounded bg-stake-dark border border-stake-input flex items-center gap-1 hover:border-stake-green transition-colors">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
-                    </svg>
-                    <span>SIMULAR RTP</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- POWER-UP / BUY BONUS TOGGLES (Lucky Boost & Energy Shield) -->
-        <div class="grid grid-cols-2 gap-2 select-none">
-            <button id="toggle-lucky-boost" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-stake-input bg-stake-dark text-gray-400 hover:text-white transition-all text-left cursor-pointer">
-                <div class="flex items-center gap-1.5">
-                    <span class="text-sm">⚡</span>
-                    <div class="flex flex-col leading-tight">
-                        <span class="text-[10px] font-extrabold uppercase tracking-wide text-white">Bonus Suerte</span>
-                        <span class="text-[9px] text-gray-400">+Cartas ★ y OVNI 👽</span>
-                    </div>
-                </div>
-                <span id="lucky-badge" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-stake-card text-gray-400">+25%</span>
-            </button>
-
-            <button id="toggle-shield-boost" class="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-stake-input bg-stake-dark text-gray-400 hover:text-white transition-all text-left cursor-pointer">
-                <div class="flex items-center gap-1.5">
-                    <span class="text-sm">🛡️</span>
-                    <div class="flex flex-col leading-tight">
-                        <span class="text-[10px] font-extrabold uppercase tracking-wide text-white">Escudo OVNI</span>
-                        <span class="text-[9px] text-gray-400">Bloquea 1 mina</span>
-                    </div>
-                </div>
-                <span id="shield-badge" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-stake-card text-gray-400">+25%</span>
+            <button id="btn-sim-panel" class="text-[10px] font-bold text-[#b1bad3] hover:text-white px-2.5 py-1 rounded-md bg-[#0f212e] border border-[#243847] hover:border-[#00e701] flex items-center gap-1.5 transition-colors cursor-pointer">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00e701" stroke-width="2.2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                <span class="tracking-wider">AUDITOR RTP</span>
             </button>
         </div>
 
-        <!-- MANUAL CONTROLS CONTAINER -->
+        <!-- Power-Up / Tactical Modifiers Row (Zero Emojis - Crisp Vector SVGs) -->
+        <div class="grid grid-cols-2 gap-2">
+            <button id="toggle-lucky-boost" class="flex items-center justify-between px-2.5 py-1.5 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all text-left cursor-pointer">
+                <div class="flex items-center gap-2">
+                    <div id="lucky-icon-box" class="w-6 h-6 rounded flex items-center justify-center bg-[#1a2c38] text-[#ffc700]">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col leading-tight">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-white">Bonus Suerte</span>
+                        <span class="text-[9px] text-[#7f96a7]">Cartas 2x/3x + OVNI</span>
+                    </div>
+                </div>
+                <span id="lucky-badge" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#1a2c38] text-[#8ea4b8] tabular-nums">+25%</span>
+            </button>
+
+            <button id="toggle-shield-boost" class="flex items-center justify-between px-2.5 py-1.5 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all text-left cursor-pointer">
+                <div class="flex items-center gap-2">
+                    <div id="shield-icon-box" class="w-6 h-6 rounded flex items-center justify-center bg-[#1a2c38] text-[#00f0ff]">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col leading-tight">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-white">Escudo Deflector</span>
+                        <span class="text-[9px] text-[#7f96a7]">Absorbe 1 mina</span>
+                    </div>
+                </div>
+                <span id="shield-badge" class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#1a2c38] text-[#8ea4b8] tabular-nums">+25%</span>
+            </button>
+        </div>
+
+        <!-- MANUAL CONTROLS -->
         <div id="controls-manual" class="flex flex-col gap-2">
-            <!-- Row 1: Bet Amount & Mines Stepper -->
             <div class="flex gap-2">
-                <!-- Bet Amount -->
+                <!-- Bet Input Well -->
                 <div class="flex-1 flex flex-col">
-                    <div class="flex justify-between items-center mb-0.5">
-                        <label class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider">APUESTA BASE</label>
-                        <span id="effective-bet-label" class="text-[10px] font-mono font-bold text-stake-green">Total: $10.00</span>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase tracking-wider">APUESTA BASE</label>
+                        <span id="effective-bet-label" class="text-[10px] font-mono font-bold text-[#00e701] tabular-nums">Total: $10.00</span>
                     </div>
-                    <div class="flex items-center bg-stake-dark rounded-lg border border-stake-input p-1 focus-within:border-stake-green transition-colors">
-                        <span class="text-gray-400 font-bold px-1 text-xs">$</span>
-                        <input type="number" id="bet-amount" value="10.00" min="0.10" max="250000" step="1.00" class="bg-transparent text-white font-mono font-bold text-xs w-full outline-none" />
+                    <div class="stake-well flex items-center p-1">
+                        <span class="text-[#7f96a7] font-mono font-bold px-1.5 text-xs">$</span>
+                        <input type="number" id="bet-amount" value="10.00" min="0.10" max="250000" step="1.00" class="bg-transparent text-white font-mono font-bold text-xs w-full outline-none tabular-nums" />
                         <div class="flex gap-1 ml-1">
-                            <button id="btn-half" class="px-1.5 py-0.5 text-[10px] font-bold text-gray-300 hover:text-white bg-stake-card rounded border border-stake-border hover:bg-stake-input transition-colors">½</button>
-                            <button id="btn-double" class="px-1.5 py-0.5 text-[10px] font-bold text-gray-300 hover:text-white bg-stake-card rounded border border-stake-border hover:bg-stake-input transition-colors">2x</button>
-                            <button id="btn-max" class="px-1.5 py-0.5 text-[10px] font-bold text-gray-300 hover:text-white bg-stake-card rounded border border-stake-border hover:bg-stake-input transition-colors">MAX</button>
+                            <button id="btn-half" class="stake-btn-secondary px-2 py-1 text-[10px] font-mono font-bold rounded cursor-pointer">½</button>
+                            <button id="btn-double" class="stake-btn-secondary px-2 py-1 text-[10px] font-mono font-bold rounded cursor-pointer">2×</button>
+                            <button id="btn-max" class="stake-btn-secondary px-2 py-1 text-[10px] font-mono font-bold rounded cursor-pointer">MAX</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Mines Stepper -->
-                <div class="w-24 flex flex-col">
-                    <label class="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider mb-0.5">MINAS</label>
-                    <div class="flex items-center justify-between bg-stake-dark rounded-lg border border-stake-input p-1 h-full">
-                        <button id="btn-mines-minus" class="w-6 h-6 flex items-center justify-center font-bold text-gray-300 hover:text-white bg-stake-card rounded border border-stake-border hover:bg-stake-input transition-colors">-</button>
-                        <span id="mines-count" class="font-bold text-white text-sm select-none">3</span>
-                        <button id="btn-mines-plus" class="w-6 h-6 flex items-center justify-center font-bold text-gray-300 hover:text-white bg-stake-card rounded border border-stake-border hover:bg-stake-input transition-colors">+</button>
+                <!-- Mines Risk Selector with LED Dots -->
+                <div class="w-28 flex flex-col">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase tracking-wider">MINAS</label>
+                        <div id="mines-led-strip" class="flex items-center gap-1"></div>
+                    </div>
+                    <div class="stake-well flex items-center justify-between p-1 h-full">
+                        <button id="btn-mines-minus" class="stake-btn-secondary w-7 h-6 flex items-center justify-center font-mono font-bold text-xs rounded cursor-pointer">−</button>
+                        <span id="mines-count" class="font-mono font-extrabold text-white text-xs tabular-nums">3</span>
+                        <button id="btn-mines-plus" class="stake-btn-secondary w-7 h-6 flex items-center justify-center font-mono font-bold text-xs rounded cursor-pointer">+</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Action Buttons Row (Main Cashout / Start + Partial 50% Cashout) -->
+            <!-- Primary CTA & Partial 50% Cashout Row -->
             <div class="flex gap-2">
-                <!-- Partial 50% Cashout Button (Visible during active descent when row > 1) -->
-                <button id="partial-cashout-btn" class="hidden flex-1 bg-amber-500/20 hover:bg-amber-500/30 border-2 border-amber-400 text-amber-300 font-black rounded-xl py-2 px-2 flex-col items-center justify-center transition-all cursor-pointer">
-                    <span class="text-xs tracking-wide uppercase leading-tight">COBRAR 50%</span>
-                    <span id="partial-cashout-subtitle" class="text-[10px] font-mono font-bold text-white leading-tight">$0.00 Y SEGUIR</span>
+                <button id="partial-cashout-btn" class="hidden flex-1 bg-[#1e2923] hover:bg-[#27362d] border border-[#ffc700] text-[#ffc700] font-extrabold rounded-lg py-2 px-2 flex-col items-center justify-center transition-all cursor-pointer">
+                    <span class="text-[11px] tracking-wider uppercase leading-tight">COBRAR 50%</span>
+                    <span id="partial-cashout-subtitle" class="text-[10px] font-mono font-bold text-white tabular-nums leading-tight">$0.00 Y SEGUIR</span>
                 </button>
 
-                <!-- Big Action Button (Start Bet / Full Cashout) -->
-                <button id="action-btn" class="flex-[1.5] w-full bg-stake-green hover:bg-[#00d601] text-stake-dark font-black rounded-xl py-2.5 flex flex-col items-center justify-center transition-all duration-150 shadow-[0_4px_0_#00b001] active:translate-y-1 active:shadow-none cursor-pointer">
-                    <span id="action-btn-title" class="text-lg tracking-wide uppercase leading-tight">COMENZAR APUESTA</span>
-                    <span id="action-btn-subtitle" class="text-[11px] font-bold text-stake-dark/80 uppercase hidden">COBRAR: $0.00</span>
+                <button id="action-btn" class="stake-cta-green flex-[1.6] w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer">
+                    <span id="action-btn-title" class="text-sm font-black tracking-wider uppercase leading-tight">DESCENDER</span>
+                    <span id="action-btn-subtitle" class="text-[11px] font-mono font-bold text-[#051a05] uppercase tabular-nums hidden">COBRAR: $0.00</span>
                 </button>
             </div>
         </div>
 
-        <!-- AUTO CONTROLS CONTAINER -->
+        <!-- AUTO CONTROLS -->
         <div id="controls-auto" class="hidden flex-col gap-2">
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="text-[10px] text-gray-400 font-extrabold uppercase mb-0.5 block">Número de Apuestas</label>
-                    <input type="number" id="auto-bet-count" value="10" min="1" max="1000" class="w-full bg-stake-dark border border-stake-input rounded-lg p-1.5 text-xs text-white font-mono font-bold outline-none focus:border-stake-green" />
+                    <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase mb-1 block">NÚMERO DE RONDAS</label>
+                    <input type="number" id="auto-bet-count" value="10" min="1" max="1000" class="stake-well w-full p-1.5 text-xs text-white font-mono font-bold outline-none tabular-nums" />
                 </div>
                 <div>
-                    <label class="text-[10px] text-gray-400 font-extrabold uppercase mb-0.5 block">Cobro en Fila</label>
-                    <input type="number" id="auto-cashout-row" value="3" min="1" max="20" class="w-full bg-stake-dark border border-stake-input rounded-lg p-1.5 text-xs text-white font-mono font-bold outline-none focus:border-stake-green" />
+                    <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase mb-1 block">COBRO EN FILA</label>
+                    <input type="number" id="auto-cashout-row" value="3" min="1" max="20" class="stake-well w-full p-1.5 text-xs text-white font-mono font-bold outline-none tabular-nums" />
                 </div>
             </div>
-            <button id="auto-action-btn" class="w-full bg-stake-green hover:bg-[#00d601] text-stake-dark font-black rounded-xl py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_4px_0_#00b001] active:translate-y-1 active:shadow-none cursor-pointer">
-                <span id="auto-btn-title" class="text-sm tracking-wide uppercase">INICIAR AUTO APUESTA</span>
+            <button id="auto-action-btn" class="stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer">
+                <span id="auto-btn-title" class="text-xs font-black tracking-wider uppercase">INICIAR PILOTO AUTOMÁTICO</span>
             </button>
         </div>
 
-        <!-- Recent Multipliers History Strip -->
-        <div class="flex items-center justify-between pt-1 border-t border-stake-border/40 select-none">
+        <!-- Recent Multipliers Audit Strip -->
+        <div class="flex items-center justify-between pt-1 border-t border-[#213743]">
             <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar flex-1 mr-2" id="history-pills">
-                <span class="text-[10px] text-gray-400 font-bold uppercase">HISTORIAL:</span>
-                <span class="text-[10px] text-gray-500 italic">Sin rondas previas</span>
+                <span class="text-[9px] text-[#6d8496] font-bold uppercase tracking-wider">HISTORIAL:</span>
+                <span class="text-[10px] text-[#53697a] font-mono">SIN REGISTROS</span>
             </div>
-            <span class="text-[9px] font-bold text-gray-500 whitespace-nowrap">BySans • 96% RTP</span>
+            <span class="text-[9px] font-mono font-bold text-[#6d8496] whitespace-nowrap">96.0% RTP • 4.0% EDGE</span>
         </div>
     `;
-
-    container.appendChild(controlsPanel);
 
     // ELEMENT REFERENCES
     const betInput = document.getElementById('bet-amount') as HTMLInputElement;
     const effectiveBetLabel = document.getElementById('effective-bet-label') as HTMLSpanElement;
     const minesCountSpan = document.getElementById('mines-count') as HTMLSpanElement;
+    const minesLedStrip = document.getElementById('mines-led-strip') as HTMLDivElement;
     const btnAction = document.getElementById('action-btn') as HTMLButtonElement;
     const actionTitle = document.getElementById('action-btn-title') as HTMLSpanElement;
     const actionSubtitle = document.getElementById('action-btn-subtitle') as HTMLSpanElement;
     const btnPartial = document.getElementById('partial-cashout-btn') as HTMLButtonElement;
     const partialSubtitle = document.getElementById('partial-cashout-subtitle') as HTMLSpanElement;
     const multText = document.getElementById('multiplier-text') as HTMLSpanElement;
+    const nextMultPreview = document.getElementById('next-mult-preview') as HTMLSpanElement;
     const activePerksStrip = document.getElementById('active-perks-strip') as HTMLDivElement;
     const balanceBtc = document.getElementById('balance-btc') as HTMLSpanElement;
     const balanceUsd = document.getElementById('balance-usd') as HTMLSpanElement;
@@ -211,43 +236,90 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
     let isAutoRunning = false;
     let autoInterval: number | null = null;
 
+    const renderMinesLeds = () => {
+        minesLedStrip.innerHTML = '';
+        for (let i = 1; i <= 4; i++) {
+            const dot = document.createElement('span');
+            const active = i <= engine.minesCount;
+            dot.className = `w-1.5 h-1.5 rounded-full transition-colors ${
+                active ? 'bg-[#ff1e42] shadow-[0_0_5px_#ff1e42]' : 'bg-[#243847]'
+            }`;
+            minesLedStrip.appendChild(dot);
+        }
+    };
+
     const updateBonusUI = () => {
         const baseBet = parseFloat(betInput.value) || 10;
         const effBet = calculateEffectiveBet(baseBet, engine.luckyBoost, engine.shieldPurchased);
         effectiveBetLabel.innerText = `Total: ${formatCurrency(effBet)}`;
 
+        renderMinesLeds();
+
+        // Update Next Multiplier Preview
+        const isFirst = engine.state !== GameState.PLAYING || engine.currentRow === 1;
+        const baseMult = engine.state === GameState.PLAYING ? engine.currentMultiplier : 1.0;
+        const activeShield = engine.state === GameState.PLAYING ? engine.hasActiveShield : engine.shieldPurchased;
+        const previewMult = calculateNextStepMultiplier(
+            baseMult,
+            engine.minesCount,
+            isFirst,
+            1.0,
+            activeShield
+        );
+        nextMultPreview.innerText = `SIG: ${formatMultiplier(previewMult)}`;
+
         if (engine.luckyBoost) {
-            toggleLucky.className = 'flex items-center justify-between px-2.5 py-1.5 rounded-lg border-2 border-amber-400 bg-amber-500/15 text-white transition-all text-left cursor-pointer';
-            luckyBadge.className = 'text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-amber-400 text-stake-dark';
+            toggleLucky.className =
+                'flex items-center justify-between px-2.5 py-1.5 rounded-md border border-[#ffc700] bg-[#ffc700]/10 text-white transition-all text-left cursor-pointer';
+            luckyBadge.className =
+                'text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-[#ffc700] text-[#0b161f] tabular-nums';
             luckyBadge.innerText = 'ON +25%';
         } else {
-            toggleLucky.className = 'flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-stake-input bg-stake-dark text-gray-400 hover:text-white transition-all text-left cursor-pointer';
-            luckyBadge.className = 'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-stake-card text-gray-400';
+            toggleLucky.className =
+                'flex items-center justify-between px-2.5 py-1.5 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all text-left cursor-pointer';
+            luckyBadge.className =
+                'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#1a2c38] text-[#8ea4b8] tabular-nums';
             luckyBadge.innerText = '+25%';
         }
 
         if (engine.shieldPurchased) {
-            toggleShield.className = 'flex items-center justify-between px-2.5 py-1.5 rounded-lg border-2 border-cyan-400 bg-cyan-500/15 text-white transition-all text-left cursor-pointer';
-            shieldBadge.className = 'text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-cyan-400 text-stake-dark';
+            toggleShield.className =
+                'flex items-center justify-between px-2.5 py-1.5 rounded-md border border-[#00f0ff] bg-[#00f0ff]/10 text-white transition-all text-left cursor-pointer';
+            shieldBadge.className =
+                'text-[9px] font-mono font-black px-1.5 py-0.5 rounded bg-[#00f0ff] text-[#0b161f] tabular-nums';
             shieldBadge.innerText = 'ON +25%';
         } else {
-            toggleShield.className = 'flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-stake-input bg-stake-dark text-gray-400 hover:text-white transition-all text-left cursor-pointer';
-            shieldBadge.className = 'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-stake-card text-gray-400';
+            toggleShield.className =
+                'flex items-center justify-between px-2.5 py-1.5 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all text-left cursor-pointer';
+            shieldBadge.className =
+                'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-[#1a2c38] text-[#8ea4b8] tabular-nums';
             shieldBadge.innerText = '+25%';
         }
 
-        // Update top HUD perk badges
+        // Update Top Stage Perk Badges (SVG-only, zero emojis)
         activePerksStrip.innerHTML = '';
         if (engine.luckyBoost) {
-            activePerksStrip.innerHTML += `<span class="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-amber-300 text-[9px] font-extrabold uppercase tracking-wider">⚡ Suerte Activa</span>`;
+            activePerksStrip.innerHTML += `
+                <span class="px-2 py-0.5 rounded bg-[#ffc700]/15 border border-[#ffc700]/50 text-[#ffc700] text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#ffc700]"></span>SUERTE +25%
+                </span>`;
         }
         if (engine.state === GameState.PLAYING ? engine.hasActiveShield : engine.shieldPurchased) {
-            activePerksStrip.innerHTML += `<span class="px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-300 text-[9px] font-extrabold uppercase tracking-wider">🛡️ Escudo Intacto</span>`;
+            activePerksStrip.innerHTML += `
+                <span class="px-2 py-0.5 rounded bg-[#00f0ff]/15 border border-[#00f0ff]/50 text-[#00f0ff] text-[9px] font-mono font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#00f0ff]"></span>ESCUDO ACTIVO
+                </span>`;
         } else if (engine.state === GameState.PLAYING && engine.shieldUsedInRound) {
-            activePerksStrip.innerHTML += `<span class="px-2 py-0.5 rounded-full bg-gray-700/60 border border-gray-500 text-gray-300 text-[9px] font-bold uppercase">🛡️ Escudo Usado</span>`;
+            activePerksStrip.innerHTML += `
+                <span class="px-2 py-0.5 rounded bg-[#1e2f3d] border border-[#3c5468] text-[#7f96a7] text-[9px] font-mono font-bold uppercase">
+                    ESCUDO DESCARGADO
+                </span>`;
         }
         if (engine.state === GameState.PLAYING && engine.partialPayoutBanked > 0) {
-            activePerksStrip.innerHTML += `<span class="px-2 py-0.5 rounded-full bg-stake-green/20 border border-stake-green/60 text-stake-green text-[9px] font-extrabold uppercase">💰 Asegurado: ${formatCurrency(engine.partialPayoutBanked)}</span>`;
+            activePerksStrip.innerHTML += `
+                <span class="px-2 py-0.5 rounded bg-[#00e701]/15 border border-[#00e701]/50 text-[#00e701] text-[9px] font-mono font-bold uppercase tabular-nums">
+                    ASEGURADO ${formatCurrency(engine.partialPayoutBanked)}
+                </span>`;
         }
     };
 
@@ -270,16 +342,16 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
     // TAB SWITCHING
     tabManual.addEventListener('click', () => {
         sounds.playClick();
-        tabManual.className = 'px-4 py-1 rounded-md bg-stake-input text-white transition-colors';
-        tabAuto.className = 'px-4 py-1 rounded-md text-gray-400 hover:text-white transition-colors';
+        tabManual.className = 'px-3.5 py-1 rounded bg-[#213743] text-white transition-colors cursor-pointer';
+        tabAuto.className = 'px-3.5 py-1 rounded text-[#8ea4b8] hover:text-white transition-colors cursor-pointer';
         controlsManual.classList.remove('hidden');
         controlsAuto.classList.add('hidden');
     });
 
     tabAuto.addEventListener('click', () => {
         sounds.playClick();
-        tabAuto.className = 'px-4 py-1 rounded-md bg-stake-input text-white transition-colors';
-        tabManual.className = 'px-4 py-1 rounded-md text-gray-400 hover:text-white transition-colors';
+        tabAuto.className = 'px-3.5 py-1 rounded bg-[#213743] text-white transition-colors cursor-pointer';
+        tabManual.className = 'px-3.5 py-1 rounded text-[#8ea4b8] hover:text-white transition-colors cursor-pointer';
         controlsAuto.classList.remove('hidden');
         controlsManual.classList.add('hidden');
     });
@@ -308,6 +380,7 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
         if (engine.minesCount > 1) {
             engine.minesCount--;
             minesCountSpan.innerText = engine.minesCount.toString();
+            updateBonusUI();
         }
     });
 
@@ -317,10 +390,11 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
         if (engine.minesCount < 4) {
             engine.minesCount++;
             minesCountSpan.innerText = engine.minesCount.toString();
+            updateBonusUI();
         }
     });
 
-    // BET AMOUNT BUTTONS
+    // BET AMOUNT QUICK BUTTONS
     document.getElementById('btn-half')?.addEventListener('click', () => {
         if (engine.state === GameState.PLAYING) return;
         sounds.playClick();
@@ -346,7 +420,11 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
 
     // MAIN ACTION BUTTON
     btnAction.addEventListener('click', () => {
-        if (engine.state === GameState.IDLE || engine.state === GameState.WON || engine.state === GameState.CRASHED) {
+        if (
+            engine.state === GameState.IDLE ||
+            engine.state === GameState.WON ||
+            engine.state === GameState.CRASHED
+        ) {
             const bet = parseFloat(betInput.value) || 10;
             engine.startBet(bet, engine.minesCount, engine.luckyBoost, engine.shieldPurchased);
         } else if (engine.state === GameState.PLAYING) {
@@ -368,23 +446,28 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
         if (isAutoRunning) {
             isAutoRunning = false;
             if (autoInterval) clearInterval(autoInterval);
-            autoActionBtn.className = 'w-full bg-stake-green hover:bg-[#00d601] text-stake-dark font-black rounded-xl py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_4px_0_#00b001] active:translate-y-1 active:shadow-none cursor-pointer';
-            autoBtnTitle.innerText = 'INICIAR AUTO APUESTA';
+            autoActionBtn.className =
+                'stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer';
+            autoBtnTitle.innerText = 'INICIAR PILOTO AUTOMÁTICO';
         } else {
             isAutoRunning = true;
-            autoActionBtn.className = 'w-full bg-stake-red hover:bg-[#d00e35] text-white font-black rounded-xl py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_4px_0_#b00c2d] active:translate-y-1 active:shadow-none cursor-pointer';
-            autoBtnTitle.innerText = 'DETENER AUTO APUESTA';
+            autoActionBtn.className =
+                'w-full bg-[#ff1e42] hover:bg-[#e01537] text-white font-black rounded-lg py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_3px_0_#9e0b22] cursor-pointer';
+            autoBtnTitle.innerText = 'DETENER PILOTO AUTOMÁTICO';
 
-            const roundsTotal = parseInt((document.getElementById('auto-bet-count') as HTMLInputElement).value, 10) || 10;
-            const targetRow = parseInt((document.getElementById('auto-cashout-row') as HTMLInputElement).value, 10) || 3;
+            const roundsTotal =
+                parseInt((document.getElementById('auto-bet-count') as HTMLInputElement).value, 10) || 10;
+            const targetRow =
+                parseInt((document.getElementById('auto-cashout-row') as HTMLInputElement).value, 10) || 3;
             let roundsCompleted = 0;
 
             const runAutoStep = () => {
                 if (!isAutoRunning || roundsCompleted >= roundsTotal) {
                     isAutoRunning = false;
                     if (autoInterval) clearInterval(autoInterval);
-                    autoActionBtn.className = 'w-full bg-stake-green hover:bg-[#00d601] text-stake-dark font-black rounded-xl py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_4px_0_#00b001] active:translate-y-1 active:shadow-none cursor-pointer';
-                    autoBtnTitle.innerText = 'INICIAR AUTO APUESTA';
+                    autoActionBtn.className =
+                        'stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer';
+                    autoBtnTitle.innerText = 'INICIAR PILOTO AUTOMÁTICO';
                     return;
                 }
 
@@ -394,7 +477,6 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
                     engine.startBet(bet, engine.minesCount, engine.luckyBoost, engine.shieldPurchased);
                 } else {
                     const specials = engine.getSpecialsForRow(engine.currentRow);
-                    // In Lucky Boost mode, prefer Golden or Alien lanes if available!
                     let chosenLane = Math.floor(Math.random() * 5);
                     if (engine.luckyBoost) {
                         if (specials.alienLane !== null) chosenLane = specials.alienLane;
@@ -410,7 +492,7 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
                 }
             };
 
-            autoInterval = window.setInterval(runAutoStep, 350);
+            autoInterval = window.setInterval(runAutoStep, 340);
         }
     });
 
@@ -424,25 +506,25 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
     engine.onHistoryUpdate((summaries) => {
         if (summaries.length === 0) {
             historyContainer.innerHTML = `
-                <span class="text-[10px] text-gray-400 font-bold uppercase">HISTORIAL:</span>
-                <span class="text-[10px] text-gray-500 italic">Sin rondas previas</span>
+                <span class="text-[9px] text-[#6d8496] font-bold uppercase tracking-wider">HISTORIAL:</span>
+                <span class="text-[10px] text-[#53697a] font-mono">SIN REGISTROS</span>
             `;
             return;
         }
 
-        historyContainer.innerHTML = `<span class="text-[10px] text-gray-400 font-bold uppercase mr-1">HISTORIAL:</span>`;
+        historyContainer.innerHTML = `<span class="text-[9px] text-[#6d8496] font-bold uppercase tracking-wider mr-1">HISTORIAL:</span>`;
         summaries.slice(0, 7).forEach((s) => {
             const pill = document.createElement('button');
             const isWin = s.isWin && s.finalMultiplier > 0;
-            pill.className = `px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-transform hover:scale-105 cursor-pointer ${
+            pill.className = `px-2 py-0.5 rounded text-[10px] font-mono font-bold tabular-nums transition-transform hover:scale-105 cursor-pointer ${
                 isWin
                     ? s.finalMultiplier >= 5
-                        ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
-                        : 'bg-stake-green/20 text-stake-green border border-stake-green/40'
-                    : 'bg-stake-red/20 text-stake-red border border-stake-red/40'
+                        ? 'bg-[#ffc700]/15 text-[#ffc700] border border-[#ffc700]/40'
+                        : 'bg-[#00e701]/15 text-[#00e701] border border-[#00e701]/40'
+                    : 'bg-[#213743] text-[#7f96a7] border border-[#2f4553]'
             }`;
-            pill.innerText = isWin ? `+${formatMultiplier(s.finalMultiplier)}` : '0.00x';
-            pill.title = `Ronda #${s.nonce} - Haz clic para auditar provably fair`;
+            pill.innerText = isWin ? `${formatMultiplier(s.finalMultiplier)}` : '0.00x';
+            pill.title = `Ronda #${s.nonce} — Auditar Provably Fair`;
             pill.addEventListener('click', () => {
                 const modal = document.getElementById('seed-modal');
                 if (modal) {
@@ -464,6 +546,10 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
     // STATE CHANGE LISTENER
     engine.onStateChange((state, eng) => {
         multText.innerText = formatMultiplier(eng.currentMultiplier);
+        multText.classList.remove('mult-pop');
+        void multText.offsetWidth;
+        multText.classList.add('mult-pop');
+
         updateBonusUI();
 
         if (state === GameState.PLAYING) {
@@ -473,14 +559,14 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
                 const remainingPayout = eng.activeBetAmount * eng.currentMultiplier;
                 const halfPayout = Math.floor(remainingPayout * 0.5 * 100) / 100;
 
-                btnAction.className = 'flex-[1.5] w-full bg-stake-green hover:bg-[#00d601] text-stake-dark font-black rounded-xl py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_4px_0_#00b001] active:translate-y-1 active:shadow-none cursor-pointer';
+                btnAction.className =
+                    'stake-cta-green flex-[1.6] w-full rounded-lg py-2 flex flex-col items-center justify-center cursor-pointer';
                 actionTitle.innerText = 'CASHOUT';
                 actionSubtitle.innerText = `COBRAR: ${formatCurrency(remainingPayout)}`;
                 actionSubtitle.classList.remove('hidden');
                 btnAction.disabled = false;
                 btnAction.style.opacity = '1';
 
-                // Partial 50% Cashout button
                 btnPartial.classList.remove('hidden');
                 btnPartial.classList.add('flex');
                 if (eng.canPartialCashout()) {
@@ -489,21 +575,22 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
                     partialSubtitle.innerText = `${formatCurrency(halfPayout)} Y SEGUIR`;
                 } else {
                     btnPartial.disabled = true;
-                    btnPartial.style.opacity = '0.45';
+                    btnPartial.style.opacity = '0.4';
                     partialSubtitle.innerText = `50% ASEGURADO`;
                 }
             } else {
                 btnPartial.classList.add('hidden');
                 btnPartial.classList.remove('flex');
 
-                btnAction.className = 'w-full bg-stake-card text-gray-400 font-bold rounded-xl py-2.5 flex flex-col items-center justify-center border border-stake-border';
-                actionTitle.innerText = 'ELIGE UN CARRIL EN FILA 01';
+                btnAction.className =
+                    'w-full bg-[#15242e] text-[#8ea4b8] font-bold rounded-lg py-2.5 flex flex-col items-center justify-center border border-[#243847]';
+                actionTitle.innerText = 'SELECCIONA UN CARRIL EN FILA 01';
                 actionSubtitle.classList.add('hidden');
                 btnAction.disabled = true;
-                btnAction.style.opacity = '0.7';
             }
 
-            multText.className = 'text-3xl font-black text-stake-green tracking-tight drop-shadow-[0_0_12px_rgba(0,231,1,0.4)]';
+            multText.className =
+                'text-2xl font-mono font-extrabold text-[#00e701] tabular-nums tracking-tight drop-shadow-[0_0_10px_rgba(0,231,1,0.35)] mult-pop';
         } else {
             betInput.disabled = false;
             btnAction.disabled = false;
@@ -512,18 +599,21 @@ export function createControlsUI(container: HTMLElement, engine: GameEngine) {
             btnPartial.classList.add('hidden');
             btnPartial.classList.remove('flex');
 
-            btnAction.className = 'w-full bg-stake-green hover:bg-[#00d601] text-stake-dark font-black rounded-xl py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_4px_0_#00b001] active:translate-y-1 active:shadow-none cursor-pointer';
-            actionTitle.innerText = 'COMENZAR APUESTA';
+            btnAction.className =
+                'stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer';
+            actionTitle.innerText = 'DESCENDER';
 
             if (state === GameState.CRASHED) {
-                multText.className = 'text-3xl font-black text-stake-red tracking-tight drop-shadow-[0_0_12px_rgba(233,17,60,0.5)]';
+                multText.className =
+                    'text-2xl font-mono font-extrabold text-[#ff1e42] tabular-nums tracking-tight drop-shadow-[0_0_10px_rgba(255,30,66,0.45)]';
             } else {
-                multText.className = 'text-3xl font-black text-stake-green tracking-tight drop-shadow-[0_0_12px_rgba(0,231,1,0.4)]';
+                multText.className =
+                    'text-2xl font-mono font-extrabold text-[#00e701] tabular-nums tracking-tight drop-shadow-[0_0_10px_rgba(0,231,1,0.35)]';
             }
         }
     });
 
-    // Wire up triggers for Modals
+    // Modal Triggers
     document.getElementById('header-fair-btn')?.addEventListener('click', () => {
         sounds.playClick();
         const modal = document.getElementById('seed-modal');
