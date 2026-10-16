@@ -40,7 +40,7 @@ const loop = new RenderLoop(renderer, engine);
 
 // Ensure resize observer keeps canvas sharp if dock height changes (e.g. Manual <-> Auto tab)
 const resizeObs = new ResizeObserver(() => {
-    renderer.setupDPI();
+    renderer.setupDPI(true);
 });
 resizeObs.observe(stageContainer);
 

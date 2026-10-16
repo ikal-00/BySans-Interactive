@@ -29,8 +29,8 @@ export class RenderLoop {
                         quad.cx,
                         quad.cy - 14,
                         `GOLD x${pick.boostApplied} // ${formatMultiplier(this.engine.currentMultiplier)}`,
-                        '#ffc700',
-                        1.1
+                        '#fde047',
+                        1.08
                     );
                 } else if (pick.specialType === 'ALIEN') {
                     sounds.playAlienLaser();
@@ -38,17 +38,18 @@ export class RenderLoop {
                     this.renderer.addFloatingText(
                         this.renderer.width / 2,
                         this.renderer.height * 0.36,
-                        `UFO INTERCEPT // +${pick.rowsSkipped} FILAS`,
-                        '#00f0ff',
-                        1.15
+                        `UFO +${pick.rowsSkipped} FILAS`,
+                        '#67e8f9',
+                        1.1
                     );
                 } else {
                     sounds.playSafeStep(pick.row);
                     this.renderer.addFloatingText(
                         quad.cx,
-                        quad.cy - 10,
-                        `+${formatMultiplier(this.engine.currentMultiplier)}`,
-                        '#00e701'
+                        quad.cy - 12,
+                        `${formatMultiplier(this.engine.currentMultiplier)}`,
+                        '#00e701',
+                        1.0
                     );
                 }
             } else if (pick.shieldSaved) {
@@ -56,10 +57,10 @@ export class RenderLoop {
                 this.renderer.triggerShieldBreakEffect(quad.cx, quad.cy);
                 this.renderer.addFloatingText(
                     this.renderer.width / 2,
-                    quad.cy - 18,
-                    `ESCUDO ABSORBIO MINA`,
-                    '#00f0ff',
-                    1.15
+                    quad.cy - 16,
+                    `ESCUDO INTACTO`,
+                    '#67e8f9',
+                    1.08
                 );
             } else {
                 sounds.playCrash();
@@ -73,27 +74,28 @@ export class RenderLoop {
             this.renderer.addFloatingText(
                 this.renderer.width / 2,
                 this.renderer.height * 0.44,
-                `50% ASEGURADO // +${formatCurrency(bankedAmount)}`,
-                '#ffc700',
-                1.08
+                `50% ASEGURADO +${formatCurrency(bankedAmount)}`,
+                '#fde047',
+                1.05
             );
         });
 
         // Full Cashout event
         this.engine.onCashout((payout) => {
             sounds.playCashout();
+            this.renderer.triggerWinCelebration();
             this.renderer.addFloatingText(
                 this.renderer.width / 2,
                 this.renderer.height * 0.40,
-                `COBRADO ${formatCurrency(payout)}`,
+                `+${formatCurrency(payout)}`,
                 '#00e701',
-                1.2
+                1.18
             );
         });
 
         this.engine.onStateChange((state) => {
             if (state === GameState.PLAYING) {
-                sounds.playClick();
+                sounds.playStartRound();
             }
         });
     }

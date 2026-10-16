@@ -1,6 +1,7 @@
 import { GameEngine } from '../game/engine';
 import { GameState } from '../math/types';
-import { formatMultiplier } from '../math/multipliers';
+import { formatMultiplier, calculateNextStepMultiplier } from '../math/multipliers';
+import { sounds } from '../audio/sounds';
 
 interface Shard {
     x: number;
@@ -18,7 +19,6 @@ interface FloatingBanner {
     x: number;
     y: number;
     text: string;
-    subtext?: string;
     color: string;
     alpha: number;
     vy: number;
@@ -34,12 +34,6 @@ interface ShockwaveRing {
     alpha: number;
 }
 
-interface TrailNode {
-    x: number;
-    y: number;
-    alpha: number;
-}
-
 interface AlienInterceptorEvent {
     active: boolean;
     progress: number;
@@ -51,43 +45,48 @@ export class CanvasRenderer {
     public canvas: HTMLCanvasElement;
     public ctx: CanvasRenderingContext2D;
 
-    // Virtual coordinate system
+    // Virtual coordinate space
     public readonly width = 420;
-    public readonly height = 540;
+    public readonly height = 520;
+
+    private lastPixelW = 0;
+    private lastPixelH = 0;
 
     // 3D Corridor Perspective Geometry
-    // Top horizon (vanishing trail of past rows) -> Bottom foreground (active row)
-    private readonly horizonY = 68;
-    private readonly bottomTrackY = 515;
-    private readonly topTrackWidth = 148;
-    private readonly bottomTrackWidth = 384;
+    private readonly horizonY = 52;
+    private readonly bottomTrackY = 502;
+    private readonly topTrackWidth = 136;
+    private readonly bottomTrackWidth = 386;
+
+    // Perspective Row Spacing:
+    // Active row sits comfortably at t = 0.74 in the foreground.
+    // The Arrow Ship rests further back ("hacia atrás") at t = 0.44 with clean open space ahead.
+    private readonly activeRowCenterT = 0.74;
+    private readonly rowDepthStep = 0.165;
+    private readonly shipRestT = 0.44;
 
     public hoverLane: number | null = null;
     private laneHoverProgress: number[] = [0, 0, 0, 0, 0];
 
-    // Spring-Physics Scroll Camera
+    // Monotonic Smooth Scroll Camera (Zero integer-boundary oscillation -> Zero row flicker)
     public cameraRow = 1;
-    private cameraVelocity = 0;
-    private scrollGridPhase = 0;
 
     // Arrow Ship ("La Flechita") Physics State
     public shipX = 210;
-    public shipY = 260;
-    private shipVx = 0;
-    private shipVy = 0;
-    private shipAngle = 0; // Dynamic banking / aiming angle in radians
-    private shipThrust = 0; // Forward dash impulse
-    private ribbonTrail: TrailNode[] = [];
+    public shipY = 215;
+    private shipAngle = 0;
+    private shipDashImpulse = 0; // Forward lunge when conquering a card
 
     // Effects state
     public screenShake = 0;
     public redFlashAlpha = 0;
     public cyanFlashAlpha = 0;
     public goldFlashAlpha = 0;
+    public greenFlashAlpha = 0;
     private shards: Shard[] = [];
     private banners: FloatingBanner[] = [];
     private shockwaves: ShockwaveRing[] = [];
-    private rowPopTimestamps: Map<number, number> = new Map();
+    private rowStepTimestamps: Map<number, number> = new Map();
 
     private alienEvent: AlienInterceptorEvent = {
         active: false,
@@ -97,21 +96,18 @@ export class CanvasRenderer {
     };
 
     private readonly colors = {
-        bgTop: '#08131b',
+        bgTop: '#071118',
         bgBottom: '#0f212e',
-        trackFill: 'rgba(18, 34, 46, 0.75)',
-        railOuter: '#2f4553',
-        railInner: '#1e3240',
         cardFace: '#1a2c38',
-        cardHover: '#223847',
+        cardHover: '#233b4b',
         cardBorder: '#2f4553',
         green: '#00e701',
         gold: '#f59e0b',
         goldLight: '#fde047',
         cyan: '#06b6d4',
         cyanLight: '#67e8f9',
-        red: '#e9113c',
-        textMuted: '#647f94',
+        red: '#ff1e42',
+        textMuted: '#5b7487',
         white: '#f8fafc'
     };
 
@@ -121,38 +117,50 @@ export class CanvasRenderer {
         if (!ctx) throw new Error('Could not acquire 2D context');
         this.ctx = ctx;
 
-        this.setupDPI();
-        window.addEventListener('resize', () => this.setupDPI());
+        this.setupDPI(true);
+        window.addEventListener('resize', () => this.setupDPI(true));
     }
 
-    public setupDPI() {
+    /**
+     * Updates canvas backing store ONLY when dimensions actually change,
+     * preventing 60fps buffer reallocation flicker.
+     */
+    public setupDPI(force = false) {
         const rect = this.canvas.getBoundingClientRect();
         const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
         const w = rect.width > 0 ? rect.width : this.width;
         const h = rect.height > 0 ? rect.height : this.height;
-        this.canvas.width = w * dpr;
-        this.canvas.height = h * dpr;
+        const pixelW = Math.round(w * dpr);
+        const pixelH = Math.round(h * dpr);
+
+        if (force || pixelW !== this.lastPixelW || pixelH !== this.lastPixelH) {
+            this.lastPixelW = pixelW;
+            this.lastPixelH = pixelH;
+            this.canvas.width = pixelW;
+            this.canvas.height = pixelH;
+        }
+
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-        this.ctx.scale((w * dpr) / this.width, (h * dpr) / this.height);
+        this.ctx.scale(pixelW / this.width, pixelH / this.height);
     }
 
     /**
      * Maps normalized depth t in [0, 1] (0 = upper horizon, 1 = bottom foreground)
-     * using perspective foreshortening so rows grow larger as you descend toward them.
+     * with smooth perspective foreshortening.
      */
     private depthToScreenY(t: number): number {
-        const clamped = Math.max(-0.2, Math.min(1.25, t));
+        const clamped = Math.max(-0.25, Math.min(1.3, t));
         if (clamped < 0) {
-            return this.horizonY + clamped * 90;
+            return this.horizonY + clamped * 85;
         }
-        return this.horizonY + Math.pow(clamped, 1.32) * (this.bottomTrackY - this.horizonY);
+        return this.horizonY + Math.pow(clamped, 1.28) * (this.bottomTrackY - this.horizonY);
     }
 
     /**
      * Returns horizontal span [left, right, width] of the 5-lane corridor at screen Y.
      */
     private getTrackSpanAtY(y: number): { left: number; right: number; width: number } {
-        const t = Math.max(0, Math.min(1.15, (y - this.horizonY) / (this.bottomTrackY - this.horizonY)));
+        const t = Math.max(0, Math.min(1.2, (y - this.horizonY) / (this.bottomTrackY - this.horizonY)));
         const trackWidth = this.topTrackWidth + t * (this.bottomTrackWidth - this.topTrackWidth);
         const centerX = this.width / 2;
         return {
@@ -164,10 +172,6 @@ export class CanvasRenderer {
 
     /**
      * Computes the 2D perspective trapezoid/quad for a given (row, lane).
-     * Note the true descent orientation:
-     * - Active row (`row === cameraRow`) sits in the foreground at depth t ≈ 0.76.
-     * - Past cleared rows (`row < cameraRow`) trail behind/above the ship (t < 0.60) toward the horizon!
-     * - Upcoming rows (`row > cameraRow`) emerge at the bottom (t > 0.88).
      */
     public getCellQuad(row: number, lane: number): {
         xTL: number;
@@ -184,13 +188,10 @@ export class CanvasRenderer {
         cy: number;
         depthT: number;
     } {
-        const rowDepthStep = 0.145;
-        const activeRowCenterT = 0.75;
-        const relRow = row - this.cameraRow; // 0 for active row, negative for past rows above, +1 for next row below
-
-        const centerT = activeRowCenterT + relRow * rowDepthStep;
-        const topT = centerT - rowDepthStep * 0.44;
-        const bottomT = centerT + rowDepthStep * 0.44;
+        const relRow = row - this.cameraRow;
+        const centerT = this.activeRowCenterT + relRow * this.rowDepthStep;
+        const topT = centerT - this.rowDepthStep * 0.42;
+        const bottomT = centerT + this.rowDepthStep * 0.42;
 
         const yTop = this.depthToScreenY(topT);
         const yBottom = this.depthToScreenY(bottomT);
@@ -226,7 +227,11 @@ export class CanvasRenderer {
         };
     }
 
-    public getClickTarget(clientX: number, clientY: number, activeRow: number): { row: number; lane: number } | null {
+    public getClickTarget(
+        clientX: number,
+        clientY: number,
+        activeRow: number
+    ): { row: number; lane: number } | null {
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.width / rect.width;
         const scaleY = this.height / rect.height;
@@ -236,8 +241,13 @@ export class CanvasRenderer {
         for (let l = 0; l < 5; l++) {
             const quad = this.getCellQuad(activeRow, l);
             const padX = quad.w * 0.12;
-            const padY = quad.h * 0.22;
-            if (cx >= quad.x1 - padX && cx <= quad.x2 + padX && cy >= quad.y1 - padY && cy <= quad.y2 + padY) {
+            const padY = quad.h * 0.24;
+            if (
+                cx >= quad.x1 - padX &&
+                cx <= quad.x2 + padX &&
+                cy >= quad.y1 - padY &&
+                cy <= quad.y2 + padY
+            ) {
                 return { row: activeRow, lane: l };
             }
         }
@@ -246,7 +256,11 @@ export class CanvasRenderer {
 
     public updateHover(clientX: number, clientY: number, activeRow: number) {
         const target = this.getClickTarget(clientX, clientY, activeRow);
-        this.hoverLane = target ? target.lane : null;
+        const newLane = target ? target.lane : null;
+        if (newLane !== null && newLane !== this.hoverLane) {
+            sounds.playHoverTick(newLane);
+        }
+        this.hoverLane = newLane;
     }
 
     public clearHover() {
@@ -254,34 +268,75 @@ export class CanvasRenderer {
     }
 
     public notifyStep(row: number) {
-        this.rowPopTimestamps.set(row, performance.now());
-        this.shipThrust = 1.0;
+        this.rowStepTimestamps.set(row, performance.now());
+        this.shipDashImpulse = 1.0;
+
+        // Subtle dopamine shockwave on every conquered step
+        const lastLane = this.hoverLane ?? 2;
+        const q = this.getCellQuad(row, lastLane);
+        this.shockwaves.push({
+            x: q.cx,
+            y: q.cy,
+            radius: 6,
+            maxRadius: 48,
+            color: this.colors.green,
+            alpha: 0.65
+        });
+    }
+
+    public triggerWinCelebration() {
+        this.greenFlashAlpha = 0.16;
+        this.shockwaves.push({
+            x: this.shipX,
+            y: this.shipY,
+            radius: 10,
+            maxRadius: 120,
+            color: this.colors.green,
+            alpha: 0.9
+        });
+
+        const winColors = ['#00e701', '#86efac', '#fde047', '#ffffff'];
+        for (let i = 0; i < 28; i++) {
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.4;
+            const speed = 2.5 + Math.random() * 6.5;
+            this.shards.push({
+                x: this.shipX + (Math.random() - 0.5) * 30,
+                y: this.shipY,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 1.5,
+                rot: Math.random() * Math.PI * 2,
+                vRot: (Math.random() - 0.5) * 0.25,
+                length: 5 + Math.random() * 8,
+                alpha: 1.0,
+                color: winColors[i % winColors.length]
+            });
+        }
     }
 
     public triggerCrashEffect(cx: number, cy: number) {
-        this.screenShake = 20;
-        this.redFlashAlpha = 0.42;
+        this.screenShake = 16;
+        this.redFlashAlpha = 0.36;
         this.shockwaves.push({
             x: cx,
             y: cy,
             radius: 8,
-            maxRadius: 115,
+            maxRadius: 110,
             color: this.colors.red,
             alpha: 1.0
         });
 
-        const shardColors = ['#ffffff', '#e9113c', '#ff6b8b', '#e9113c'];
-        for (let i = 0; i < 38; i++) {
+        const shardColors = ['#ffffff', '#ff1e42', '#ff6b8b', '#ff1e42'];
+        for (let i = 0; i < 34; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = 3.5 + Math.random() * 8.5;
+            const speed = 3.0 + Math.random() * 8.0;
             this.shards.push({
                 x: cx,
                 y: cy,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 1.5,
+                vy: Math.sin(angle) * speed - 1.2,
                 rot: Math.random() * Math.PI * 2,
                 vRot: (Math.random() - 0.5) * 0.35,
-                length: 6 + Math.random() * 12,
+                length: 6 + Math.random() * 11,
                 alpha: 1.0,
                 color: shardColors[i % shardColors.length]
             });
@@ -289,21 +344,21 @@ export class CanvasRenderer {
     }
 
     public triggerGoldenBurst(cx: number, cy: number) {
-        this.screenShake = 7;
-        this.goldFlashAlpha = 0.20;
+        this.screenShake = 6;
+        this.goldFlashAlpha = 0.18;
         this.shockwaves.push({
             x: cx,
             y: cy,
             radius: 8,
-            maxRadius: 95,
+            maxRadius: 90,
             color: this.colors.goldLight,
             alpha: 1.0
         });
 
         const goldColors = ['#fde047', '#f59e0b', '#ffffff'];
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < 22; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = 2.5 + Math.random() * 5.5;
+            const speed = 2.2 + Math.random() * 5.0;
             this.shards.push({
                 x: cx,
                 y: cy,
@@ -311,7 +366,7 @@ export class CanvasRenderer {
                 vy: Math.sin(angle) * speed - 1,
                 rot: Math.random() * Math.PI * 2,
                 vRot: (Math.random() - 0.5) * 0.3,
-                length: 5 + Math.random() * 9,
+                length: 5 + Math.random() * 8,
                 alpha: 1.0,
                 color: goldColors[i % goldColors.length]
             });
@@ -319,21 +374,21 @@ export class CanvasRenderer {
     }
 
     public triggerShieldBreakEffect(cx: number, cy: number) {
-        this.screenShake = 13;
-        this.cyanFlashAlpha = 0.28;
+        this.screenShake = 11;
+        this.cyanFlashAlpha = 0.24;
         this.shockwaves.push({
             x: cx,
             y: cy,
             radius: 10,
-            maxRadius: 110,
+            maxRadius: 105,
             color: this.colors.cyanLight,
             alpha: 1.0
         });
 
         const shieldColors = ['#67e8f9', '#06b6d4', '#ffffff'];
-        for (let i = 0; i < 26; i++) {
+        for (let i = 0; i < 24; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = 3 + Math.random() * 6.5;
+            const speed = 2.8 + Math.random() * 6.0;
             this.shards.push({
                 x: cx,
                 y: cy,
@@ -341,7 +396,7 @@ export class CanvasRenderer {
                 vy: Math.sin(angle) * speed,
                 rot: Math.random() * Math.PI * 2,
                 vRot: (Math.random() - 0.5) * 0.3,
-                length: 6 + Math.random() * 10,
+                length: 6 + Math.random() * 9,
                 alpha: 1.0,
                 color: shieldColors[i % shieldColors.length]
             });
@@ -349,8 +404,8 @@ export class CanvasRenderer {
     }
 
     public triggerAlienUfoAttack(cx: number, cy: number) {
-        this.screenShake = 14;
-        this.cyanFlashAlpha = 0.25;
+        this.screenShake = 12;
+        this.cyanFlashAlpha = 0.22;
 
         this.alienEvent = {
             active: true,
@@ -363,38 +418,41 @@ export class CanvasRenderer {
             x: cx,
             y: cy,
             radius: 12,
-            maxRadius: 140,
+            maxRadius: 130,
             color: this.colors.cyanLight,
             alpha: 1.0
         });
 
         const colors = ['#67e8f9', '#00e701', '#ffffff'];
-        for (let i = 0; i < 36; i++) {
+        for (let i = 0; i < 30; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = 3 + Math.random() * 7;
+            const speed = 2.8 + Math.random() * 6.5;
             this.shards.push({
-                x: cx + (Math.random() - 0.5) * 120,
-                y: cy + (Math.random() - 0.5) * 60,
+                x: cx + (Math.random() - 0.5) * 100,
+                y: cy + (Math.random() - 0.5) * 50,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 rot: Math.random() * Math.PI * 2,
                 vRot: (Math.random() - 0.5) * 0.35,
-                length: 7 + Math.random() * 12,
+                length: 6 + Math.random() * 10,
                 alpha: 1.0,
                 color: colors[i % colors.length]
             });
         }
     }
 
-    public addFloatingText(x: number, y: number, text: string, color = '#00e701', scale = 1.0, subtext?: string) {
+    public addFloatingText(x: number, y: number, text: string, color = '#00e701', scale = 1.0) {
+        // Keep at most 2 floating banners at once to prevent visual clutter
+        if (this.banners.length >= 2) {
+            this.banners.shift();
+        }
         this.banners.push({
             x,
             y,
             text,
-            subtext,
             color,
             alpha: 1.0,
-            vy: -1.1,
+            vy: -0.95,
             scale
         });
     }
@@ -403,7 +461,8 @@ export class CanvasRenderer {
      * Master 60 FPS Render Loop
      */
     public render(engine: GameEngine, time: number) {
-        this.setupDPI();
+        this.setupDPI(false);
+        this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.save();
 
         // Screen shake
@@ -411,27 +470,24 @@ export class CanvasRenderer {
             const dx = (Math.random() - 0.5) * this.screenShake;
             const dy = (Math.random() - 0.5) * this.screenShake;
             this.ctx.translate(dx, dy);
-            this.screenShake *= 0.87;
+            this.screenShake *= 0.86;
             if (this.screenShake < 0.2) this.screenShake = 0;
         }
 
-        // 1. Update Spring-Physics Scroll Camera
+        // 1. Update Monotonic Critically-Damped Scroll Camera (Never oscillates across integers)
         const targetRow = engine.state === GameState.IDLE ? 1 : Math.max(1, engine.currentRow);
         if (engine.state === GameState.PLAYING && engine.currentRow === 1 && engine.currentPicks.length === 0) {
-            // Reset ribbon when starting a brand new round
-            if (this.cameraRow > 1.8) {
+            if (this.cameraRow > 1.5) {
                 this.cameraRow = 1;
-                this.cameraVelocity = 0;
-                this.ribbonTrail = [];
             }
         }
 
-        const springForce = (targetRow - this.cameraRow) * 0.14;
-        this.cameraVelocity = (this.cameraVelocity + springForce) * 0.72;
-        this.cameraRow += this.cameraVelocity;
-
-        // Scroll phase for side rail motion ticks
-        this.scrollGridPhase = (this.scrollGridPhase + this.cameraVelocity * 42) % 24;
+        const diff = targetRow - this.cameraRow;
+        if (Math.abs(diff) < 0.0008) {
+            this.cameraRow = targetRow;
+        } else {
+            this.cameraRow += diff * 0.15;
+        }
 
         // 2. Render Background & Corridor
         this.drawBackground(engine);
@@ -440,14 +496,14 @@ export class CanvasRenderer {
         // 3. Draw Conquered Trajectory Path (connecting cleared rows into the Arrow Ship)
         this.drawConqueredPath(engine);
 
-        // 4. Draw Rows (from oldest visible at horizon down to upcoming at bottom)
+        // 4. Draw Rows with smooth top AND bottom fade envelopes (Zero flickering)
         const minRow = Math.max(1, Math.floor(this.cameraRow - 4));
-        const maxRow = Math.ceil(this.cameraRow + 1);
+        const maxRow = Math.floor(this.cameraRow + 2);
         for (let r = minRow; r <= maxRow; r++) {
-            this.drawRow(engine, r, time);
+            this.drawRow(engine, r);
         }
 
-        // 5. Draw Aiming Reticle & Arrow Ship ("La Flechita")
+        // 5. Draw Arrow Ship ("La Flechita") poised further back with targeting guide
         this.drawArrowShip(engine, time);
 
         // 6. Draw Alien Interceptor Saucer & Laser Matrix
@@ -460,19 +516,24 @@ export class CanvasRenderer {
 
         // 8. Screen Flashes
         if (this.redFlashAlpha > 0) {
-            this.ctx.fillStyle = `rgba(233, 17, 60, ${this.redFlashAlpha})`;
+            this.ctx.fillStyle = `rgba(255, 30, 66, ${this.redFlashAlpha})`;
             this.ctx.fillRect(0, 0, this.width, this.height);
-            this.redFlashAlpha *= 0.87;
+            this.redFlashAlpha *= 0.86;
         }
         if (this.cyanFlashAlpha > 0) {
             this.ctx.fillStyle = `rgba(6, 182, 212, ${this.cyanFlashAlpha})`;
             this.ctx.fillRect(0, 0, this.width, this.height);
-            this.cyanFlashAlpha *= 0.87;
+            this.cyanFlashAlpha *= 0.86;
         }
         if (this.goldFlashAlpha > 0) {
             this.ctx.fillStyle = `rgba(245, 158, 11, ${this.goldFlashAlpha})`;
             this.ctx.fillRect(0, 0, this.width, this.height);
-            this.goldFlashAlpha *= 0.87;
+            this.goldFlashAlpha *= 0.86;
+        }
+        if (this.greenFlashAlpha > 0) {
+            this.ctx.fillStyle = `rgba(0, 231, 1, ${this.greenFlashAlpha})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+            this.greenFlashAlpha *= 0.88;
         }
 
         this.ctx.restore();
@@ -481,26 +542,26 @@ export class CanvasRenderer {
     private drawBackground(engine: GameEngine) {
         const grad = this.ctx.createLinearGradient(0, 0, 0, this.height);
         grad.addColorStop(0, this.colors.bgTop);
-        grad.addColorStop(0.55, '#0c1b26');
+        grad.addColorStop(0.5, '#0b1924');
         grad.addColorStop(1, this.colors.bgBottom);
         this.ctx.fillStyle = grad;
         this.ctx.fillRect(0, 0, this.width, this.height);
 
-        // Horizon focal glow
+        // Subtle horizon focal glow
         const horizonGrad = this.ctx.createRadialGradient(
             this.width / 2,
-            this.horizonY + 10,
-            8,
+            this.horizonY + 12,
+            6,
             this.width / 2,
-            this.horizonY + 10,
-            210
+            this.horizonY + 12,
+            195
         );
         if (engine.luckyBoost) {
-            horizonGrad.addColorStop(0, 'rgba(245, 158, 11, 0.14)');
-            horizonGrad.addColorStop(0.5, 'rgba(0, 231, 1, 0.04)');
+            horizonGrad.addColorStop(0, 'rgba(245, 158, 11, 0.11)');
+            horizonGrad.addColorStop(0.5, 'rgba(0, 231, 1, 0.03)');
         } else {
-            horizonGrad.addColorStop(0, 'rgba(0, 231, 1, 0.07)');
-            horizonGrad.addColorStop(0.5, 'rgba(26, 44, 56, 0.15)');
+            horizonGrad.addColorStop(0, 'rgba(0, 231, 1, 0.06)');
+            horizonGrad.addColorStop(0.5, 'rgba(26, 44, 56, 0.12)');
         }
         horizonGrad.addColorStop(1, 'transparent');
         this.ctx.fillStyle = horizonGrad;
@@ -513,9 +574,9 @@ export class CanvasRenderer {
 
         // Corridor floor surface
         const trackGrad = this.ctx.createLinearGradient(0, this.horizonY, 0, this.bottomTrackY);
-        trackGrad.addColorStop(0, 'rgba(15, 33, 46, 0.25)');
-        trackGrad.addColorStop(0.3, 'rgba(22, 41, 54, 0.65)');
-        trackGrad.addColorStop(1, 'rgba(15, 33, 46, 0.90)');
+        trackGrad.addColorStop(0, 'rgba(13, 28, 39, 0.2)');
+        trackGrad.addColorStop(0.35, 'rgba(19, 36, 48, 0.65)');
+        trackGrad.addColorStop(1, 'rgba(15, 33, 46, 0.92)');
 
         this.ctx.fillStyle = trackGrad;
         this.ctx.beginPath();
@@ -526,7 +587,7 @@ export class CanvasRenderer {
         this.ctx.closePath();
         this.ctx.fill();
 
-        // 6 Longitudinal perspective lane rails
+        // 6 Longitudinal perspective lane rails (subtle, crisp)
         for (let i = 0; i <= 5; i++) {
             const topX = topSpan.left + (i * topSpan.width) / 5;
             const bottomX = bottomSpan.left + (i * bottomSpan.width) / 5;
@@ -534,10 +595,10 @@ export class CanvasRenderer {
             const isOuter = i === 0 || i === 5;
             this.ctx.strokeStyle = isOuter
                 ? engine.luckyBoost
-                    ? 'rgba(245, 158, 11, 0.45)'
-                    : '#334d5e'
-                : 'rgba(47, 69, 83, 0.45)';
-            this.ctx.lineWidth = isOuter ? 2.0 : 1.0;
+                    ? 'rgba(245, 158, 11, 0.38)'
+                    : '#2d4657'
+                : 'rgba(47, 69, 83, 0.32)';
+            this.ctx.lineWidth = isOuter ? 1.8 : 1.0;
 
             this.ctx.beginPath();
             this.ctx.moveTo(topX, this.horizonY);
@@ -545,35 +606,33 @@ export class CanvasRenderer {
             this.ctx.stroke();
         }
 
-        // Animated scrolling depth chevrons along outer rails to accentuate scroll velocity
-        const numTicks = 12;
-        this.ctx.strokeStyle = 'rgba(100, 127, 148, 0.25)';
-        this.ctx.lineWidth = 1.5;
+        // Scrolling depth ticks along outer rails
+        const numTicks = 10;
+        this.ctx.strokeStyle = 'rgba(100, 127, 148, 0.22)';
+        this.ctx.lineWidth = 1.2;
         for (let i = 0; i < numTicks; i++) {
-            const rawT = ((i / numTicks) - (this.cameraRow * 0.145) % 1 + 10) % 1;
+            const rawT = ((i / numTicks) - (this.cameraRow * this.rowDepthStep) % 1 + 10) % 1;
             const y = this.depthToScreenY(rawT);
-            if (y < this.horizonY + 8 || y > this.bottomTrackY - 8) continue;
+            if (y < this.horizonY + 12 || y > this.bottomTrackY - 12) continue;
             const span = this.getTrackSpanAtY(y);
-            // Left tick
             this.ctx.beginPath();
-            this.ctx.moveTo(span.left - 6, y);
+            this.ctx.moveTo(span.left - 5, y);
             this.ctx.lineTo(span.left - 2, y);
-            // Right tick
             this.ctx.moveTo(span.right + 2, y);
-            this.ctx.lineTo(span.right + 6, y);
+            this.ctx.lineTo(span.right + 5, y);
             this.ctx.stroke();
         }
 
         // Top horizon fade vignette
-        const topFade = this.ctx.createLinearGradient(0, this.horizonY - 5, 0, this.horizonY + 38);
+        const topFade = this.ctx.createLinearGradient(0, this.horizonY - 4, 0, this.horizonY + 34);
         topFade.addColorStop(0, this.colors.bgTop);
-        topFade.addColorStop(1, 'rgba(8, 19, 27, 0)');
+        topFade.addColorStop(1, 'rgba(7, 17, 24, 0)');
         this.ctx.fillStyle = topFade;
-        this.ctx.fillRect(0, this.horizonY - 5, this.width, 44);
+        this.ctx.fillRect(0, this.horizonY - 4, this.width, 38);
     }
 
     /**
-     * Draws a glowing vector flight trajectory connecting all cleared lanes into the Arrow Ship!
+     * Draws a clean, minimalist trajectory line connecting conquered nodes into the Arrow Ship.
      */
     private drawConqueredPath(engine: GameEngine) {
         if (engine.currentPicks.length === 0) return;
@@ -582,14 +641,11 @@ export class CanvasRenderer {
         for (const pick of engine.currentPicks) {
             if (!pick.isSafe && !pick.shieldSaved) continue;
             const q = this.getCellQuad(pick.row, pick.lane);
-            if (q.cy >= this.horizonY - 20 && q.cy <= this.bottomTrackY + 20) {
+            if (q.cy >= this.horizonY - 15 && q.cy <= this.bottomTrackY) {
                 points.push({ x: q.cx, y: q.cy });
             }
         }
 
-        if (points.length === 0) return;
-
-        // Connect last point to the Arrow Ship's current position
         if (engine.state !== GameState.CRASHED) {
             points.push({ x: this.shipX, y: this.shipY });
         }
@@ -597,21 +653,12 @@ export class CanvasRenderer {
         if (points.length < 2) return;
 
         this.ctx.save();
-        // Outer glow line
-        this.ctx.strokeStyle = engine.luckyBoost ? 'rgba(245, 158, 11, 0.28)' : 'rgba(0, 231, 1, 0.25)';
-        this.ctx.lineWidth = 5;
+        this.ctx.strokeStyle = engine.luckyBoost
+            ? 'rgba(253, 224, 71, 0.45)'
+            : 'rgba(0, 231, 1, 0.42)';
+        this.ctx.lineWidth = 1.8;
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
-        this.ctx.beginPath();
-        points.forEach((pt, idx) => {
-            if (idx === 0) this.ctx.moveTo(pt.x, pt.y);
-            else this.ctx.lineTo(pt.x, pt.y);
-        });
-        this.ctx.stroke();
-
-        // Inner crisp vector core
-        this.ctx.strokeStyle = engine.luckyBoost ? this.colors.goldLight : this.colors.green;
-        this.ctx.lineWidth = 1.8;
         this.ctx.beginPath();
         points.forEach((pt, idx) => {
             if (idx === 0) this.ctx.moveTo(pt.x, pt.y);
@@ -621,30 +668,35 @@ export class CanvasRenderer {
         this.ctx.restore();
     }
 
-    private drawRow(engine: GameEngine, row: number, time: number) {
+    private drawRow(engine: GameEngine, row: number) {
         const sampleQuad = this.getCellQuad(row, 0);
-        if (sampleQuad.y2 < this.horizonY + 2 || sampleQuad.y1 > this.bottomTrackY + 15) return;
+        if (sampleQuad.y2 < this.horizonY || sampleQuad.y1 > this.bottomTrackY + 28) return;
 
-        // Fade out rows near the very top horizon
-        const horizonAlpha = Math.max(0, Math.min(1, (sampleQuad.cy - this.horizonY) / 48));
+        // Smooth alpha envelope at BOTH top horizon and bottom emergence edge!
+        // This guarantees upcoming rows never flicker or pop abruptly.
+        const topAlpha = Math.max(0, Math.min(1, (sampleQuad.cy - (this.horizonY + 6)) / 44));
+        const bottomAlpha = Math.max(0, Math.min(1, (this.bottomTrackY + 14 - sampleQuad.cy) / 56));
+        const rowAlpha = topAlpha * bottomAlpha;
+        if (rowAlpha <= 0.01) return;
+
         this.ctx.save();
-        this.ctx.globalAlpha = horizonAlpha;
+        this.ctx.globalAlpha = rowAlpha;
 
         const spanBottom = this.getTrackSpanAtY(sampleQuad.y2);
 
-        // Horizontal row divider
-        this.ctx.strokeStyle = 'rgba(47, 69, 83, 0.55)';
+        // Subtle horizontal row line
+        this.ctx.strokeStyle = 'rgba(47, 69, 83, 0.38)';
         this.ctx.lineWidth = 1;
         this.ctx.beginPath();
         this.ctx.moveTo(spanBottom.left, sampleQuad.y2);
         this.ctx.lineTo(spanBottom.right, sampleQuad.y2);
         this.ctx.stroke();
 
-        // Row label on left rail ("01", "02", "FILA 03")
+        // Row depth label on left rail ("01", "02", "03")
         const isActiveRow = row === engine.currentRow && engine.state === GameState.PLAYING;
         const isAlienCleared = engine.alienDestroyedRows.has(row);
         const labelScale = Math.max(0.65, Math.min(1.0, spanBottom.width / this.bottomTrackWidth));
-        const fontSize = Math.round(10 * labelScale);
+        const fontSize = Math.round(9.5 * labelScale);
 
         this.ctx.font = `700 ${fontSize}px "JetBrains Mono", monospace`;
         this.ctx.fillStyle = isActiveRow
@@ -654,18 +706,19 @@ export class CanvasRenderer {
               : this.colors.textMuted;
         this.ctx.textAlign = 'right';
         this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(`F${row.toString().padStart(2, '0')}`, spanBottom.left - 8, sampleQuad.cy);
+        this.ctx.fillText(row.toString().padStart(2, '0'), spanBottom.left - 8, sampleQuad.cy);
 
         for (let lane = 0; lane < 5; lane++) {
-            this.drawCell(engine, row, lane, time);
+            this.drawCell(engine, row, lane);
         }
 
         this.ctx.restore();
     }
 
-    private drawCell(engine: GameEngine, row: number, lane: number, time: number) {
+    private drawCell(engine: GameEngine, row: number, lane: number) {
         const quad = this.getCellQuad(row, lane);
         const isActiveRow = row === engine.currentRow && engine.state === GameState.PLAYING;
+        const isIdleFirstRow = row === 1 && engine.state !== GameState.PLAYING && engine.currentRow === 1;
         const isPastRow = row < engine.currentRow;
         const isCrashedRow = row === engine.lastCrashedRow && engine.state === GameState.CRASHED;
         const specials = engine.getSpecialsForRow(row);
@@ -675,129 +728,139 @@ export class CanvasRenderer {
         // Smooth hover interpolation per lane
         if (isActiveRow) {
             const targetHover = this.hoverLane === lane ? 1 : 0;
-            this.laneHoverProgress[lane] += (targetHover - this.laneHoverProgress[lane]) * 0.22;
+            this.laneHoverProgress[lane] += (targetHover - this.laneHoverProgress[lane]) * 0.24;
+        } else {
+            this.laneHoverProgress[lane] *= 0.8;
         }
 
-        // 1. ACTIVE FOREGROUND ROW: 5 Tactile Perspective Cards
-        if (isActiveRow) {
-            const hp = this.laneHoverProgress[lane];
-            const insetX = quad.w * 0.07;
-            const insetY = quad.h * 0.08;
+        // Smooth readiness factor as the active row glides from upcoming position (cameraRow + 1) to active position (cameraRow)
+        const distFromCamera = Math.abs(row - this.cameraRow);
+        const activeReadiness = Math.max(0, Math.min(1, 1 - distFromCamera * 0.85));
+
+        // 1. ACTIVE FOREGROUND ROW (or Row 1 in Idle ready state)
+        if (isActiveRow || isIdleFirstRow) {
+            const hp = isActiveRow ? this.laneHoverProgress[lane] : 0;
+            const insetX = quad.w * 0.075;
+            const insetY = quad.h * 0.085;
             const cardW = quad.w - insetX * 2;
             const cardH = quad.h - insetY * 2;
-            const liftY = hp * -3.5;
+            const liftY = hp * -4.0;
             const cardX = quad.cx - cardW / 2;
             const cardY = quad.cy - cardH / 2 + liftY;
-            const radius = Math.min(8, cardW * 0.14);
+            const radius = Math.min(7, cardW * 0.13);
 
             this.ctx.save();
+            // Smoothly blend opacity during camera scroll so newly promoted active row never snaps
+            this.ctx.globalAlpha *= 0.45 + 0.55 * activeReadiness;
 
-            if (isGoldenLane) {
-                // GOLDEN MULTIPLIER CARD (Bespoke Vector Star, Zero Emoji)
-                const pulse = 0.5 + 0.5 * Math.sin(time * 0.006);
-                this.ctx.shadowColor = 'rgba(245, 158, 11, 0.45)';
-                this.ctx.shadowBlur = 8 + hp * 10;
+            if (isGoldenLane && isActiveRow) {
+                // GOLDEN MULTIPLIER CARD
+                if (hp > 0.05) {
+                    this.ctx.shadowColor = 'rgba(245, 158, 11, 0.4)';
+                    this.ctx.shadowBlur = hp * 12;
+                }
 
-                const grad = this.ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
-                grad.addColorStop(0, hp > 0.3 ? '#3b2b10' : '#2a2012');
-                grad.addColorStop(1, '#1a1610');
-                this.ctx.fillStyle = grad;
+                this.ctx.fillStyle = hp > 0.25 ? '#2d2212' : '#211b12';
                 this.roundRect(cardX, cardY, cardW, cardH, radius, true, false);
 
-                // Bottom 3D lip
-                this.ctx.fillStyle = '#92400e';
+                this.ctx.fillStyle = '#78350f';
                 this.roundRect(cardX, cardY + cardH - 3, cardW, 3, 2, true, false);
 
-                this.ctx.strokeStyle = hp > 0.3 ? this.colors.goldLight : this.colors.gold;
-                this.ctx.lineWidth = 1.6 + hp * 0.8 + pulse * 0.3;
+                this.ctx.strokeStyle = hp > 0.25 ? this.colors.goldLight : this.colors.gold;
+                this.ctx.lineWidth = 1.4 + hp * 0.8;
                 this.roundRect(cardX, cardY, cardW, cardH, radius, false, true);
 
-                // Vector 4-point star emblem in center
-                this.drawVectorStar(quad.cx, cardY + cardH * 0.44, cardH * 0.20, this.colors.goldLight);
+                this.drawVectorStar(quad.cx, cardY + cardH * 0.42, cardH * 0.18, this.colors.goldLight);
 
-                // Multiplier Tag at bottom of card
-                this.ctx.font = `800 ${Math.max(9, Math.round(cardH * 0.21))}px "JetBrains Mono", monospace`;
+                this.ctx.font = `800 ${Math.max(9, Math.round(cardH * 0.20))}px "JetBrains Mono", monospace`;
                 this.ctx.fillStyle = this.colors.goldLight;
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`${specials.goldenBoost.toFixed(1)}x`, quad.cx, cardY + cardH * 0.78);
-            } else if (isAlienLane) {
-                // ALIEN INTERCEPTOR CARD (Bespoke Vector Saucer, Zero Emoji)
-                const pulse = 0.5 + 0.5 * Math.sin(time * 0.007);
-                this.ctx.shadowColor = 'rgba(6, 182, 212, 0.45)';
-                this.ctx.shadowBlur = 8 + hp * 10;
+                this.ctx.fillText(`${specials.goldenBoost.toFixed(0)}x`, quad.cx, cardY + cardH * 0.77);
+            } else if (isAlienLane && isActiveRow) {
+                // ALIEN INTERCEPTOR CARD
+                if (hp > 0.05) {
+                    this.ctx.shadowColor = 'rgba(6, 182, 212, 0.4)';
+                    this.ctx.shadowBlur = hp * 12;
+                }
 
-                const grad = this.ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
-                grad.addColorStop(0, hp > 0.3 ? '#11323d' : '#102631');
-                grad.addColorStop(1, '#0d1b24');
-                this.ctx.fillStyle = grad;
+                this.ctx.fillStyle = hp > 0.25 ? '#122f3b' : '#10232d';
                 this.roundRect(cardX, cardY, cardW, cardH, radius, true, false);
 
                 this.ctx.fillStyle = '#155e75';
                 this.roundRect(cardX, cardY + cardH - 3, cardW, 3, 2, true, false);
 
-                this.ctx.strokeStyle = hp > 0.3 ? '#ffffff' : this.colors.cyanLight;
-                this.ctx.lineWidth = 1.6 + hp * 0.8 + pulse * 0.3;
-                this.roundRect(cardX, cardY, cardW, cardH, radius, false, true);
-
-                // Vector Saucer Icon in center
-                this.drawVectorSaucerIcon(quad.cx, cardY + cardH * 0.42, cardW * 0.28, this.colors.cyanLight);
-
-                // WARP +2 Tag
-                this.ctx.font = `800 ${Math.max(8, Math.round(cardH * 0.19))}px "JetBrains Mono", monospace`;
-                this.ctx.fillStyle = this.colors.cyanLight;
-                this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`WARP +2`, quad.cx, cardY + cardH * 0.78);
-            } else {
-                // STANDARD TACTILE CARD
-                if (hp > 0.05) {
-                    this.ctx.shadowColor = 'rgba(0, 231, 1, 0.25)';
-                    this.ctx.shadowBlur = hp * 12;
-                }
-
-                this.ctx.fillStyle = hp > 0.3 ? this.colors.cardHover : this.colors.cardFace;
-                this.roundRect(cardX, cardY, cardW, cardH, radius, true, false);
-
-                // Bottom tactile bevel lip
-                this.ctx.fillStyle = '#132029';
-                this.roundRect(cardX, cardY + cardH - 3, cardW, 3, 2, true, false);
-
-                this.ctx.strokeStyle = hp > 0.25 ? this.colors.green : this.colors.cardBorder;
+                this.ctx.strokeStyle = hp > 0.25 ? '#ffffff' : this.colors.cyanLight;
                 this.ctx.lineWidth = 1.4 + hp * 0.8;
                 this.roundRect(cardX, cardY, cardW, cardH, radius, false, true);
 
-                // Subtle geometric diamond silhouette or question glyph
-                const fontSize = Math.max(13, Math.round(cardH * 0.38));
-                this.ctx.font = `700 ${fontSize}px "JetBrains Mono", monospace`;
-                this.ctx.fillStyle = hp > 0.25 ? '#ffffff' : '#557086';
+                this.drawVectorSaucerIcon(quad.cx, cardY + cardH * 0.42, cardW * 0.25, this.colors.cyanLight);
+
+                this.ctx.font = `800 ${Math.max(8, Math.round(cardH * 0.18))}px "JetBrains Mono", monospace`;
+                this.ctx.fillStyle = this.colors.cyanLight;
                 this.ctx.textAlign = 'center';
                 this.ctx.textBaseline = 'middle';
-                this.ctx.fillText('?', quad.cx, cardY + cardH * 0.5);
+                this.ctx.fillText(`+2F`, quad.cx, cardY + cardH * 0.77);
+            } else {
+                // STANDARD TACTILE CARD
+                if (hp > 0.05) {
+                    this.ctx.shadowColor = 'rgba(0, 231, 1, 0.22)';
+                    this.ctx.shadowBlur = hp * 10;
+                }
+
+                this.ctx.fillStyle = hp > 0.25 ? this.colors.cardHover : this.colors.cardFace;
+                this.roundRect(cardX, cardY, cardW, cardH, radius, true, false);
+
+                this.ctx.fillStyle = '#111e27';
+                this.roundRect(cardX, cardY + cardH - 3, cardW, 3, 2, true, false);
+
+                this.ctx.strokeStyle = hp > 0.25 ? this.colors.green : this.colors.cardBorder;
+                this.ctx.lineWidth = 1.2 + hp * 0.8;
+                this.roundRect(cardX, cardY, cardW, cardH, radius, false, true);
+
+                if (hp > 0.35 && isActiveRow) {
+                    // Dopamine Hover Preview: show exact target multiplier right on the hovered card
+                    const nextMult = calculateNextStepMultiplier(
+                        engine.currentMultiplier,
+                        engine.minesCount,
+                        engine.currentRow === 1,
+                        1.0,
+                        engine.hasActiveShield
+                    );
+                    this.ctx.font = `700 ${Math.max(9, Math.round(cardH * 0.21))}px "JetBrains Mono", monospace`;
+                    this.ctx.fillStyle = this.colors.green;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(formatMultiplier(nextMult), quad.cx, cardY + cardH * 0.5);
+                } else {
+                    // Minimalist center dot / diamond pip instead of noisy question marks
+                    this.ctx.fillStyle = '#3b5568';
+                    this.ctx.beginPath();
+                    this.ctx.arc(quad.cx, cardY + cardH * 0.48, Math.max(2, cardW * 0.045), 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
             }
 
             this.ctx.restore();
         }
-        // 2. CONQUERED PAST ROWS (Trailing above the ship)
+        // 2. CONQUERED PAST ROWS (Clean, desaturated trail above the ship)
         else if (isPastRow) {
-            // Pop scale animation when newly revealed
-            const popTime = this.rowPopTimestamps.get(row);
+            const stepTime = this.rowStepTimestamps.get(row);
+            const elapsedMs = stepTime ? performance.now() - stepTime : 9999;
+
             let popScale = 1.0;
-            if (popTime) {
-                const elapsed = ( performance.now() - popTime ) / 260;
-                if (elapsed < 1) {
-                    popScale = 1 + Math.sin(elapsed * Math.PI) * 0.28;
-                }
+            if (elapsedMs < 240) {
+                popScale = 1 + Math.sin((elapsedMs / 240) * Math.PI) * 0.25;
             }
 
             if (engine.alienDestroyedRows.has(row)) {
-                this.drawFacetedDiamond(quad.cx, quad.cy, quad.w * 0.20 * popScale, this.colors.cyan, this.colors.cyanLight);
-                if (lane === 2) {
-                    this.ctx.font = `800 ${Math.max(8, Math.round(quad.h * 0.22))}px "JetBrains Mono", monospace`;
-                    this.ctx.fillStyle = this.colors.cyanLight;
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText('WARP CLEAR', quad.cx, quad.cy + quad.h * 0.36);
-                }
+                this.drawFacetedDiamond(
+                    quad.cx,
+                    quad.cy,
+                    quad.w * 0.14 * popScale,
+                    this.colors.cyan,
+                    this.colors.cyanLight
+                );
                 return;
             }
 
@@ -808,33 +871,49 @@ export class CanvasRenderer {
 
             if (isPicked) {
                 if (pick.shieldSaved) {
-                    this.drawVectorShieldCrest(quad.cx, quad.cy, quad.w * 0.24 * popScale, this.colors.cyanLight);
+                    this.drawVectorShieldCrest(quad.cx, quad.cy, quad.w * 0.18 * popScale, this.colors.cyanLight);
                 } else if (pick.specialType === 'GOLDEN') {
-                    this.drawFacetedDiamond(quad.cx, quad.cy - 2, quad.w * 0.26 * popScale, this.colors.gold, this.colors.goldLight);
-                    this.ctx.font = `800 ${Math.max(8, Math.round(quad.h * 0.22))}px "JetBrains Mono", monospace`;
-                    this.ctx.fillStyle = this.colors.goldLight;
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText(`${pick.boostApplied.toFixed(0)}x`, quad.cx, quad.cy + quad.h * 0.34);
+                    this.drawFacetedDiamond(
+                        quad.cx,
+                        quad.cy,
+                        quad.w * 0.18 * popScale,
+                        this.colors.gold,
+                        this.colors.goldLight
+                    );
                 } else if (pick.specialType === 'ALIEN') {
-                    this.drawFacetedDiamond(quad.cx, quad.cy - 2, quad.w * 0.26 * popScale, this.colors.cyan, this.colors.cyanLight);
+                    this.drawFacetedDiamond(
+                        quad.cx,
+                        quad.cy,
+                        quad.w * 0.18 * popScale,
+                        this.colors.cyan,
+                        this.colors.cyanLight
+                    );
                 } else {
-                    this.drawFacetedDiamond(quad.cx, quad.cy - 2, quad.w * 0.24 * popScale, this.colors.green, '#86efac');
-                    this.ctx.font = `700 ${Math.max(8, Math.round(quad.h * 0.21))}px "JetBrains Mono", monospace`;
-                    this.ctx.fillStyle = this.colors.green;
-                    this.ctx.textAlign = 'center';
-                    this.ctx.fillText(formatMultiplier(pick.stepMultiplierAfter), quad.cx, quad.cy + quad.h * 0.34);
+                    this.drawFacetedDiamond(
+                        quad.cx,
+                        quad.cy,
+                        quad.w * 0.16 * popScale,
+                        this.colors.green,
+                        '#86efac'
+                    );
                 }
             } else {
-                // Near-miss ghost reveal on cleared rows!
+                // Near-Miss X-Ray Pulse:
+                // Briefly shows dodged mines at 38% opacity for 650ms right after clearing the row (dopamine rush),
+                // then fades down to a whisper-quiet architectural marker so the screen never looks cluttered!
+                const nearMissPulse = elapsedMs < 650 ? (1 - elapsedMs / 650) * 0.32 : 0;
                 if (isHazard) {
                     this.ctx.save();
-                    this.ctx.globalAlpha *= 0.26;
-                    this.drawVectorMine(quad.cx, quad.cy, quad.w * 0.18, false);
+                    this.ctx.globalAlpha *= 0.09 + nearMissPulse;
+                    this.drawVectorMine(quad.cx, quad.cy, quad.w * 0.13, false);
                     this.ctx.restore();
                 } else {
                     this.ctx.save();
-                    this.ctx.globalAlpha *= 0.16;
-                    this.drawFacetedDiamond(quad.cx, quad.cy, quad.w * 0.13, this.colors.green, '#86efac');
+                    this.ctx.globalAlpha *= 0.06;
+                    this.ctx.fillStyle = '#476275';
+                    this.ctx.beginPath();
+                    this.ctx.arc(quad.cx, quad.cy, Math.max(1.5, quad.w * 0.04), 0, Math.PI * 2);
+                    this.ctx.fill();
                     this.ctx.restore();
                 }
             }
@@ -847,139 +926,104 @@ export class CanvasRenderer {
             const wasPicked = engine.lastCrashedLane === lane;
 
             if (isHazard) {
-                this.drawVectorMine(quad.cx, quad.cy, quad.w * (wasPicked ? 0.28 : 0.21), wasPicked);
+                this.drawVectorMine(quad.cx, quad.cy, quad.w * (wasPicked ? 0.25 : 0.18), wasPicked);
             } else {
                 this.ctx.save();
-                this.ctx.globalAlpha *= 0.35;
-                this.drawFacetedDiamond(quad.cx, quad.cy, quad.w * 0.18, this.colors.green, '#86efac');
+                this.ctx.globalAlpha *= 0.25;
+                this.drawFacetedDiamond(quad.cx, quad.cy, quad.w * 0.15, this.colors.green, '#86efac');
                 this.ctx.restore();
             }
         }
-        // 4. UPCOMING PREVIEW ROW (At bottom edge of corridor)
+        // 4. UPCOMING PREVIEW ROW (At bottom edge of corridor — sleek subtle slots)
         else {
-            const insetX = quad.w * 0.08;
-            const insetY = quad.h * 0.12;
+            const insetX = quad.w * 0.085;
+            const insetY = quad.h * 0.14;
             const cardW = quad.w - insetX * 2;
             const cardH = quad.h - insetY * 2;
             const cardX = quad.cx - cardW / 2;
             const cardY = quad.cy - cardH / 2;
 
-            this.ctx.fillStyle = isGoldenLane
-                ? 'rgba(245, 158, 11, 0.08)'
-                : isAlienLane
-                  ? 'rgba(6, 182, 212, 0.08)'
-                  : 'rgba(26, 44, 56, 0.38)';
+            this.ctx.fillStyle = 'rgba(22, 38, 49, 0.32)';
             this.roundRect(cardX, cardY, cardW, cardH, 5, true, false);
 
-            this.ctx.strokeStyle = isGoldenLane
-                ? 'rgba(245, 158, 11, 0.35)'
-                : isAlienLane
-                  ? 'rgba(6, 182, 212, 0.35)'
-                  : 'rgba(47, 69, 83, 0.38)';
+            this.ctx.strokeStyle = 'rgba(47, 69, 83, 0.30)';
             this.ctx.lineWidth = 1;
             this.roundRect(cardX, cardY, cardW, cardH, 5, false, true);
         }
     }
 
     /**
-     * Renders "La Flechita" — the sleek geometric vector Arrow Ship that advances down the corridor,
-     * banks dynamically into chosen lanes, and projects a targeting vector toward the hovered card!
+     * Renders "La Flechita" — pulled back ("hacia atrás") at `shipRestT = 0.44` so it has
+     * generous breathing room above the active row (`activeRowCenterT = 0.74`),
+     * with a forward lunge impulse when conquering a lane and precision aiming rotation.
      */
     private drawArrowShip(engine: GameEngine, time: number) {
         if (engine.state === GameState.CRASHED) return;
 
-        // Position the Arrow Ship on the row just above the active row (`currentRow - 1`),
-        // or poised above Row 1 when idle / at start of round.
-        const anchorRow = engine.state === GameState.PLAYING ? engine.currentRow - 0.82 : 0.18;
-        const anchorLane = engine.lastChosenLane;
-        const anchorQuad = this.getCellQuad(anchorRow, anchorLane);
+        const baseY = this.depthToScreenY(this.shipRestT);
+        const spanAtShip = this.getTrackSpanAtY(baseY);
+        const laneWidthAtShip = spanAtShip.width / 5;
+        const targetX = spanAtShip.left + (engine.lastChosenLane + 0.5) * laneWidthAtShip;
 
-        const targetX = anchorQuad.cx;
-        const targetY = anchorQuad.cy;
+        // Forward dash lunge toward the active row when a card is picked
+        const dashOffsetY = this.shipDashImpulse * 36;
+        const targetY = baseY + dashOffsetY;
 
-        // Spring physics for Arrow Ship position
-        const ax = (targetX - this.shipX) * 0.20;
-        const ay = (targetY - this.shipY) * 0.20;
-        this.shipVx = (this.shipVx + ax) * 0.68;
-        this.shipVy = (this.shipVy + ay) * 0.68;
-        this.shipX += this.shipVx;
-        this.shipY += this.shipVy;
-
-        this.shipThrust *= 0.86;
+        this.shipX += (targetX - this.shipX) * 0.22;
+        this.shipY += (targetY - this.shipY) * 0.22;
+        this.shipDashImpulse *= 0.84;
 
         // Calculate banking / aiming rotation angle:
-        // Points downwards (0 rad = straight down) + tilts toward hovered lane or velocity!
-        let targetAngle = -this.shipVx * 0.045;
+        let targetAngle = (targetX - this.shipX) * -0.025;
         if (engine.state === GameState.PLAYING && this.hoverLane !== null) {
             const hoverQuad = this.getCellQuad(engine.currentRow, this.hoverLane);
             const dx = hoverQuad.cx - this.shipX;
-            const dy = Math.max(20, hoverQuad.cy - this.shipY);
-            targetAngle = Math.atan2(dx, dy) * 0.55;
+            const dy = Math.max(24, hoverQuad.cy - this.shipY);
+            targetAngle = Math.atan2(dx, dy) * 0.52;
 
-            // Draw subtle dashed targeting guide line from Arrow Ship tip to hovered card!
+            // Ultra-fine laser sight from Arrow Ship tip toward the hovered card
             this.ctx.save();
-            this.ctx.strokeStyle = 'rgba(0, 231, 1, 0.32)';
-            this.ctx.lineWidth = 1.5;
-            this.ctx.setLineDash([4, 4]);
+            const laserGrad = this.ctx.createLinearGradient(
+                this.shipX,
+                this.shipY + 14,
+                hoverQuad.cx,
+                hoverQuad.cy - hoverQuad.h * 0.35
+            );
+            laserGrad.addColorStop(0, 'rgba(0, 231, 1, 0.42)');
+            laserGrad.addColorStop(1, 'rgba(0, 231, 1, 0.04)');
+            this.ctx.strokeStyle = laserGrad;
+            this.ctx.lineWidth = 1.2;
+            this.ctx.setLineDash([3, 5]);
             this.ctx.beginPath();
             this.ctx.moveTo(this.shipX, this.shipY + 14);
-            this.ctx.lineTo(hoverQuad.cx, hoverQuad.cy - hoverQuad.h * 0.25);
+            this.ctx.lineTo(hoverQuad.cx, hoverQuad.cy - hoverQuad.h * 0.35);
             this.ctx.stroke();
             this.ctx.restore();
         }
-        this.shipAngle += (targetAngle - this.shipAngle) * 0.22;
+        this.shipAngle += (targetAngle - this.shipAngle) * 0.24;
 
-        // Record ribbon trail node
-        this.ribbonTrail.unshift({ x: this.shipX, y: this.shipY - 8, alpha: 0.75 });
-        if (this.ribbonTrail.length > 14) this.ribbonTrail.pop();
-        for (let i = 0; i < this.ribbonTrail.length; i++) {
-            this.ribbonTrail[i].y -= this.cameraVelocity * 3.5;
-            this.ribbonTrail[i].alpha *= 0.86;
-        }
-
-        // Draw thruster ribbon trail behind the arrow
-        if (this.ribbonTrail.length > 2) {
-            this.ctx.save();
-            for (let i = 0; i < this.ribbonTrail.length - 1; i++) {
-                const p1 = this.ribbonTrail[i];
-                const p2 = this.ribbonTrail[i + 1];
-                const w = Math.max(1, (1 - i / this.ribbonTrail.length) * 6);
-                this.ctx.strokeStyle = engine.luckyBoost
-                    ? `rgba(253, 224, 71, ${p1.alpha * 0.45})`
-                    : `rgba(0, 231, 1, ${p1.alpha * 0.45})`;
-                this.ctx.lineWidth = w;
-                this.ctx.lineCap = 'round';
-                this.ctx.beginPath();
-                this.ctx.moveTo(p1.x, p1.y);
-                this.ctx.lineTo(p2.x, p2.y);
-                this.ctx.stroke();
-            }
-            this.ctx.restore();
-        }
-
-        const bobY = Math.sin(time * 0.005) * 2.0;
+        const bobY = Math.sin(time * 0.0045) * 1.6;
 
         this.ctx.save();
         this.ctx.translate(this.shipX, this.shipY + bobY);
         this.ctx.rotate(-this.shipAngle);
 
-        // Stretch slightly on forward thrust impulse
-        const stretchY = 1.0 + this.shipThrust * 0.18;
-        const stretchX = 1.0 - this.shipThrust * 0.08;
+        // Slight aerodynamic stretch on dash
+        const stretchY = 1.0 + this.shipDashImpulse * 0.14;
+        const stretchX = 1.0 - this.shipDashImpulse * 0.06;
         this.ctx.scale(stretchX, stretchY);
 
-        // If Deflector Shield is active, draw crisp rotating hexagonal energy barrier
-        const showShield = engine.state === GameState.PLAYING ? engine.hasActiveShield : engine.shieldPurchased;
+        // If Deflector Shield is active, draw a subtle, fine hexagonal aura
+        const showShield =
+            engine.state === GameState.PLAYING ? engine.hasActiveShield : engine.shieldPurchased;
         if (showShield) {
             this.ctx.save();
-            this.ctx.rotate(time * 0.0025);
-            this.ctx.strokeStyle = this.colors.cyanLight;
-            this.ctx.fillStyle = 'rgba(6, 182, 212, 0.10)';
-            this.ctx.lineWidth = 1.5;
-            this.ctx.shadowColor = this.colors.cyan;
-            this.ctx.shadowBlur = 10;
+            this.ctx.rotate(time * 0.002);
+            this.ctx.strokeStyle = 'rgba(103, 232, 249, 0.65)';
+            this.ctx.fillStyle = 'rgba(6, 182, 212, 0.07)';
+            this.ctx.lineWidth = 1.2;
             this.ctx.beginPath();
-            const r = 23;
+            const r = 19;
             for (let i = 0; i < 6; i++) {
                 const ang = (i * Math.PI) / 3;
                 const px = Math.cos(ang) * r;
@@ -993,76 +1037,62 @@ export class CanvasRenderer {
             this.ctx.restore();
         }
 
-        // Rear Thruster Flame (pointing UP at y < 0 since the arrow points DOWN at y > 0)
-        const flameLen = 10 + Math.sin(time * 0.04) * 3 + this.shipThrust * 12;
-        const flameColor = engine.luckyBoost ? this.colors.goldLight : this.colors.green;
-        this.ctx.fillStyle = flameColor;
-        this.ctx.shadowColor = flameColor;
-        this.ctx.shadowBlur = 12;
+        // Crisp Rear Ion Plume
+        const flameLen = 7 + Math.sin(time * 0.035) * 2 + this.shipDashImpulse * 10;
+        const accentColor = engine.luckyBoost ? this.colors.goldLight : this.colors.green;
+        this.ctx.fillStyle = accentColor;
+        this.ctx.shadowColor = accentColor;
+        this.ctx.shadowBlur = 8;
         this.ctx.beginPath();
-        this.ctx.moveTo(-4.5, -6);
-        this.ctx.lineTo(0, -6 - flameLen);
-        this.ctx.lineTo(4.5, -6);
+        this.ctx.moveTo(-3.2, -5);
+        this.ctx.lineTo(0, -5 - flameLen);
+        this.ctx.lineTo(3.2, -5);
         this.ctx.closePath();
         this.ctx.fill();
 
-        // THE ARROW SHIP ("LA FLECHITA") — Precision Geometric Stealth Chevron pointing DOWNWARDS
-        // Left & Right Faceted Halves for 3D Metallic Depth
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-        this.ctx.shadowBlur = 8;
+        // THE ARROW SHIP ("LA FLECHITA") — Refined, razor-sharp geometric stealth arrow
+        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        this.ctx.shadowBlur = 6;
 
-        // Left Wing Facet (Bright Lit)
+        // Left Facet (Lit)
         this.ctx.fillStyle = '#ffffff';
         this.ctx.beginPath();
-        this.ctx.moveTo(0, 17);     // Leading sharp tip (pointing down into the descent)
-        this.ctx.lineTo(-15, -11);  // Left swept wingtip
-        this.ctx.lineTo(-4, -5);    // Left inner notch
-        this.ctx.lineTo(0, -8);     // Center tail spine
+        this.ctx.moveTo(0, 14);     // Sharp nose tip pointing down
+        this.ctx.lineTo(-11.5, -9); // Left swept wingtip
+        this.ctx.lineTo(-3, -4);    // Left inner notch
+        this.ctx.lineTo(0, -6.5);   // Center tail spine
         this.ctx.closePath();
         this.ctx.fill();
 
-        // Right Wing Facet (Shaded Metallic Slate)
+        // Right Facet (Shaded Metallic Slate)
         this.ctx.fillStyle = '#cbd5e1';
         this.ctx.beginPath();
-        this.ctx.moveTo(0, 17);     // Leading sharp tip
-        this.ctx.lineTo(15, -11);   // Right swept wingtip
-        this.ctx.lineTo(4, -5);     // Right inner notch
-        this.ctx.lineTo(0, -8);     // Center tail spine
+        this.ctx.moveTo(0, 14);
+        this.ctx.lineTo(11.5, -9);
+        this.ctx.lineTo(3, -4);
+        this.ctx.lineTo(0, -6.5);
         this.ctx.closePath();
         this.ctx.fill();
 
-        // Crisp Outer Wireframe Edge & Center Spine
-        this.ctx.strokeStyle = engine.luckyBoost ? this.colors.goldLight : '#ffffff';
+        // Subtle emerald/gold core chevron line inside the arrow
+        this.ctx.strokeStyle = accentColor;
         this.ctx.lineWidth = 1.4;
         this.ctx.beginPath();
-        this.ctx.moveTo(0, 17);
-        this.ctx.lineTo(15, -11);
-        this.ctx.lineTo(4, -5);
-        this.ctx.lineTo(0, -8);
-        this.ctx.lineTo(-4, -5);
-        this.ctx.lineTo(-15, -11);
-        this.ctx.closePath();
-        this.ctx.stroke();
-
-        // Glowing Core Chevron Inset
-        this.ctx.strokeStyle = flameColor;
-        this.ctx.lineWidth = 1.6;
-        this.ctx.beginPath();
-        this.ctx.moveTo(-6, -2);
-        this.ctx.lineTo(0, 9);
-        this.ctx.lineTo(6, -2);
+        this.ctx.moveTo(-4.5, -1.5);
+        this.ctx.lineTo(0, 7);
+        this.ctx.lineTo(4.5, -1.5);
         this.ctx.stroke();
 
         this.ctx.restore();
     }
 
     /**
-     * Pure Vector Alien Interceptor Saucer & Volumetric Laser Matrix (Zero Emojis)
+     * Pure Vector Alien Interceptor Saucer & Laser Matrix
      */
     private drawAlienInterceptor(time: number) {
         if (!this.alienEvent.active) return;
 
-        this.alienEvent.progress += 0.024;
+        this.alienEvent.progress += 0.025;
         if (this.alienEvent.progress >= 1.0) {
             this.alienEvent.active = false;
             return;
@@ -1073,47 +1103,45 @@ export class CanvasRenderer {
             p < 0.25
                 ? 30 + (this.alienEvent.targetX - 30) * (p / 0.25)
                 : p < 0.78
-                  ? this.alienEvent.targetX + Math.sin(p * 22) * 16
-                  : this.alienEvent.targetX + (this.width - 30 - this.alienEvent.targetX) * ((p - 0.78) / 0.22);
-        const ufoY = 120 + Math.sin(p * Math.PI) * 14;
+                  ? this.alienEvent.targetX + Math.sin(p * 22) * 14
+                  : this.alienEvent.targetX +
+                    (this.width - 30 - this.alienEvent.targetX) * ((p - 0.78) / 0.22);
+        const ufoY = 105 + Math.sin(p * Math.PI) * 12;
 
         this.ctx.save();
 
-        // Volumetric Laser Scan Beam
         if (p > 0.14 && p < 0.86) {
             const beamAlpha = Math.sin(((p - 0.14) / 0.72) * Math.PI);
             const grad = this.ctx.createLinearGradient(ufoX, ufoY, ufoX, this.bottomTrackY - 20);
-            grad.addColorStop(0, `rgba(103, 232, 249, ${0.85 * beamAlpha})`);
-            grad.addColorStop(0.5, `rgba(0, 231, 1, ${0.45 * beamAlpha})`);
+            grad.addColorStop(0, `rgba(103, 232, 249, ${0.75 * beamAlpha})`);
+            grad.addColorStop(0.5, `rgba(0, 231, 1, ${0.35 * beamAlpha})`);
             grad.addColorStop(1, 'rgba(6, 182, 212, 0)');
 
             this.ctx.fillStyle = grad;
             this.ctx.beginPath();
-            this.ctx.moveTo(ufoX - 6, ufoY + 8);
-            this.ctx.lineTo(ufoX + 6, ufoY + 8);
-            this.ctx.lineTo(ufoX + 85, this.bottomTrackY - 30);
-            this.ctx.lineTo(ufoX - 85, this.bottomTrackY - 30);
+            this.ctx.moveTo(ufoX - 5, ufoY + 8);
+            this.ctx.lineTo(ufoX + 5, ufoY + 8);
+            this.ctx.lineTo(ufoX + 75, this.bottomTrackY - 30);
+            this.ctx.lineTo(ufoX - 75, this.bottomTrackY - 30);
             this.ctx.closePath();
             this.ctx.fill();
 
-            // Laser spine
-            this.ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * beamAlpha})`;
-            this.ctx.lineWidth = 2.2;
+            this.ctx.strokeStyle = `rgba(255, 255, 255, ${0.85 * beamAlpha})`;
+            this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.moveTo(ufoX, ufoY + 8);
             this.ctx.lineTo(ufoX, this.bottomTrackY - 50);
             this.ctx.stroke();
         }
 
-        // Vector Saucer Craft
-        this.drawVectorSaucerIcon(ufoX, ufoY, 34, this.colors.cyanLight, time);
+        this.drawVectorSaucerIcon(ufoX, ufoY, 30, this.colors.cyanLight, time);
         this.ctx.restore();
     }
 
     private drawFacetedDiamond(cx: number, cy: number, size: number, primary: string, highlight: string) {
         this.ctx.save();
         this.ctx.shadowColor = primary;
-        this.ctx.shadowBlur = size * 0.65;
+        this.ctx.shadowBlur = size * 0.55;
 
         this.ctx.fillStyle = primary;
         this.ctx.beginPath();
@@ -1127,10 +1155,10 @@ export class CanvasRenderer {
         this.ctx.shadowBlur = 0;
         this.ctx.fillStyle = highlight;
         this.ctx.beginPath();
-        this.ctx.moveTo(cx, cy - size * 0.58);
-        this.ctx.lineTo(cx + size * 0.38, cy);
-        this.ctx.lineTo(cx, cy + size * 0.18);
-        this.ctx.lineTo(cx - size * 0.38, cy);
+        this.ctx.moveTo(cx, cy - size * 0.55);
+        this.ctx.lineTo(cx + size * 0.35, cy);
+        this.ctx.lineTo(cx, cy + size * 0.16);
+        this.ctx.lineTo(cx - size * 0.35, cy);
         this.ctx.closePath();
         this.ctx.fill();
 
@@ -1140,8 +1168,6 @@ export class CanvasRenderer {
     private drawVectorStar(cx: number, cy: number, r: number, color: string) {
         this.ctx.save();
         this.ctx.fillStyle = color;
-        this.ctx.shadowColor = color;
-        this.ctx.shadowBlur = 6;
         this.ctx.beginPath();
         for (let i = 0; i < 8; i++) {
             const rad = i % 2 === 0 ? r : r * 0.38;
@@ -1161,26 +1187,23 @@ export class CanvasRenderer {
         this.ctx.translate(cx, cy);
         this.ctx.strokeStyle = color;
         this.ctx.fillStyle = '#0f212e';
-        this.ctx.lineWidth = 1.6;
+        this.ctx.lineWidth = 1.5;
 
-        // Upper canopy dome
         this.ctx.beginPath();
-        this.ctx.arc(0, -radius * 0.08, radius * 0.45, Math.PI, 0);
+        this.ctx.arc(0, -radius * 0.08, radius * 0.44, Math.PI, 0);
         this.ctx.fill();
         this.ctx.stroke();
 
-        // Saucer disc
         this.ctx.beginPath();
-        this.ctx.ellipse(0, 0, radius, radius * 0.28, 0, 0, Math.PI * 2);
+        this.ctx.ellipse(0, 0, radius, radius * 0.27, 0, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.stroke();
 
-        // 3 Vector energy nodes
         for (let i = -1; i <= 1; i++) {
-            const pulse = time > 0 ? Math.sin(time * 0.015 + i) * 1.5 : 0;
+            const pulse = time > 0 ? Math.sin(time * 0.015 + i) * 1.2 : 0;
             this.ctx.fillStyle = i === 0 ? '#00e701' : color;
             this.ctx.beginPath();
-            this.ctx.arc(i * radius * 0.52 + pulse, 0, Math.max(1.8, radius * 0.09), 0, Math.PI * 2);
+            this.ctx.arc(i * radius * 0.5 + pulse, 0, Math.max(1.5, radius * 0.08), 0, Math.PI * 2);
             this.ctx.fill();
         }
         this.ctx.restore();
@@ -1190,8 +1213,8 @@ export class CanvasRenderer {
         this.ctx.save();
         this.ctx.translate(cx, cy);
         this.ctx.strokeStyle = color;
-        this.ctx.fillStyle = 'rgba(6, 182, 212, 0.22)';
-        this.ctx.lineWidth = 1.8;
+        this.ctx.fillStyle = 'rgba(6, 182, 212, 0.2)';
+        this.ctx.lineWidth = 1.6;
         this.ctx.beginPath();
         this.ctx.moveTo(0, -size);
         this.ctx.lineTo(size * 0.85, -size * 0.45);
@@ -1209,30 +1232,27 @@ export class CanvasRenderer {
         this.ctx.save();
         if (isDirectTrigger) {
             this.ctx.shadowColor = this.colors.red;
-            this.ctx.shadowBlur = radius * 1.3;
+            this.ctx.shadowBlur = radius * 1.2;
         }
 
-        // 8 radial spikes
         this.ctx.strokeStyle = this.colors.red;
-        this.ctx.lineWidth = Math.max(1.5, radius * 0.22);
+        this.ctx.lineWidth = Math.max(1.4, radius * 0.2);
         for (let i = 0; i < 8; i++) {
             const ang = (i * Math.PI) / 4;
             this.ctx.beginPath();
             this.ctx.moveTo(cx + Math.cos(ang) * radius * 0.5, cy + Math.sin(ang) * radius * 0.5);
-            this.ctx.lineTo(cx + Math.cos(ang) * radius * 1.28, cy + Math.sin(ang) * radius * 1.28);
+            this.ctx.lineTo(cx + Math.cos(ang) * radius * 1.25, cy + Math.sin(ang) * radius * 1.25);
             this.ctx.stroke();
         }
 
-        // Mine core
         this.ctx.fillStyle = this.colors.red;
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, radius * 0.82, 0, Math.PI * 2);
+        this.ctx.arc(cx, cy, radius * 0.8, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Inner white core ring
         this.ctx.fillStyle = '#ffffff';
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, radius * 0.28, 0, Math.PI * 2);
+        this.ctx.arc(cx, cy, radius * 0.26, 0, Math.PI * 2);
         this.ctx.fill();
 
         this.ctx.restore();
@@ -1242,7 +1262,7 @@ export class CanvasRenderer {
         for (let i = this.shockwaves.length - 1; i >= 0; i--) {
             const sw = this.shockwaves[i];
             sw.radius += (sw.maxRadius - sw.radius) * 0.16;
-            sw.alpha -= 0.042;
+            sw.alpha -= 0.045;
 
             if (sw.alpha <= 0) {
                 this.shockwaves.splice(i, 1);
@@ -1252,7 +1272,7 @@ export class CanvasRenderer {
             this.ctx.save();
             this.ctx.strokeStyle = sw.color;
             this.ctx.globalAlpha = Math.max(0, sw.alpha);
-            this.ctx.lineWidth = 2.2;
+            this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
             this.ctx.stroke();
@@ -1265,9 +1285,9 @@ export class CanvasRenderer {
             const s = this.shards[i];
             s.x += s.vx;
             s.y += s.vy;
-            s.vy += 0.20;
+            s.vy += 0.18;
             s.rot += s.vRot;
-            s.alpha -= 0.024;
+            s.alpha -= 0.026;
 
             if (s.alpha <= 0) {
                 this.shards.splice(i, 1);
@@ -1279,7 +1299,7 @@ export class CanvasRenderer {
             this.ctx.rotate(s.rot);
             this.ctx.strokeStyle = s.color;
             this.ctx.globalAlpha = Math.max(0, s.alpha);
-            this.ctx.lineWidth = 2;
+            this.ctx.lineWidth = 1.8;
             this.ctx.beginPath();
             this.ctx.moveTo(-s.length / 2, 0);
             this.ctx.lineTo(s.length / 2, 0);
@@ -1292,7 +1312,7 @@ export class CanvasRenderer {
         for (let i = this.banners.length - 1; i >= 0; i--) {
             const b = this.banners[i];
             b.y += b.vy;
-            b.alpha -= 0.018;
+            b.alpha -= 0.022;
 
             if (b.alpha <= 0) {
                 this.banners.splice(i, 1);
@@ -1300,19 +1320,27 @@ export class CanvasRenderer {
             }
 
             this.ctx.save();
-            const fontSize = Math.round(13 * b.scale);
+            const fontSize = Math.round(12 * b.scale);
             this.ctx.font = `800 ${fontSize}px "JetBrains Mono", monospace`;
             this.ctx.fillStyle = b.color;
             this.ctx.globalAlpha = Math.max(0, b.alpha);
             this.ctx.textAlign = 'center';
             this.ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-            this.ctx.shadowBlur = 6;
+            this.ctx.shadowBlur = 5;
             this.ctx.fillText(b.text, b.x, b.y);
             this.ctx.restore();
         }
     }
 
-    private roundRect(x: number, y: number, w: number, h: number, r: number, fill: boolean, stroke: boolean) {
+    private roundRect(
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+        fill: boolean,
+        stroke: boolean
+    ) {
         this.ctx.beginPath();
         this.ctx.moveTo(x + r, y);
         this.ctx.lineTo(x + w - r, y);
