@@ -20,44 +20,61 @@ export function createControlsUI(
         'absolute top-0 left-0 w-full px-3.5 pt-2.5 pb-1.5 z-30 flex justify-between items-center pointer-events-auto bg-gradient-to-b from-[#071118]/90 via-[#071118]/40 to-transparent';
 
     topHeader.innerHTML = `
-        <!-- Left: Minimalist Brand Mark -->
-        <div class="flex items-center gap-1.5 select-none">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="text-[#00e701]">
-                <path d="M12 21L3 5L12 9.5L21 5L12 21Z" fill="currentColor"/>
+        <!-- Left: Faceted Brand Emblem -->
+        <div class="flex items-center gap-2 select-none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <defs>
+                    <linearGradient id="brandGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stop-color="#86efac"/>
+                        <stop offset="50%" stop-color="#00e701"/>
+                        <stop offset="100%" stop-color="#15803d"/>
+                    </linearGradient>
+                </defs>
+                <path d="M12 22L2.5 4.5L12 9.5L21.5 4.5L12 22Z" fill="url(#brandGrad)"/>
+                <path d="M12 22L12 9.5L21.5 4.5L12 22Z" fill="#00b801" fill-opacity="0.45"/>
+                <path d="M8.5 8.5L12 15.5L15.5 8.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span class="font-black text-[11px] tracking-[0.16em] text-white">ENDLESS</span>
-            <span class="font-semibold text-[10px] tracking-[0.12em] text-[#6d8496]">DESCENT</span>
+            <div class="flex items-baseline gap-1">
+                <span class="font-black text-[11px] tracking-[0.16em] text-white">ENDLESS</span>
+                <span class="font-semibold text-[10px] tracking-[0.12em] text-[#7f96a7]">DESCENT</span>
+            </div>
         </div>
 
         <!-- Right: Compact Wallet Pill + Studio Utility Icons -->
         <div class="flex items-center gap-1.5 select-none">
-            <div class="relative flex items-center gap-1.5 bg-[#0c1821]/90 border border-[#223645] rounded-md px-2.5 py-1" id="wallet-pill" title="${formatBtc(engine.balance)}">
-                <span class="w-1.5 h-1.5 rounded-full bg-[#00e701]"></span>
+            <div class="relative flex items-center gap-1.5 bg-[#0c1821]/95 border border-[#263d4d] rounded-md px-2.5 py-1 shadow-inner" id="wallet-pill" title="${formatBtc(engine.balance)}">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                    <polygon points="12 2 20 8 20 16 12 22 4 16 4 8" fill="#00e701" fill-opacity="0.25" stroke="#00e701" stroke-width="2"/>
+                    <polygon points="12 6 16 9 16 15 12 18 8 15 8 9" fill="#00e701"/>
+                </svg>
                 <span id="balance-usd" class="text-xs font-mono font-bold text-white tabular-nums leading-none">${formatCurrency(engine.balance)}</span>
                 <span id="wallet-delta" class="hidden absolute -bottom-4 right-1 text-[10px] font-mono font-extrabold text-[#00e701] tabular-nums pointer-events-none"></span>
             </div>
 
-            <button id="header-fair-btn" class="p-1.5 rounded-md bg-[#13222c]/90 border border-[#223645] text-[#8ea4b8] hover:text-[#00e701] hover:border-[#2f4b5e] transition-colors cursor-pointer" title="Provably Fair (HMAC-SHA256)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <button id="header-fair-btn" class="p-1.5 rounded-md bg-[#142530]/95 border border-[#263d4d] text-[#9cb3c5] hover:text-[#00e701] hover:border-[#38576e] transition-colors cursor-pointer" title="Provably Fair (HMAC-SHA256)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 21.5C12 21.5 19 17.8 19 11.5V5.2L12 2.5L5 5.2V11.5C5 17.8 12 21.5 12 21.5Z" fill="#00e701" fill-opacity="0.14" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
+                    <path d="M9 12L11 14L15.2 9.8" stroke="#00e701" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
 
-            <button id="btn-sim-panel" class="p-1.5 rounded-md bg-[#13222c]/90 border border-[#223645] text-[#8ea4b8] hover:text-[#00e701] hover:border-[#2f4b5e] transition-colors cursor-pointer" title="Simulador Monte Carlo RTP (96%)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            <button id="btn-sim-panel" class="p-1.5 rounded-md bg-[#142530]/95 border border-[#263d4d] text-[#9cb3c5] hover:text-[#00e701] hover:border-[#38576e] transition-colors cursor-pointer" title="Simulador Monte Carlo RTP (96%)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="13" width="4" height="7" rx="1" fill="#00e701" fill-opacity="0.3" stroke="currentColor" stroke-width="1.7"/>
+                    <rect x="10" y="8" width="4" height="12" rx="1" fill="#00e701" fill-opacity="0.5" stroke="currentColor" stroke-width="1.7"/>
+                    <rect x="17" y="4" width="4" height="16" rx="1" fill="#00e701" stroke="currentColor" stroke-width="1.7"/>
                 </svg>
             </button>
 
-            <button id="sound-toggle-btn" class="p-1.5 rounded-md bg-[#13222c]/90 border border-[#223645] text-[#8ea4b8] hover:text-white hover:border-[#2f4b5e] transition-colors cursor-pointer" title="Audio">
-                <svg id="sound-icon-on" class="${sounds.isMuted ? 'hidden' : ''}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <button id="sound-toggle-btn" class="p-1.5 rounded-md bg-[#142530]/95 border border-[#263d4d] text-[#9cb3c5] hover:text-white hover:border-[#38576e] transition-colors cursor-pointer" title="Audio">
+                <svg id="sound-icon-on" class="${sounds.isMuted ? 'hidden' : ''}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" fill-opacity="0.2"></polygon>
+                    <path d="M18.5 5.5a9 9 0 0 1 0 13M15 9a4.5 4.5 0 0 1 0 6" stroke="#00e701" stroke-linecap="round"></path>
                 </svg>
-                <svg id="sound-icon-off" class="${sounds.isMuted ? '' : 'hidden'}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
+                <svg id="sound-icon-off" class="${sounds.isMuted ? '' : 'hidden'}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <line x1="23" y1="9" x2="17" y2="15"></line>
-                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                    <line x1="22" y1="9" x2="16" y2="15" stroke="#ff1e42"></line>
+                    <line x1="16" y1="9" x2="22" y2="15" stroke="#ff1e42"></line>
                 </svg>
             </button>
         </div>
@@ -89,16 +106,32 @@ export function createControlsUI(
 
             <div class="flex items-center gap-1.5">
                 <button id="toggle-lucky-boost" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all cursor-pointer" title="Activa Cartas Doradas (2x/3x) e Interceptor OVNI (+2 Filas) • +25% Apuesta">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" class="text-[#ffc700]">
-                        <path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <defs>
+                            <linearGradient id="goldStar" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#fef08a"/>
+                                <stop offset="55%" stop-color="#f59e0b"/>
+                                <stop offset="100%" stop-color="#b45309"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 1.5L15.1 8.9L22.5 12L15.1 15.1L12 22.5L8.9 15.1L1.5 12L8.9 8.9L12 1.5Z" fill="url(#goldStar)"/>
+                        <circle cx="12" cy="12" r="2.2" fill="#ffffff"/>
                     </svg>
                     <span class="text-[10px] font-extrabold uppercase tracking-wider">Suerte</span>
                     <span id="lucky-badge" class="text-[9px] font-mono font-bold px-1 py-0.2 rounded bg-[#1a2c38] text-[#7f96a7] tabular-nums">+25%</span>
                 </button>
 
                 <button id="toggle-shield-boost" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all cursor-pointer" title="Escudo Deflector: Absorbe 1 mina por ronda • +25% Apuesta">
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" class="text-[#00f0ff]">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <defs>
+                            <linearGradient id="cyanShield" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#a5f3fc"/>
+                                <stop offset="55%" stop-color="#06b6d4"/>
+                                <stop offset="100%" stop-color="#0e7490"/>
+                            </linearGradient>
+                        </defs>
+                        <polygon points="12 2 20.5 6.5 18.5 16.5 12 22 5.5 16.5 3.5 6.5" fill="url(#cyanShield)" stroke="#cffafe" stroke-width="1.3"/>
+                        <polyline points="8.5 11.5 12 15 15.5 11.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <span class="text-[10px] font-extrabold uppercase tracking-wider">Escudo</span>
                     <span id="shield-badge" class="text-[9px] font-mono font-bold px-1 py-0.2 rounded bg-[#1a2c38] text-[#7f96a7] tabular-nums">+25%</span>
