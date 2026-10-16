@@ -1,4 +1,4 @@
-import { generateHMAC, hashServerSeed } from './provablyFair';
+import { generateHMAC, hashServerSeed, deriveRowSpecials } from './provablyFair';
 import type { AuditRowResult, AuditRoundResult } from '../math/types';
 
 /**
@@ -10,15 +10,15 @@ export function verifyServerSeedHash(serverSeed: string, expectedHash: string): 
 }
 
 /**
- * Audits a single row's hazard generation with full cryptographic transparency.
- * Returns message, HMAC hash, raw byte breakdown, chosen hazards, and safe lanes.
+ * Audits a single row's hazard generation and special cards (Golden / Alien) with full cryptographic transparency.
  */
 export function auditRow(
     serverSeed: string,
     clientSeed: string,
     nonce: number,
     row: number,
-    minesCount: number
+    minesCount: number,
+    luckyBoost = false
 ): AuditRowResult {
     const message = `${clientSeed}:${nonce}:${row}`;
     const hmacHash = generateHMAC(serverSeed, clientSeed, nonce, row);
@@ -36,7 +36,7 @@ export function auditRow(
         const numRemaining = lanes.length;
         let chosenIndex = -1;
 
-        while (chosenIndex === -1 && byteIndex < rawBytes.length) {
+        while (chosenIndex === -1 && byteIndex < 16) {
             const maxValidValue = 256 - (256 % numRemaining);
             const randByte = rawBytes[byteIndex];
             byteIndex++;
@@ -55,6 +55,7 @@ export function auditRow(
     }
 
     const safeLanes = [0, 1, 2, 3, 4].filter((l) => !chosenHazards.includes(l));
+    const specials = deriveRowSpecials(serverSeed, clientSeed, nonce, row, luckyBoost);
 
     return {
         row,
@@ -62,7 +63,8 @@ export function auditRow(
         hmacHash,
         rawBytes: rawBytes.slice(0, 12),
         chosenHazards,
-        safeLanes
+        safeLanes,
+        specials
     };
 }
 

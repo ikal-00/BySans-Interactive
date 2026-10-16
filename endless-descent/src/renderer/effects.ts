@@ -17,36 +17,81 @@ export class RenderLoop {
     }
 
     private bindEngineEvents() {
-        // Safe step event
         this.engine.onStep((pick) => {
+            const quad = this.renderer.getCellQuad(pick.row, pick.lane);
+
             if (pick.isSafe) {
-                sounds.playSafeStep(pick.row);
-                const quad = this.renderer.getCellQuad(pick.row, pick.lane);
+                if (pick.specialType === 'GOLDEN') {
+                    sounds.playGoldenHit();
+                    this.renderer.triggerGoldenBurst(quad.cx, quad.cy);
+                    this.renderer.addFloatingText(
+                        quad.cx,
+                        quad.cy - 14,
+                        `★ CARTA DORADA x${pick.boostApplied}! (${formatMultiplier(this.engine.currentMultiplier)})`,
+                        '#ffe680',
+                        1.15
+                    );
+                } else if (pick.specialType === 'ALIEN') {
+                    sounds.playAlienLaser();
+                    this.renderer.triggerAlienUfoAttack(quad.cx, quad.cy);
+                    this.renderer.addFloatingText(
+                        this.renderer.width / 2,
+                        this.renderer.height * 0.36,
+                        `👽 ¡ATAQUE OVNI! +${pick.rowsSkipped} FILAS DESTRUIDAS`,
+                        '#00f0ff',
+                        1.15
+                    );
+                } else {
+                    sounds.playSafeStep(pick.row);
+                    this.renderer.addFloatingText(
+                        quad.cx,
+                        quad.cy - 10,
+                        `+${formatMultiplier(this.engine.currentMultiplier)}`,
+                        '#00e701'
+                    );
+                }
+            } else if (pick.shieldSaved) {
+                // Shield absorbed a mine!
+                sounds.playShieldBreak();
+                this.renderer.triggerShieldBreakEffect(quad.cx, quad.cy);
                 this.renderer.addFloatingText(
-                    quad.cx,
-                    quad.cy - 10,
-                    `+${formatMultiplier(this.engine.currentMultiplier)}`,
-                    '#00e701'
+                    this.renderer.width / 2,
+                    quad.cy - 18,
+                    `🛡️ ¡ESCUDO ABSORBIÓ LA MINA!`,
+                    '#00f0ff',
+                    1.15
                 );
             } else {
+                // Fatal crash
                 sounds.playCrash();
-                const quad = this.renderer.getCellQuad(pick.row, pick.lane);
                 this.renderer.triggerCrashEffect(quad.cx, quad.cy);
             }
         });
 
-        // Cashout event
+        // Partial 50% Cashout event
+        this.engine.onPartialCashout((bankedAmount) => {
+            sounds.playPartialCashout();
+            this.renderer.addFloatingText(
+                this.renderer.width / 2,
+                this.renderer.height * 0.44,
+                `💰 50% ASEGURADO: +${formatCurrency(bankedAmount)}`,
+                '#ffe680',
+                1.1
+            );
+        });
+
+        // Full Cashout event
         this.engine.onCashout((payout) => {
             sounds.playCashout();
             this.renderer.addFloatingText(
                 this.renderer.width / 2,
-                this.renderer.height * 0.42,
+                this.renderer.height * 0.40,
                 `WIN ${formatCurrency(payout)}`,
-                '#00e701'
+                '#00e701',
+                1.2
             );
         });
 
-        // State changes
         this.engine.onStateChange((state) => {
             if (state === GameState.PLAYING) {
                 sounds.playClick();

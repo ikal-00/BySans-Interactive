@@ -221,15 +221,24 @@ export function createSeedModal(_container: HTMLElement, engine: GameEngine) {
 
         for (let l = 0; l < 5; l++) {
             const isHazard = audit.chosenHazards.includes(l);
+            const isGold = audit.specials.goldenLane === l;
+            const isAlien = audit.specials.alienLane === l;
+            const specialBadge = isGold
+                ? `<span class="text-[8px] font-black text-amber-300">★ ${audit.specials.goldenBoost}x</span>`
+                : isAlien
+                  ? `<span class="text-[8px] font-black text-cyan-300">👽 +2F</span>`
+                  : '';
+
             const laneBox = document.createElement('div');
-            laneBox.className = `p-2 rounded-lg text-center flex flex-col items-center gap-1 border ${
+            laneBox.className = `p-2 rounded-lg text-center flex flex-col items-center gap-0.5 border ${
                 isHazard
                     ? 'bg-stake-red/20 border-stake-red text-stake-red'
                     : 'bg-stake-green/20 border-stake-green text-stake-green'
             }`;
             laneBox.innerHTML = `
                 <span class="text-[9px] font-extrabold uppercase opacity-80">Lane ${l}</span>
-                <span class="text-sm font-bold">${isHazard ? '💣 MINA' : '💎 SEGURO'}</span>
+                <span class="text-xs font-bold">${isHazard ? '💣 MINA' : '💎 SEGURO'}</span>
+                ${specialBadge}
             `;
             lanesVisual.appendChild(laneBox);
         }
