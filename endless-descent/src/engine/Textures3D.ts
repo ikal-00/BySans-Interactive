@@ -1,0 +1,1154 @@
+import * as THREE from 'three';
+
+export interface PBRTexturePack {
+    hullColor: THREE.CanvasTexture;
+    hullBump: THREE.CanvasTexture;
+    hullRoughness: THREE.CanvasTexture;
+    windshieldEyesTex: THREE.CanvasTexture;
+    platformColor: THREE.CanvasTexture;
+    platformBump: THREE.CanvasTexture;
+    archBump: THREE.CanvasTexture;
+    brickWallColor: THREE.CanvasTexture;
+    asphaltColor: THREE.CanvasTexture;
+    paintSplatterTex: THREE.CanvasTexture;
+    cartoonCloudTex: THREE.CanvasTexture;
+    nebulaPillarTex: THREE.CanvasTexture;
+    nebulaVeilTex: THREE.CanvasTexture;
+    chainLinkTex: THREE.CanvasTexture;
+    glassCardTex: THREE.CanvasTexture;
+    dollarBillTex: THREE.CanvasTexture;
+    particleGlow: THREE.CanvasTexture;
+    asteroidColor: THREE.CanvasTexture;
+    asteroidBump: THREE.CanvasTexture;
+    asteroidRoughness: THREE.CanvasTexture;
+    hologramGateTex: THREE.CanvasTexture;
+    supernovaFlareTex: THREE.CanvasTexture;
+    planetGasGiantTex: THREE.CanvasTexture;
+    planetIceWorldTex: THREE.CanvasTexture;
+    planetLavaWorldTex: THREE.CanvasTexture;
+    planetCityLightsTex: THREE.CanvasTexture;
+    planetCloudsTex: THREE.CanvasTexture;
+    planetRingTex: THREE.CanvasTexture;
+    hdrEnvEquirectTex: THREE.CanvasTexture;
+    toonGradientMap: THREE.DataTexture;
+}
+
+// =============================================================================
+// FAST DETERMINISTIC MULTI-OCTAVE PERLIN/VALUE FBM, RIDGED NOISE & WORLEY CRATERS
+// Synthesizes photorealistic NASA / JWST-grade planetary, nebula & asteroid maps
+// =============================================================================
+const PERM = new Uint8Array(512);
+const GRAD_X = new Float32Array(256);
+const GRAD_Y = new Float32Array(256);
+(() => {
+    let seed = 1337420;
+    const p = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) p[i] = i;
+    for (let i = 255; i > 0; i--) {
+        seed = (seed * 1664525 + 1013904223) >>> 0;
+        const j = seed % (i + 1);
+        const tmp = p[i];
+        p[i] = p[j];
+        p[j] = tmp;
+    }
+    for (let i = 0; i < 512; i++) {
+        PERM[i] = p[i & 255];
+    }
+    for (let i = 0; i < 256; i++) {
+        const angle = (i / 256) * Math.PI * 2;
+        GRAD_X[i] = Math.cos(angle);
+        GRAD_Y[i] = Math.sin(angle);
+    }
+})();
+
+function fade(t: number): number {
+    return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+function lerp(a: number, b: number, t: number): number {
+    return a + t * (b - a);
+}
+
+/**
+ * Seamless tileable 2D Gradient Noise in range [-1, 1]
+ */
+function noise2D(x: number, y: number, periodX = 256, periodY = 256): number {
+    const xi = Math.floor(x);
+    const yi = Math.floor(y);
+    const xf = x - xi;
+    const yf = y - yi;
+
+    const X0 = ((xi % periodX) + periodX) % periodX & 255;
+    const Y0 = ((yi % periodY) + periodY) % periodY & 255;
+    const X1 = (((xi + 1) % periodX) + periodX) % periodX & 255;
+    const Y1 = (((yi + 1) % periodY) + periodY) % periodY & 255;
+
+    const u = fade(xf);
+    const v = fade(yf);
+
+    const g00 = PERM[X0 + PERM[Y0]];
+    const g10 = PERM[X1 + PERM[Y0]];
+    const g01 = PERM[X0 + PERM[Y1]];
+    const g11 = PERM[X1 + PERM[Y1]];
+
+    const n00 = GRAD_X[g00] * xf + GRAD_Y[g00] * yf;
+    const n10 = GRAD_X[g10] * (xf - 1) + GRAD_Y[g10] * yf;
+    const n01 = GRAD_X[g01] * xf + GRAD_Y[g01] * (yf - 1);
+    const n11 = GRAD_X[g11] * (xf - 1) + GRAD_Y[g11] * (yf - 1);
+
+    return lerp(lerp(n00, n10, u), lerp(n01, n11, u), v);
+}
+
+/**
+ * Multi-Octave Fractional Brownian Motion (fBm) in range [0, 1]
+ */
+function fbm2D(
+    x: number,
+    y: number,
+    octaves = 5,
+    lacunarity = 2.0,
+    gain = 0.5,
+    periodX = 256,
+    periodY = 256
+): number {
+    let total = 0;
+    let amp = 0.5;
+    let freq = 1.0;
+    let norm = 0;
+    for (let i = 0; i < octaves; i++) {
+        total += amp * noise2D(x * freq, y * freq, Math.round(periodX * freq), Math.round(periodY * freq));
+        norm += amp;
+        amp *= gain;
+        freq *= lacunarity;
+    }
+    return THREE.MathUtils.clamp((total / norm) * 0.5 + 0.5, 0, 1);
+}
+
+/**
+ * Ridged Multifractal Noise for sharp mountain chains, nebula filaments & tectonic cracks [0, 1]
+ */
+function ridgedFbm2D(x: number, y: number, octaves = 5, periodX = 256, periodY = 256): number {
+    let total = 0;
+    let amp = 0.5;
+    let freq = 1.0;
+    let weight = 1.0;
+    let norm = 0;
+    for (let i = 0; i < octaves; i++) {
+        let signal = 1.0 - Math.abs(noise2D(x * freq, y * freq, Math.round(periodX * freq), Math.round(periodY * freq)));
+        signal = signal * signal * weight;
+        weight = THREE.MathUtils.clamp(signal * 2.0, 0, 1);
+        total += signal * amp;
+        norm += amp;
+        amp *= 0.5;
+        freq *= 2.05;
+    }
+    return THREE.MathUtils.clamp(total / norm, 0, 1);
+}
+
+/**
+ * Generates all procedural AAA Photorealistic [SPACE-OVERDRIVE V4] PBR & HDR Cosmic Void Textures:
+ * - Photorealistic Domain-WarpedJWST/Hubble Volumetric Nebula Filaments (`cartoonCloudTex`, `nebulaPillarTex`, `nebulaVeilTex`)
+ * - Photorealistic Regolith & Cratered Asteroid Albedo, Bump & Roughness Maps (`asteroidColor`, `asteroidBump`, `asteroidRoughness`)
+ * - Photorealistic High-Res Planetary Maps (`planetGasGiantTex`, `planetIceWorldTex`, `planetLavaWorldTex`, `planetCityLightsTex`, `planetCloudsTex`, `planetRingTex`)
+ */
+export function createPBRTexturePack(): PBRTexturePack {
+    // =========================================================================
+    // 1. AAA SPACECRAFT TITANIUM & GUNMETAL HULL ARMOR (512x512)
+    // =========================================================================
+    const hullColorCanvas = document.createElement('canvas');
+    hullColorCanvas.width = 512;
+    hullColorCanvas.height = 512;
+    const hCtx = hullColorCanvas.getContext('2d')!;
+
+    const hullGrad = hCtx.createLinearGradient(0, 0, 512, 512);
+    hullGrad.addColorStop(0, '#334155');
+    hullGrad.addColorStop(0.5, '#1e293b');
+    hullGrad.addColorStop(1, '#293548');
+    hCtx.fillStyle = hullGrad;
+    hCtx.fillRect(0, 0, 512, 512);
+
+    hCtx.fillStyle = 'rgba(255, 255, 255, 0.045)';
+    for (let y = 0; y < 512; y += 3) {
+        hCtx.fillRect(0, y, 512, 1);
+    }
+
+    const plates = [
+        [14, 14, 234, 224],
+        [264, 14, 234, 224],
+        [14, 254, 484, 114],
+        [14, 382, 234, 116],
+        [264, 382, 234, 116]
+    ];
+    for (const [x, y, w, h] of plates) {
+        hCtx.fillStyle = 'rgba(30, 41, 59, 0.88)';
+        hCtx.fillRect(x, y, w, h);
+
+        hCtx.strokeStyle = '#090d16';
+        hCtx.lineWidth = 4;
+        hCtx.strokeRect(x, y, w, h);
+
+        hCtx.strokeStyle = 'rgba(203, 213, 225, 0.46)';
+        hCtx.lineWidth = 2;
+        hCtx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+
+        hCtx.fillStyle = '#94a3b8';
+        for (const [rx, ry] of [
+            [x + 10, y + 10],
+            [x + w - 14, y + 10],
+            [x + 10, y + h - 14],
+            [x + w - 14, y + h - 14]
+        ]) {
+            hCtx.fillRect(rx, ry, 4, 4);
+        }
+    }
+
+    for (let vy = 42; vy <= 190; vy += 18) {
+        hCtx.fillStyle = '#090d16';
+        hCtx.fillRect(46, vy, 86, 10);
+        hCtx.fillRect(380, vy, 86, 10);
+        hCtx.fillStyle = '#475569';
+        hCtx.fillRect(50, vy + 2, 78, 3);
+        hCtx.fillRect(384, vy + 2, 78, 3);
+    }
+
+    hCtx.fillStyle = '#d97706';
+    hCtx.beginPath();
+    hCtx.moveTo(38, 268);
+    hCtx.lineTo(188, 268);
+    hCtx.lineTo(148, 356);
+    hCtx.lineTo(20, 356);
+    hCtx.closePath();
+    hCtx.fill();
+
+    hCtx.beginPath();
+    hCtx.moveTo(324, 268);
+    hCtx.lineTo(474, 268);
+    hCtx.lineTo(492, 356);
+    hCtx.lineTo(364, 356);
+    hCtx.closePath();
+    hCtx.fill();
+
+    // =========================================================================
+    // 2. CLASSIC CARTOON LOONEY TUNES WINDSHIELD EYES & INK CANOPY (512x256)
+    // =========================================================================
+    const eyesCanvas = document.createElement('canvas');
+    eyesCanvas.width = 512;
+    eyesCanvas.height = 256;
+    const eCtx = eyesCanvas.getContext('2d')!;
+
+    // Rich saturated cel-shaded comic canopy background
+    const glassGrad = eCtx.createLinearGradient(0, 0, 512, 256);
+    glassGrad.addColorStop(0, '#090d16');
+    glassGrad.addColorStop(0.5, '#0f1f38');
+    glassGrad.addColorStop(1, '#090d16');
+    eCtx.fillStyle = glassGrad;
+    eCtx.fillRect(0, 0, 512, 256);
+
+    // Thick outer comic ink border
+    eCtx.strokeStyle = '#000000';
+    eCtx.lineWidth = 14;
+    eCtx.strokeRect(7, 7, 498, 242);
+
+    // Draw two classic expressive Looney Tunes style cartoon eyes:
+    const eyeCenters = [
+        { x: 175, y: 132 },
+        { x: 337, y: 132 }
+    ];
+
+    for (const { x, y } of eyeCenters) {
+        // Drop shadow / ink under-glow
+        eCtx.fillStyle = '#000000';
+        eCtx.beginPath();
+        eCtx.ellipse(x, y + 2, 64, 76, 0, 0, Math.PI * 2);
+        eCtx.fill();
+
+        // Thick black cartoon ink outline for eyeball
+        eCtx.lineWidth = 9;
+        eCtx.strokeStyle = '#000000';
+        eCtx.beginPath();
+        eCtx.ellipse(x, y, 62, 74, 0, 0, Math.PI * 2);
+        eCtx.stroke();
+
+        // Glossy vibrant white cartoon sclera
+        eCtx.fillStyle = '#f8fafc';
+        eCtx.beginPath();
+        eCtx.ellipse(x, y, 58, 70, 0, 0, Math.PI * 2);
+        eCtx.fill();
+
+        // Iris: Vibrant Cyan / Electric Blue Cel Gradient
+        const irisGrad = eCtx.createLinearGradient(x - 24, y - 24, x + 24, y + 24);
+        irisGrad.addColorStop(0, '#38bdf8');
+        irisGrad.addColorStop(0.55, '#0284c7');
+        irisGrad.addColorStop(1, '#0369a1');
+        eCtx.fillStyle = irisGrad;
+        eCtx.beginPath();
+        eCtx.ellipse(x + 4, y + 4, 32, 42, 0, 0, Math.PI * 2);
+        eCtx.fill();
+
+        // Deep black pupil with thick ink outline
+        eCtx.fillStyle = '#050505';
+        eCtx.beginPath();
+        eCtx.ellipse(x + 5, y + 5, 20, 27, 0, 0, Math.PI * 2);
+        eCtx.fill();
+
+        // Primary comic specular glint (top-left)
+        eCtx.fillStyle = '#ffffff';
+        eCtx.beginPath();
+        eCtx.ellipse(x - 6, y - 10, 11, 14, -0.25, 0, Math.PI * 2);
+        eCtx.fill();
+
+        // Secondary small comic glint (bottom-right)
+        eCtx.beginPath();
+        eCtx.arc(x + 16, y + 15, 5, 0, Math.PI * 2);
+        eCtx.fill();
+
+        // Expressive cartoon eyebrow ridge (determined, adventurous angle)
+        eCtx.strokeStyle = '#000000';
+        eCtx.lineWidth = 8;
+        eCtx.lineCap = 'round';
+        eCtx.beginPath();
+        if (x < 256) {
+            eCtx.moveTo(x - 54, y - 68);
+            eCtx.quadraticCurveTo(x, y - 82, x + 50, y - 64);
+        } else {
+            eCtx.moveTo(x - 50, y - 64);
+            eCtx.quadraticCurveTo(x, y - 82, x + 54, y - 68);
+        }
+        eCtx.stroke();
+    }
+
+    // Dynamic diagonal comic glare streak
+    eCtx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+    eCtx.beginPath();
+    eCtx.moveTo(70, 240);
+    eCtx.lineTo(145, 14);
+    eCtx.lineTo(185, 14);
+    eCtx.lineTo(110, 240);
+    eCtx.closePath();
+    eCtx.fill();
+
+    const hullBumpCanvas = document.createElement('canvas');
+    hullBumpCanvas.width = 256;
+    hullBumpCanvas.height = 256;
+    const hbCtx = hullBumpCanvas.getContext('2d')!;
+    hbCtx.fillStyle = '#808080';
+    hbCtx.fillRect(0, 0, 256, 256);
+    hbCtx.strokeStyle = '#ffffff';
+    hbCtx.lineWidth = 3;
+    hbCtx.strokeRect(10, 10, 236, 236);
+    hbCtx.strokeStyle = '#202020';
+    hbCtx.lineWidth = 2;
+    hbCtx.strokeRect(128, 10, 2, 236);
+    for (let y = 24; y < 232; y += 18) {
+        hbCtx.fillStyle = '#ffffff';
+        hbCtx.fillRect(24, y, 56, 5);
+        hbCtx.fillRect(176, y, 56, 5);
+    }
+
+    const hullRoughCanvas = document.createElement('canvas');
+    hullRoughCanvas.width = 256;
+    hullRoughCanvas.height = 256;
+    const hrCtx = hullRoughCanvas.getContext('2d')!;
+    hrCtx.fillStyle = '#383838';
+    hrCtx.fillRect(0, 0, 256, 256);
+
+    // =========================================================================
+    // 3. SCI-FI QUANTUM CARD FRAME TEXTURE (256x256)
+    // =========================================================================
+    const platColorCanvas = document.createElement('canvas');
+    platColorCanvas.width = 256;
+    platColorCanvas.height = 256;
+    const pCtx = platColorCanvas.getContext('2d')!;
+    pCtx.fillStyle = '#090f1d';
+    pCtx.fillRect(0, 0, 256, 256);
+
+    const platBumpCanvas = document.createElement('canvas');
+    platBumpCanvas.width = 128;
+    platBumpCanvas.height = 128;
+    const pbCtx = platBumpCanvas.getContext('2d')!;
+    pbCtx.fillStyle = '#808080';
+    pbCtx.fillRect(0, 0, 128, 128);
+
+    const brickCanvas = document.createElement('canvas');
+    brickCanvas.width = 128;
+    brickCanvas.height = 128;
+    const bCtx = brickCanvas.getContext('2d')!;
+    bCtx.fillStyle = '#03060d';
+    bCtx.fillRect(0, 0, 128, 128);
+
+    const archBumpCanvas = document.createElement('canvas');
+    archBumpCanvas.width = 128;
+    archBumpCanvas.height = 128;
+    const abCtx = archBumpCanvas.getContext('2d')!;
+    abCtx.fillStyle = '#808080';
+    abCtx.fillRect(0, 0, 128, 128);
+
+    const asphaltCanvas = document.createElement('canvas');
+    asphaltCanvas.width = 128;
+    asphaltCanvas.height = 128;
+    const aCtx = asphaltCanvas.getContext('2d')!;
+    aCtx.fillStyle = '#02050b';
+    aCtx.fillRect(0, 0, 128, 128);
+
+    // =========================================================================
+    // 4. PHOTOREALISTIC CRATERED ASTEROID & REGOLITH PBR MAPS (512x512 ImageData)
+    //    Multi-scale Worley impact craters with raised ejecta rims + 6-octave fBm rock grain!
+    // =========================================================================
+    const astW = 512;
+    const astH = 512;
+    const astColorCanvas = document.createElement('canvas');
+    astColorCanvas.width = astW;
+    astColorCanvas.height = astH;
+    const acCtx = astColorCanvas.getContext('2d')!;
+    const acImg = acCtx.createImageData(astW, astH);
+
+    const astBumpCanvas = document.createElement('canvas');
+    astBumpCanvas.width = astW;
+    astBumpCanvas.height = astH;
+    const abmCtx = astBumpCanvas.getContext('2d')!;
+    const abImg = abmCtx.createImageData(astW, astH);
+
+    const astRoughCanvas = document.createElement('canvas');
+    astRoughCanvas.width = astW;
+    astRoughCanvas.height = astH;
+    const arCtx = astRoughCanvas.getContext('2d')!;
+    const arImg = arCtx.createImageData(astW, astH);
+
+    // Pre-generate 85 realistic impact craters (X, Y, Radius, Depth)
+    const craters: Array<{ x: number; y: number; r: number; depth: number }> = [];
+    for (let i = 0; i < 85; i++) {
+        craters.push({
+            x: (i * 197 + 43) % astW,
+            y: (i * 131 + 79) % astH,
+            r: i < 14 ? 34 + (i % 5) * 9 : 9 + (i % 7) * 4,
+            depth: 0.45 + (i % 4) * 0.14
+        });
+    }
+
+    for (let y = 0; y < astH; y++) {
+        const ny = (y / astH) * 8.0;
+        for (let x = 0; x < astW; x++) {
+            const nx = (x / astW) * 8.0;
+
+            // Multi-octave rocky regolith base + ridged fracture seams
+            const baseRock = fbm2D(nx, ny, 6, 2.0, 0.52, 8, 8);
+            const fractures = ridgedFbm2D(nx * 1.5 + 3.1, ny * 1.5 + 1.7, 4, 12, 12);
+
+            // Accumulate realistic impact crater bowls + raised ejecta rims
+            let craterHeight = 0;
+            for (let c = 0; c < craters.length; c++) {
+                const cr = craters[c];
+                // Seamless toroidal distance
+                let dx = Math.abs(x - cr.x);
+                let dy = Math.abs(y - cr.y);
+                if (dx > astW * 0.5) dx = astW - dx;
+                if (dy > astH * 0.5) dy = astH - dy;
+                const d = Math.sqrt(dx * dx + dy * dy) / cr.r;
+                if (d < 1.35) {
+                    if (d < 0.82) {
+                        // Parabolic crater bowl
+                        const bowl = (d / 0.82) * (d / 0.82) - 1.0;
+                        craterHeight += bowl * cr.depth * 0.55;
+                    } else {
+                        // Raised ejecta rim decaying outward
+                        const rimT = (d - 0.82) / 0.53;
+                        const rim = Math.sin(rimT * Math.PI) * 0.28 * cr.depth;
+                        craterHeight += rim;
+                    }
+                }
+            }
+
+            const heightVal = THREE.MathUtils.clamp(
+                baseRock * 0.62 + (1.0 - fractures) * 0.18 + craterHeight + 0.15,
+                0,
+                1
+            );
+
+            // Chondrite / Basaltic Stony-Iron Asteroid Albedo Palette
+            const darkSilicate = 26 + heightVal * 58;
+            const warmIron = 28 + heightVal * 54 + (fractures > 0.82 ? 18 : 0);
+            const coolGrey = 32 + heightVal * 60;
+
+            const idx = (y * astW + x) * 4;
+            acImg.data[idx] = THREE.MathUtils.clamp(warmIron, 10, 210);
+            acImg.data[idx + 1] = THREE.MathUtils.clamp(darkSilicate, 10, 210);
+            acImg.data[idx + 2] = THREE.MathUtils.clamp(coolGrey, 12, 220);
+            acImg.data[idx + 3] = 255;
+
+            const bumpByte = Math.round(heightVal * 255);
+            abImg.data[idx] = bumpByte;
+            abImg.data[idx + 1] = bumpByte;
+            abImg.data[idx + 2] = bumpByte;
+            abImg.data[idx + 3] = 255;
+
+            // Roughness: crater interiors are dusty (rough), exposed ridges are metallic (smoother)
+            const roughByte = Math.round(THREE.MathUtils.clamp((1.0 - heightVal * 0.55) * 235, 65, 245));
+            arImg.data[idx] = roughByte;
+            arImg.data[idx + 1] = roughByte;
+            arImg.data[idx + 2] = roughByte;
+            arImg.data[idx + 3] = 255;
+        }
+    }
+    acCtx.putImageData(acImg, 0, 0);
+    abmCtx.putImageData(abImg, 0, 0);
+    arCtx.putImageData(arImg, 0, 0);
+
+    // =========================================================================
+    // 5. FLOATING CRYSTALLINE SCI-FI GLASS MULTIPLIER CARD TEXTURE (512x340)
+    // =========================================================================
+    const glassCardCanvas = document.createElement('canvas');
+    glassCardCanvas.width = 512;
+    glassCardCanvas.height = 340;
+    const gcCtx = glassCardCanvas.getContext('2d')!;
+    gcCtx.clearRect(0, 0, 512, 340);
+
+    const gcGrad = gcCtx.createLinearGradient(0, 0, 512, 340);
+    gcGrad.addColorStop(0, 'rgba(56, 189, 248, 0.32)');
+    gcGrad.addColorStop(0.5, 'rgba(15, 23, 42, 0.54)');
+    gcGrad.addColorStop(1, 'rgba(0, 240, 255, 0.36)');
+    gcCtx.fillStyle = gcGrad;
+    gcCtx.fillRect(8, 8, 496, 324);
+
+    gcCtx.fillStyle = 'rgba(255, 255, 255, 0.30)';
+    gcCtx.beginPath();
+    gcCtx.moveTo(70, 332);
+    gcCtx.lineTo(190, 8);
+    gcCtx.lineTo(245, 8);
+    gcCtx.lineTo(125, 332);
+    gcCtx.closePath();
+    gcCtx.fill();
+
+    gcCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+    gcCtx.beginPath();
+    gcCtx.moveTo(275, 332);
+    gcCtx.lineTo(395, 8);
+    gcCtx.lineTo(425, 8);
+    gcCtx.lineTo(305, 332);
+    gcCtx.closePath();
+    gcCtx.fill();
+
+    gcCtx.strokeStyle = 'rgba(224, 242, 254, 0.88)';
+    gcCtx.lineWidth = 4;
+    gcCtx.strokeRect(10, 10, 492, 320);
+
+    gcCtx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+    gcCtx.lineWidth = 2;
+    gcCtx.strokeRect(24, 24, 464, 292);
+
+    gcCtx.beginPath();
+    gcCtx.moveTo(256, 48);
+    gcCtx.lineTo(376, 170);
+    gcCtx.lineTo(256, 292);
+    gcCtx.lineTo(136, 170);
+    gcCtx.closePath();
+    gcCtx.stroke();
+
+    gcCtx.beginPath();
+    gcCtx.arc(256, 170, 48, 0, Math.PI * 2);
+    gcCtx.stroke();
+
+    // =========================================================================
+    // 6. PHOTOREALISTIC HIGH-RES PLANET TEXTURES (512x256 Pixel-Synthesized fBm)
+    //    Complemented by 3D Simplex/fBm Per-Pixel Detail in our Custom Planet GLSL Shader!
+    // =========================================================================
+    const pw = 512;
+    const ph = 256;
+
+    // 6A. Photorealistic Jovian Gas Giant (Domain-warped zonal bands + Kelvin-Helmholtz eddies)
+    const gasGiantCanvas = document.createElement('canvas');
+    gasGiantCanvas.width = pw;
+    gasGiantCanvas.height = ph;
+    const ggCtx = gasGiantCanvas.getContext('2d')!;
+    const ggImg = ggCtx.createImageData(pw, ph);
+
+    // 6B. Photorealistic Continental / Cryo-Ocean World + Land/Ocean Mask for City Lights
+    const icePlanetCanvas = document.createElement('canvas');
+    icePlanetCanvas.width = pw;
+    icePlanetCanvas.height = ph;
+    const ipCtx = icePlanetCanvas.getContext('2d')!;
+    const ipImg = ipCtx.createImageData(pw, ph);
+
+    // 6C. Photorealistic Tectonic Magma & Basalt Planet
+    const lavaPlanetCanvas = document.createElement('canvas');
+    lavaPlanetCanvas.width = pw;
+    lavaPlanetCanvas.height = ph;
+    const lpCtx = lavaPlanetCanvas.getContext('2d')!;
+    const lpImg = lpCtx.createImageData(pw, ph);
+
+    // 6D. Photorealistic Night-Side City Lights (Organic coastal & continental clusters)
+    const cityLightsCanvas = document.createElement('canvas');
+    cityLightsCanvas.width = pw;
+    cityLightsCanvas.height = ph;
+    const clightCtx = cityLightsCanvas.getContext('2d')!;
+    const clImg = clightCtx.createImageData(pw, ph);
+
+    // 6E. Photorealistic Planetary Cloud Deck Layer (Cyclonic swirls & trade wind bands)
+    const cloudsCanvas = document.createElement('canvas');
+    cloudsCanvas.width = pw;
+    cloudsCanvas.height = ph;
+    const pclCtx = cloudsCanvas.getContext('2d')!;
+    const pclImg = pclCtx.createImageData(pw, ph);
+
+    for (let y = 0; y < ph; y++) {
+        const v = y / ph;
+        const lat = Math.abs(v - 0.5) * 2.0; // 0 at equator, 1 at poles
+
+        for (let x = 0; x < pw; x++) {
+            const u = x / pw;
+            const idx = (y * pw + x) * 4;
+
+            // --- A. JOVIAN GAS GIANT ---
+            const warpX = fbm2D(u * 6.0, v * 12.0, 4, 2.0, 0.5, 6, 12) * 0.25;
+            const warpY = fbm2D(u * 8.0 + 5.2, v * 16.0 + 1.3, 5, 2.0, 0.5, 8, 16) * 0.085;
+            const bandCoord = (v + warpY) * 18.0;
+            const zone = Math.sin(bandCoord * Math.PI) * 0.5 + 0.5;
+            const fineTurbulence = fbm2D((u + warpX) * 12.0, (v + warpY) * 24.0, 5, 2.0, 0.5, 12, 24);
+
+            // Great Red/Amber Anticyclonic Vortex at (u=0.62, v=0.58)
+            const dxStorm = (u - 0.62) * 2.2;
+            const dyStorm = (v - 0.58) * 4.2;
+            const stormDist = Math.sqrt(dxStorm * dxStorm + dyStorm * dyStorm);
+            const stormSwirl = Math.max(0, 1.0 - stormDist);
+
+            const jMix = THREE.MathUtils.clamp(zone * 0.65 + fineTurbulence * 0.35, 0, 1);
+            // Realistic Cassini Jupiter/Saturn palette (Cream, Ochre, Rust Amber, Deep Slate Belt)
+            let jr = lerp(38, 228, jMix) + stormSwirl * 65;
+            let jg = lerp(48, 192, jMix) - stormSwirl * 15;
+            let jb = lerp(72, 148, jMix) - stormSwirl * 45;
+            const polarDark = 1.0 - Math.pow(lat, 2.6) * 0.55;
+            ggImg.data[idx] = THREE.MathUtils.clamp(jr * polarDark, 0, 255);
+            ggImg.data[idx + 1] = THREE.MathUtils.clamp(jg * polarDark, 0, 255);
+            ggImg.data[idx + 2] = THREE.MathUtils.clamp(jb * polarDark, 0, 255);
+            ggImg.data[idx + 3] = 255;
+
+            // --- B. CONTINENTAL / CRYO-OCEAN WORLD & D. NIGHT-SIDE CITY LIGHTS ---
+            const contElevation = fbm2D(u * 5.0 + 1.4, v * 5.0 + 2.1, 6, 2.05, 0.52, 5, 5);
+            const mountainRidges = ridgedFbm2D(u * 10.0, v * 10.0, 5, 10, 10);
+            const isLand = contElevation > 0.49;
+            const isPolarIce = lat + (contElevation - 0.5) * 0.32 > 0.78;
+
+            let er = 0;
+            let eg = 0;
+            let eb = 0;
+            if (isPolarIce) {
+                const iceDetail = 0.85 + 0.15 * mountainRidges;
+                er = 225 * iceDetail;
+                eg = 242 * iceDetail;
+                eb = 255 * iceDetail;
+            } else if (isLand) {
+                const landH = THREE.MathUtils.clamp((contElevation - 0.49) / 0.51, 0, 1);
+                const alpine = mountainRidges * landH;
+                // Realistic satellite Earth/Super-Earth biome colors (deep forest, arid plateau, snow peaks)
+                er = lerp(28, 128, landH) + alpine * 85;
+                eg = lerp(64, 118, landH) + alpine * 82;
+                eb = lerp(42, 96, landH) + alpine * 90;
+            } else {
+                // Deep ocean & turquoise continental shelf
+                const shelf = THREE.MathUtils.clamp(contElevation / 0.49, 0, 1);
+                const shelfPow = Math.pow(shelf, 3.5);
+                er = lerp(4, 22, shelfPow);
+                eg = lerp(16, 98, shelfPow);
+                eb = lerp(44, 158, shelfPow);
+            }
+            ipImg.data[idx] = THREE.MathUtils.clamp(er, 0, 255);
+            ipImg.data[idx + 1] = THREE.MathUtils.clamp(eg, 0, 255);
+            ipImg.data[idx + 2] = THREE.MathUtils.clamp(eb, 0, 255);
+            ipImg.data[idx + 3] = 255;
+
+            // Night-Side City Lights: Clustered organically along coastlines & low-elevation continents!
+            let cityIntensity = 0;
+            if (isLand && !isPolarIce && lat < 0.72) {
+                const coastProximity = 1.0 - THREE.MathUtils.clamp((contElevation - 0.49) / 0.16, 0, 1);
+                const urbanCluster = fbm2D(u * 18.0 + 3.7, v * 18.0 + 6.1, 4, 2.2, 0.55, 18, 18);
+                const fineGrid = ridgedFbm2D(u * 36.0, v * 36.0, 3, 36, 36);
+                const settlement = (urbanCluster * 0.75 + coastProximity * 0.35) * Math.pow(fineGrid, 2.2);
+                if (settlement > 0.36) {
+                    cityIntensity = THREE.MathUtils.clamp((settlement - 0.36) * 2.8, 0, 1);
+                }
+            }
+            clImg.data[idx] = Math.round(cityIntensity * 255);
+            clImg.data[idx + 1] = Math.round(cityIntensity * 195);
+            clImg.data[idx + 2] = Math.round(Math.pow(cityIntensity, 1.6) * 115);
+            clImg.data[idx + 3] = 255;
+
+            // --- C. VOLCANIC BASALT & TECTONIC MAGMA WORLD ---
+            const basalt = fbm2D(u * 8.0, v * 8.0, 5, 2.0, 0.5, 8, 8);
+            const magmaCrack = ridgedFbm2D(u * 7.0 + basalt * 0.35, v * 7.0 + basalt * 0.35, 5, 7, 7);
+            const lavaGlow = Math.pow(THREE.MathUtils.clamp((magmaCrack - 0.62) / 0.38, 0, 1), 2.2);
+            const crustShade = 14 + basalt * 32;
+            lpImg.data[idx] = THREE.MathUtils.clamp(crustShade + lavaGlow * 255, 0, 255);
+            lpImg.data[idx + 1] = THREE.MathUtils.clamp(crustShade * 0.9 + Math.pow(lavaGlow, 1.6) * 185, 0, 255);
+            lpImg.data[idx + 2] = THREE.MathUtils.clamp(crustShade * 1.1 + Math.pow(lavaGlow, 3.0) * 90, 0, 255);
+            lpImg.data[idx + 3] = 255;
+
+            // --- E. PLANETARY ATMOSPHERIC CLOUD DECK ---
+            const cSwirlX = fbm2D(u * 4.0 + 7.1, v * 4.0, 4, 2.0, 0.5, 4, 4) * 0.35;
+            const cSwirlY = fbm2D(u * 4.0, v * 4.0 + 9.3, 4, 2.0, 0.5, 4, 4) * 0.35;
+            const cloudDensity = fbm2D((u + cSwirlX) * 8.0, (v + cSwirlY) * 8.0, 6, 2.05, 0.52, 8, 8);
+            const cloudAlpha = THREE.MathUtils.clamp((cloudDensity - 0.44) * 2.4, 0, 1);
+            const cByte = Math.round(cloudAlpha * 255);
+            pclImg.data[idx] = 255;
+            pclImg.data[idx + 1] = 255;
+            pclImg.data[idx + 2] = 255;
+            pclImg.data[idx + 3] = cByte;
+        }
+    }
+
+    ggCtx.putImageData(ggImg, 0, 0);
+    ipCtx.putImageData(ipImg, 0, 0);
+    lpCtx.putImageData(lpImg, 0, 0);
+    clightCtx.putImageData(clImg, 0, 0);
+    pclCtx.putImageData(pclImg, 0, 0);
+
+    // 6F. Photorealistic High-Density Planetary Ring System (512x512 with hundreds of fine ringlets)
+    const ringCanvas = document.createElement('canvas');
+    ringCanvas.width = 512;
+    ringCanvas.height = 512;
+    const rgCtx = ringCanvas.getContext('2d')!;
+    const rgImg = rgCtx.createImageData(512, 512);
+
+    for (let y = 0; y < 512; y++) {
+        const dy = y - 256;
+        for (let x = 0; x < 512; x++) {
+            const dx = x - 256;
+            const r = Math.sqrt(dx * dx + dy * dy);
+            const idx = (y * 512 + x) * 4;
+            if (r < 112 || r > 250) {
+                rgImg.data[idx + 3] = 0;
+                continue;
+            }
+            const normR = (r - 112) / (250 - 112);
+            // Cassini Division (0.54..0.61) & Encke Gap (0.86..0.885)
+            const cassiniMask =
+                normR > 0.54 && normR < 0.61
+                    ? 0.06
+                    : normR > 0.86 && normR < 0.885
+                      ? 0.08
+                      : 1.0;
+
+            // High-frequency concentric ringlet optical depth modulation
+            const ringletNoise =
+                0.55 +
+                0.25 * Math.sin(normR * 185.0) +
+                0.15 * Math.cos(normR * 420.0) +
+                0.12 * Math.sin(normR * 890.0);
+            const radialEnvelope = Math.sin(normR * Math.PI);
+            const alpha = THREE.MathUtils.clamp(
+                radialEnvelope * ringletNoise * cassiniMask * 0.92,
+                0,
+                1
+            );
+
+            // Warm icy silicate & champagne dust tones (Saturn A/B/C ring colors)
+            const colorShift = 0.5 + 0.5 * Math.sin(normR * 45.0);
+            rgImg.data[idx] = Math.round(lerp(185, 245, colorShift));
+            rgImg.data[idx + 1] = Math.round(lerp(198, 232, colorShift));
+            rgImg.data[idx + 2] = Math.round(lerp(215, 210, colorShift));
+            rgImg.data[idx + 3] = Math.round(alpha * 255);
+        }
+    }
+    rgCtx.putImageData(rgImg, 0, 0);
+
+    // =========================================================================
+    // 7. THREE PHOTOREALISTIC JWST / HUBBLE VOLUMETRIC NEBULA TEXTURES (384x384 ImageData)
+    //    Domain-warped ridged fBm gas filaments + dark Bok globule dust lanes!
+    // =========================================================================
+    const synthesizeNebulaTexture = (
+        seedOffset: number,
+        coreR: number,
+        coreG: number,
+        coreB: number,
+        rimR: number,
+        rimG: number,
+        rimB: number
+    ): THREE.CanvasTexture => {
+        const nw = 384;
+        const nh = 384;
+        const canvas = document.createElement('canvas');
+        canvas.width = nw;
+        canvas.height = nh;
+        const ctx = canvas.getContext('2d')!;
+        const img = ctx.createImageData(nw, nh);
+
+        for (let y = 0; y < nh; y++) {
+            const ny = (y / nh - 0.5) * 2.0;
+            for (let x = 0; x < nw; x++) {
+                const nx = (x / nw - 0.5) * 2.0;
+                const dist = Math.sqrt(nx * nx + ny * ny);
+                const idx = (y * nw + x) * 4;
+                if (dist >= 1.0) {
+                    img.data[idx + 3] = 0;
+                    continue;
+                }
+
+                // Soft organic radial falloff so sprite edges never clip
+                const radialFalloff = Math.pow(1.0 - dist * dist, 1.85);
+
+                // Domain-warped coordinates for wispy interstellar gas filaments
+                const u = (x / nw) * 4.5 + seedOffset;
+                const v = (y / nh) * 4.5 + seedOffset * 0.7;
+                const qx = fbm2D(u, v, 4, 2.0, 0.5, 16, 16) - 0.5;
+                const qy = fbm2D(u + 5.2, v + 1.3, 4, 2.0, 0.5, 16, 16) - 0.5;
+
+                const filament = ridgedFbm2D(u + qx * 2.2, v + qy * 2.2, 5, 16, 16);
+                const cloudBody = fbm2D(u * 0.8 + qx * 1.4, v * 0.8 + qy * 1.4, 5, 2.0, 0.52, 16, 16);
+
+                // Dark dust absorption lanes carving through the emission nebula
+                const darkDust = fbm2D(u * 1.6 - qy * 1.5, v * 1.6 + qx * 1.5, 4, 2.1, 0.5, 16, 16);
+                const dustExtinction = THREE.MathUtils.clamp((darkDust - 0.56) * 2.6, 0, 0.78);
+
+                const density = THREE.MathUtils.clamp(
+                    (cloudBody * 0.55 + Math.pow(filament, 1.6) * 0.65) * (1.0 - dustExtinction) * radialFalloff,
+                    0,
+                    1
+                );
+
+                // Blend between ionized core emission and outer filament rim
+                const filFactor = THREE.MathUtils.clamp(Math.pow(filament, 2.0), 0, 1);
+                const r = lerp(rimR, coreR, filFactor) * (0.65 + 0.65 * filament);
+                const g = lerp(rimG, coreG, filFactor) * (0.65 + 0.65 * filament);
+                const b = lerp(rimB, coreB, filFactor) * (0.65 + 0.65 * filament);
+
+                img.data[idx] = THREE.MathUtils.clamp(r, 0, 255);
+                img.data[idx + 1] = THREE.MathUtils.clamp(g, 0, 255);
+                img.data[idx + 2] = THREE.MathUtils.clamp(b, 0, 255);
+                img.data[idx + 3] = Math.round(Math.pow(density, 1.15) * 235);
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    };
+
+    // 1. Orion / Lagoon Cyan-Teal & Violet Ionized Nebula
+    const cartoonCloudTex = synthesizeNebulaTexture(1.2, 85, 235, 255, 139, 92, 246);
+    // 2. Carina / Pillars of Creation Golden-Amber & Deep Turquoise Nebula
+    const nebulaPillarTex = synthesizeNebulaTexture(8.7, 254, 215, 102, 14, 165, 233);
+    // 3. Cygnus Veil / Rosette Crimson-Magenta & Electric Blue Supernova Remnant
+    const nebulaVeilTex = synthesizeNebulaTexture(19.4, 244, 114, 182, 56, 189, 248);
+
+    // =========================================================================
+    // 8. PROCEDURAL HDR EQUIRECTANGULAR ENVIRONMENT MAP (512x256)
+    // =========================================================================
+    const hdrCanvas = document.createElement('canvas');
+    hdrCanvas.width = 512;
+    hdrCanvas.height = 256;
+    const hdrCtx = hdrCanvas.getContext('2d')!;
+
+    const envGrad = hdrCtx.createLinearGradient(0, 0, 0, 256);
+    envGrad.addColorStop(0.0, '#0f172a');
+    envGrad.addColorStop(0.35, '#1e3a8a');
+    envGrad.addColorStop(0.5, '#38bdf8');
+    envGrad.addColorStop(0.65, '#311042');
+    envGrad.addColorStop(1.0, '#020617');
+    hdrCtx.fillStyle = envGrad;
+    hdrCtx.fillRect(0, 0, 512, 256);
+
+    for (const [hx, hy, hr, col] of [
+        [128, 84, 56, 'rgba(255, 255, 255, 0.9)'],
+        [360, 110, 72, 'rgba(0, 240, 255, 0.85)'],
+        [240, 168, 64, 'rgba(253, 224, 71, 0.75)'],
+        [440, 64, 48, 'rgba(168, 85, 247, 0.7)']
+    ] as const) {
+        const g = hdrCtx.createRadialGradient(hx, hy, 2, hx, hy, hr);
+        g.addColorStop(0, col);
+        g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        hdrCtx.fillStyle = g;
+        hdrCtx.beginPath();
+        hdrCtx.arc(hx, hy, hr, 0, Math.PI * 2);
+        hdrCtx.fill();
+    }
+
+    // =========================================================================
+    // 9. HOLOGRAPHIC GATE PATTERN DISC, SUPERNOVA FLARE & PARTICLE GLOW
+    // =========================================================================
+    const holoGateCanvas = document.createElement('canvas');
+    holoGateCanvas.width = 256;
+    holoGateCanvas.height = 256;
+    const hgCtx = holoGateCanvas.getContext('2d')!;
+    hgCtx.clearRect(0, 0, 256, 256);
+
+    const flareCanvas = document.createElement('canvas');
+    flareCanvas.width = 512;
+    flareCanvas.height = 256;
+    const flCtx = flareCanvas.getContext('2d')!;
+    flCtx.clearRect(0, 0, 512, 256);
+
+    const coreFlGrad = flCtx.createRadialGradient(256, 128, 4, 256, 128, 120);
+    coreFlGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    coreFlGrad.addColorStop(0.25, 'rgba(254, 240, 138, 0.95)');
+    coreFlGrad.addColorStop(0.55, 'rgba(245, 158, 11, 0.45)');
+    coreFlGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    flCtx.fillStyle = coreFlGrad;
+    flCtx.fillRect(0, 0, 512, 256);
+
+    const splatCanvas = document.createElement('canvas');
+    splatCanvas.width = 256;
+    splatCanvas.height = 256;
+    const sCtx = splatCanvas.getContext('2d')!;
+    const pGrad = sCtx.createRadialGradient(128, 128, 6, 128, 128, 118);
+    pGrad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+    pGrad.addColorStop(0.35, 'rgba(56, 189, 248, 0.55)');
+    pGrad.addColorStop(0.7, 'rgba(59, 130, 246, 0.22)');
+    pGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    sCtx.fillStyle = pGrad;
+    sCtx.beginPath();
+    sCtx.arc(128, 128, 118, 0, Math.PI * 2);
+    sCtx.fill();
+
+    const chainCanvas = document.createElement('canvas');
+    chainCanvas.width = 128;
+    chainCanvas.height = 128;
+
+    const billCanvas = document.createElement('canvas');
+    billCanvas.width = 128;
+    billCanvas.height = 64;
+
+    const glowCanvas = document.createElement('canvas');
+    glowCanvas.width = 128;
+    glowCanvas.height = 128;
+    const gCtx = glowCanvas.getContext('2d')!;
+    const rad = gCtx.createRadialGradient(64, 64, 2, 64, 64, 60);
+    rad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    rad.addColorStop(0.32, 'rgba(56, 189, 248, 0.85)');
+    rad.addColorStop(0.72, 'rgba(59, 130, 246, 0.3)');
+    rad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    gCtx.fillStyle = rad;
+    gCtx.beginPath();
+    gCtx.arc(64, 64, 60, 0, Math.PI * 2);
+    gCtx.fill();
+
+    const toonData = new Uint8Array([80, 150, 215, 255]);
+    const toonGradientMap = new THREE.DataTexture(toonData, 4, 1, THREE.RedFormat);
+    toonGradientMap.minFilter = THREE.NearestFilter;
+    toonGradientMap.magFilter = THREE.NearestFilter;
+    toonGradientMap.needsUpdate = true;
+
+    const hullColor = new THREE.CanvasTexture(hullColorCanvas);
+    hullColor.colorSpace = THREE.SRGBColorSpace;
+
+    const windshieldEyesTex = new THREE.CanvasTexture(eyesCanvas);
+    windshieldEyesTex.colorSpace = THREE.SRGBColorSpace;
+
+    const hullBump = new THREE.CanvasTexture(hullBumpCanvas);
+    const hullRoughness = new THREE.CanvasTexture(hullRoughCanvas);
+
+    const platformColor = new THREE.CanvasTexture(platColorCanvas);
+    platformColor.colorSpace = THREE.SRGBColorSpace;
+
+    const platformBump = new THREE.CanvasTexture(platBumpCanvas);
+    const archBump = new THREE.CanvasTexture(archBumpCanvas);
+
+    const brickWallColor = new THREE.CanvasTexture(brickCanvas);
+    brickWallColor.colorSpace = THREE.SRGBColorSpace;
+
+    const asphaltColor = new THREE.CanvasTexture(asphaltCanvas);
+    asphaltColor.colorSpace = THREE.SRGBColorSpace;
+
+    const paintSplatterTex = new THREE.CanvasTexture(splatCanvas);
+    paintSplatterTex.colorSpace = THREE.SRGBColorSpace;
+
+    const chainLinkTex = new THREE.CanvasTexture(chainCanvas);
+    const glassCardTex = new THREE.CanvasTexture(glassCardCanvas);
+    glassCardTex.colorSpace = THREE.SRGBColorSpace;
+
+    const dollarBillTex = new THREE.CanvasTexture(billCanvas);
+    const particleGlow = new THREE.CanvasTexture(glowCanvas);
+    particleGlow.colorSpace = THREE.SRGBColorSpace;
+
+    const asteroidColor = new THREE.CanvasTexture(astColorCanvas);
+    asteroidColor.colorSpace = THREE.SRGBColorSpace;
+    asteroidColor.wrapS = asteroidColor.wrapT = THREE.RepeatWrapping;
+
+    const asteroidBump = new THREE.CanvasTexture(astBumpCanvas);
+    asteroidBump.wrapS = asteroidBump.wrapT = THREE.RepeatWrapping;
+
+    const asteroidRoughness = new THREE.CanvasTexture(astRoughCanvas);
+    asteroidRoughness.wrapS = asteroidRoughness.wrapT = THREE.RepeatWrapping;
+
+    const hologramGateTex = new THREE.CanvasTexture(holoGateCanvas);
+    const supernovaFlareTex = new THREE.CanvasTexture(flareCanvas);
+    supernovaFlareTex.colorSpace = THREE.SRGBColorSpace;
+
+    const planetGasGiantTex = new THREE.CanvasTexture(gasGiantCanvas);
+    planetGasGiantTex.colorSpace = THREE.SRGBColorSpace;
+    planetGasGiantTex.wrapS = THREE.RepeatWrapping;
+
+    const planetIceWorldTex = new THREE.CanvasTexture(icePlanetCanvas);
+    planetIceWorldTex.colorSpace = THREE.SRGBColorSpace;
+    planetIceWorldTex.wrapS = THREE.RepeatWrapping;
+
+    const planetLavaWorldTex = new THREE.CanvasTexture(lavaPlanetCanvas);
+    planetLavaWorldTex.colorSpace = THREE.SRGBColorSpace;
+    planetLavaWorldTex.wrapS = THREE.RepeatWrapping;
+
+    const planetCityLightsTex = new THREE.CanvasTexture(cityLightsCanvas);
+    planetCityLightsTex.colorSpace = THREE.SRGBColorSpace;
+    planetCityLightsTex.wrapS = THREE.RepeatWrapping;
+
+    const planetCloudsTex = new THREE.CanvasTexture(cloudsCanvas);
+    planetCloudsTex.colorSpace = THREE.SRGBColorSpace;
+    planetCloudsTex.wrapS = THREE.RepeatWrapping;
+
+    const planetRingTex = new THREE.CanvasTexture(ringCanvas);
+    planetRingTex.colorSpace = THREE.SRGBColorSpace;
+
+    const hdrEnvEquirectTex = new THREE.CanvasTexture(hdrCanvas);
+    hdrEnvEquirectTex.mapping = THREE.EquirectangularReflectionMapping;
+    hdrEnvEquirectTex.colorSpace = THREE.SRGBColorSpace;
+
+    return {
+        hullColor,
+        hullBump,
+        hullRoughness,
+        windshieldEyesTex,
+        platformColor,
+        platformBump,
+        archBump,
+        brickWallColor,
+        asphaltColor,
+        paintSplatterTex,
+        cartoonCloudTex,
+        nebulaPillarTex,
+        nebulaVeilTex,
+        chainLinkTex,
+        glassCardTex,
+        dollarBillTex,
+        particleGlow,
+        asteroidColor,
+        asteroidBump,
+        asteroidRoughness,
+        hologramGateTex,
+        supernovaFlareTex,
+        planetGasGiantTex,
+        planetIceWorldTex,
+        planetLavaWorldTex,
+        planetCityLightsTex,
+        planetCloudsTex,
+        planetRingTex,
+        hdrEnvEquirectTex,
+        toonGradientMap
+    };
+}
+
+/**
+ * Renders a Punchy, High-Contrast Cartoon Cel-Shaded Badge above each Platform Gate
+ */
+export function updateHologramBadgeCanvas(
+    canvas: HTMLCanvasElement,
+    laneNum: number,
+    subText: string,
+    accentHex: string,
+    isSpecial: boolean,
+    isHovered: boolean
+) {
+    const ctx = canvas.getContext('2d')!;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const pad = 6;
+    const rw = w - pad * 2;
+    const rh = h - pad * 2;
+
+    // Drop shadow
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.roundRect(pad + 3, pad + 3, rw, rh, 12);
+    ctx.fill();
+
+    // Comic card background
+    ctx.fillStyle = isHovered
+        ? '#0c223e'
+        : isSpecial
+          ? '#2d1804'
+          : '#0a0f1d';
+    ctx.beginPath();
+    ctx.roundRect(pad, pad, rw, rh, 12);
+    ctx.fill();
+
+    // Bold cartoon ink border
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    // Inner bright accent rim
+    ctx.strokeStyle = isHovered ? '#fde047' : accentHex;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.roundRect(pad + 2, pad + 2, rw - 4, rh - 4, 10);
+    ctx.stroke();
+
+    // Top banner ribbon
+    ctx.fillStyle = isHovered ? '#fde047' : accentHex;
+    ctx.beginPath();
+    ctx.roundRect(pad + 4, pad + 4, rw - 8, 28, 7);
+    ctx.fill();
+
+    // Ribbon ink outline
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.font = '900 14px "Plus Jakarta Sans", "Arial Black", sans-serif';
+    ctx.fillStyle = '#000000';
+    ctx.fillText(`GATE ${laneNum}`, w / 2, 26, rw - 20);
+
+    const valFontPx = subText.length > 10 ? 21 : subText.length > 8 ? 23 : 26;
+    ctx.font = `900 ${valFontPx}px "Plus Jakarta Sans", "Arial Black", sans-serif`;
+
+    // Text ink outline for high cartoon contrast
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#000000';
+    ctx.strokeText(subText, w / 2, 68, rw - 20);
+
+    ctx.fillStyle = isHovered ? '#fde047' : isSpecial ? '#fef08a' : '#ffffff';
+    ctx.fillText(subText, w / 2, 68, rw - 20);
+}
+
+/**
+ * Dynamically creates a 3D Holographic Quantum Multiplier Projection ("3.12x")
+ * with strict bounding-box fit so no characters ever overflow the frame.
+ */
+export function createGraffitiMultiplierTexture(
+    multiplierText: string,
+    neonColor: string
+): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, 512, 256);
+
+    const grad = ctx.createRadialGradient(256, 128, 12, 256, 128, 210);
+    grad.addColorStop(0, 'rgba(15, 23, 42, 0.9)');
+    grad.addColorStop(0.65, 'rgba(9, 14, 28, 0.88)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.roundRect(44, 48, 424, 160, 24);
+    ctx.fill();
+
+    ctx.strokeStyle = neonColor;
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    const fontSize = multiplierText.length > 7 ? 56 : multiplierText.length > 5 ? 66 : 76;
+    ctx.font = `800 ${fontSize}px "Plus Jakarta Sans", "JetBrains Mono", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    ctx.shadowColor = neonColor;
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(multiplierText, 256, 129, 380);
+    ctx.shadowBlur = 0;
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+}

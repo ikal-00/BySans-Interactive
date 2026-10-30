@@ -1,7 +1,6 @@
 import {
     calculateNextStepMultiplier,
     calculatePayout,
-    calculateShieldSaveMultiplier,
     getLaneWinProbability,
     THEORETICAL_RTP
 } from '../math/multipliers';
@@ -10,8 +9,8 @@ import { evaluateLanePick, generateServerSeed, deriveRowSpecials } from '../cryp
 
 /**
  * High-performance Monte Carlo simulation runner.
- * Evaluates all game mechanics (Normal, Golden Cards ★, Alien UFO 👽, Energy Shield 🛡️,
- * and 50% Partial Cashout 💰) over large sample sizes (100,000 to 1,000,000 rounds)
+ * Evaluates all game mechanics (Normal, Golden Cards, Alien UFO, Energy Shield,
+ * and 50% Partial Cashout) over large sample sizes (100,000 to 1,000,000 rounds)
  * in under 50ms, confirming exact convergence to 96.00% RTP (4.00% House Edge).
  */
 export function runSimulation(config: SimulationConfig): SimulationResult {
@@ -60,48 +59,22 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
             let activeBet = effectiveBet;
             let currentMult = 1.0;
             let currentRow = 1;
-            let hasShield = isShieldStrategy;
             let isFirstStep = true;
             let bankedPartial = 0;
             let crashed = false;
 
             while (currentRow <= targetCashoutRow) {
-                let boostFactor = 1.0;
-                let rowsSkipped = 0;
-                let pickedSpecial: 'NONE' | 'GOLDEN' | 'ALIEN' = 'NONE';
-
-                if (strategy === 'golden_hunter') {
-                    // 90% chance row has a Golden Card in Lucky Boost mode
-                    if (Math.random() < 0.90) {
-                        pickedSpecial = 'GOLDEN';
-                        boostFactor = Math.random() < 0.43 ? 3.0 : 2.0;
-                    }
-                } else if (strategy === 'alien_hunter') {
-                    // 65% chance row has an Alien UFO Card in Lucky Boost mode
-                    if (Math.random() < 0.65) {
-                        pickedSpecial = 'ALIEN';
-                        boostFactor = 2.5;
-                        rowsSkipped = 2;
-                    }
-                }
-
-                const pWin = getLaneWinProbability(minesCount, boostFactor);
+                const pWin = getLaneWinProbability(minesCount);
                 const isSafe = Math.random() < pWin;
 
                 if (isSafe) {
                     currentMult = calculateNextStepMultiplier(
                         currentMult,
                         minesCount,
-                        isFirstStep,
-                        boostFactor,
-                        hasShield
+                        isFirstStep
                     );
                     isFirstStep = false;
-
-                    if (pickedSpecial === 'GOLDEN') goldenHits++;
-                    if (pickedSpecial === 'ALIEN') alienAttacks++;
-
-                    currentRow += 1 + rowsSkipped;
+                    currentRow += 1;
 
                     // If Partial Cashout strategy: bank 50% after clearing row 1 (if more rows remain)
                     if (isPartialCashoutStrategy && bankedPartial === 0 && currentRow <= targetCashoutRow) {
@@ -111,12 +84,6 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
                         activeBet = activeBet * 0.5;
                         partialCashouts++;
                     }
-                } else if (hasShield) {
-                    hasShield = false;
-                    shieldSaves++;
-                    currentMult = calculateShieldSaveMultiplier(currentMult, isFirstStep);
-                    isFirstStep = false;
-                    currentRow += 1;
                 } else {
                     crashed = true;
                     break;
@@ -159,7 +126,6 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
             let activeBet = effectiveBet;
             let currentMult = 1.0;
             let currentRow = 1;
-            let hasShield = isShieldStrategy;
             let isFirstStep = true;
             let bankedPartial = 0;
             let crashed = false;
@@ -187,14 +153,10 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
                     currentMult = calculateNextStepMultiplier(
                         currentMult,
                         minesCount,
-                        isFirstStep,
-                        outcome.boostFactor,
-                        hasShield
+                        isFirstStep
                     );
                     isFirstStep = false;
-                    if (outcome.specialType === 'GOLDEN') goldenHits++;
-                    if (outcome.specialType === 'ALIEN') alienAttacks++;
-                    currentRow += 1 + outcome.rowsSkipped;
+                    currentRow += 1;
 
                     if (isPartialCashoutStrategy && bankedPartial === 0 && currentRow <= targetCashoutRow) {
                         const curVal = calculatePayout(activeBet, currentMult);
@@ -203,12 +165,6 @@ export function runSimulation(config: SimulationConfig): SimulationResult {
                         activeBet = activeBet * 0.5;
                         partialCashouts++;
                     }
-                } else if (hasShield) {
-                    hasShield = false;
-                    shieldSaves++;
-                    currentMult = calculateShieldSaveMultiplier(currentMult, isFirstStep);
-                    isFirstStep = false;
-                    currentRow += 1;
                 } else {
                     crashed = true;
                     break;

@@ -8,11 +8,11 @@ import {
 import {
     calculateEffectiveBet,
     calculateNextStepMultiplier,
-    calculatePayout,
-    calculateShieldSaveMultiplier
+    calculatePayout
 } from '../math/multipliers';
 import { GameState } from '../math/types';
 import type { RoundPick, RoundSummary, RowSpecialConfig } from '../math/types';
+import { stakeRGS } from '../engine/StakeRGSBridge';
 
 export type StateListener = (state: GameState, engine: GameEngine) => void;
 export type CashoutListener = (payout: number, multiplier: number, engine: GameEngine) => void;
@@ -29,10 +29,11 @@ export class GameEngine {
     public minesCount: number = 3;
     public balance: number = 250.0; // Starting simulated balance ($250.00 = 0.0125 BTC)
 
-    // Bonus / Power-up Toggles
-    public luckyBoost: boolean = false;      // ⚡ Bonus de Suerte (+25% bet)
-    public shieldPurchased: boolean = false; // 🛡️ Escudo Deflector (+25% bet)
-    public hasActiveShield: boolean = false; // Intact shield during active round
+    // Legacy compatibility getters/setters for clean integration
+    public gameMode: 'base' = 'base';
+    public luckyBoost: boolean = false;
+    public shieldPurchased: boolean = false;
+    public hasActiveShield: boolean = false;
     public shieldUsedInRound: boolean = false;
 
     // Partial Cashout tracking
@@ -72,10 +73,12 @@ export class GameEngine {
 
     private loadPersistedState() {
         try {
-            const savedBalance = localStorage.getItem('endless_descent_balance');
-            if (savedBalance !== null) {
-                const parsed = parseFloat(savedBalance);
-                if (!isNaN(parsed) && parsed > 0) this.balance = parsed;
+            if (!stakeRGS.session.isLiveRGS) {
+                const savedBalance = localStorage.getItem('endless_descent_balance');
+                if (savedBalance !== null) {
+                    const parsed = parseFloat(savedBalance);
+                    if (!isNaN(parsed) && parsed > 0) this.balance = parsed;
+                }
             }
             const savedClientSeed = localStorage.getItem('endless_descent_client_seed');
             if (savedClientSeed) {
@@ -92,7 +95,9 @@ export class GameEngine {
 
     private persistState() {
         try {
-            localStorage.setItem('endless_descent_balance', this.balance.toFixed(2));
+            if (!stakeRGS.session.isLiveRGS) {
+                localStorage.setItem('endless_descent_balance', this.balance.toFixed(2));
+            }
             localStorage.setItem('endless_descent_client_seed', this.clientSeed);
             localStorage.setItem('endless_descent_nonce', this.nonce.toString());
         } catch {
@@ -141,9 +146,14 @@ export class GameEngine {
         this.stateListeners.forEach((fn) => fn(state, this));
     }
 
-    private emitBalanceChange() {
+    public emitBalanceChange() {
         this.persistState();
         this.balanceListeners.forEach((fn) => fn(this.balance, this));
+    }
+
+    public setBalance(amount: number) {
+        this.balance = Math.max(0, Math.round(amount * 100) / 100);
+        this.emitBalanceChange();
     }
 
     private emitHistoryUpdate() {
@@ -167,35 +177,37 @@ export class GameEngine {
     }
 
     public getEffectiveBet(baseBet = this.betAmount): number {
-        return calculateEffectiveBet(baseBet, this.luckyBoost, this.shieldPurchased);
+        return calculateEffectiveBet(baseBet);
     }
 
     public startBet(
         betAmount: number,
         minesCount: number,
-        luckyBoost = this.luckyBoost,
-        shieldPurchased = this.shieldPurchased
+        _luckyBoost = false,
+        _shieldPurchased = false,
+        _gameMode = 'base'
     ): boolean {
         if (this.state === GameState.PLAYING) return false;
-        if (betAmount <= 0) return false;
-        if (minesCount < 1 || minesCount > 4) return false;
+        if (!Number.isFinite(betAmount) || betAmount <= 0) return false;
+        if (!Number.isInteger(minesCount) || minesCount < 1 || minesCount > 4) return false;
 
-        this.luckyBoost = luckyBoost;
-        this.shieldPurchased = shieldPurchased;
+        const sanitizedBet = Math.min(1000000, Math.round(betAmount * 100) / 100);
+        const effectiveBet = sanitizedBet;
 
-        const effectiveBet = calculateEffectiveBet(betAmount, luckyBoost, shieldPurchased);
-
-        // Auto top-up if simulated balance runs low
-        if (this.balance < effectiveBet) {
+        // In Live RGS mode, verify real balance sufficiency; in Sandbox demo, auto top-up
+        if (!stakeRGS.session.isLiveRGS && this.balance < effectiveBet) {
             this.balance = Math.max(250.0, effectiveBet * 5);
             this.emitBalanceChange();
+        } else if (stakeRGS.session.isLiveRGS && this.balance < effectiveBet) {
+            stakeRGS.showToast('Saldo insuficiente en tu cuenta de Stake.', 'error', 3500);
+            return false;
         }
 
-        this.betAmount = betAmount;
+        this.betAmount = sanitizedBet;
         this.activeBetAmount = effectiveBet;
         this.initialEffectiveBet = effectiveBet;
         this.minesCount = minesCount;
-        this.hasActiveShield = shieldPurchased;
+        this.hasActiveShield = false;
         this.shieldUsedInRound = false;
         this.partialPayoutBanked = 0;
         this.partialCashoutUsedOnRow = 0;
@@ -209,7 +221,7 @@ export class GameEngine {
         this.nonce++;
         this.persistState();
 
-        // Deduct full effective wager from balance
+        // Deduct base wager from balance
         this.adjustBalance(-effectiveBet);
 
         this.emitStateChange(GameState.PLAYING);
@@ -226,11 +238,10 @@ export class GameEngine {
 
     public pickLane(laneIndex: number): RoundPick | null {
         if (this.state !== GameState.PLAYING) return null;
-        if (laneIndex < 0 || laneIndex > 4) return null;
+        if (!Number.isInteger(laneIndex) || laneIndex < 0 || laneIndex > 4) return null;
 
         const actingRow = this.currentRow;
         const isFirstStep = this.currentPicks.length === 0;
-        const shieldWasActive = this.hasActiveShield;
 
         const outcome = evaluateLanePick(
             this.serverSeed,
@@ -239,64 +250,26 @@ export class GameEngine {
             actingRow,
             laneIndex,
             this.minesCount,
-            this.luckyBoost
+            false
         );
 
         this.lastChosenLane = laneIndex;
 
-        // CASE 1: SAFE STEP (Normal, Golden ★, or Alien UFO 👽)
+        // CASE 1: SAFE STEP
         if (outcome.isSafe) {
             this.currentMultiplier = calculateNextStepMultiplier(
                 this.currentMultiplier,
                 this.minesCount,
-                isFirstStep,
-                outcome.boostFactor,
-                shieldWasActive
-            );
-
-            // If Alien UFO triggered, mark the next 2 rows as destroyed by the Alien spaceship!
-            if (outcome.specialType === 'ALIEN' && outcome.rowsSkipped > 0) {
-                for (let s = 1; s <= outcome.rowsSkipped; s++) {
-                    this.alienDestroyedRows.add(actingRow + s);
-                }
-            }
-
-            const pick: RoundPick = {
-                row: actingRow,
-                lane: laneIndex,
-                isSafe: true,
-                shieldSaved: false,
-                specialType: outcome.specialType,
-                boostApplied: outcome.boostFactor,
-                rowsSkipped: outcome.rowsSkipped,
-                hazards: outcome.hazards,
-                stepMultiplierAfter: this.currentMultiplier
-            };
-            this.currentPicks.push(pick);
-
-            this.currentRow = actingRow + 1 + outcome.rowsSkipped;
-
-            this.stepListeners.forEach((fn) => fn(pick, this));
-            this.emitStateChange(GameState.PLAYING);
-            return pick;
-        }
-
-        // CASE 2: HIT A MINE, BUT ENERGY SHIELD ABSORBS THE EXPLOSION!
-        if (shieldWasActive) {
-            this.hasActiveShield = false;
-            this.shieldUsedInRound = true;
-            this.currentMultiplier = calculateShieldSaveMultiplier(
-                this.currentMultiplier,
                 isFirstStep
             );
 
             const pick: RoundPick = {
                 row: actingRow,
                 lane: laneIndex,
-                isSafe: false,
-                shieldSaved: true,
-                specialType: outcome.specialType,
-                boostApplied: 0.5,
+                isSafe: true,
+                shieldSaved: false,
+                specialType: 'NONE',
+                boostApplied: 1.0,
                 rowsSkipped: 0,
                 hazards: outcome.hazards,
                 stepMultiplierAfter: this.currentMultiplier
@@ -310,7 +283,7 @@ export class GameEngine {
             return pick;
         }
 
-        // CASE 3: FATAL CRASH (No shield remaining)
+        // CASE 2: FATAL CRASH
         this.lastCrashedRow = actingRow;
         this.lastCrashedLane = laneIndex;
 
@@ -319,7 +292,7 @@ export class GameEngine {
             lane: laneIndex,
             isSafe: false,
             shieldSaved: false,
-            specialType: outcome.specialType,
+            specialType: 'NONE',
             boostApplied: 0,
             rowsSkipped: 0,
             hazards: outcome.hazards,
@@ -431,10 +404,25 @@ export class GameEngine {
         this.previousServerSeed = this.serverSeed;
         this.serverSeed = generateServerSeed();
 
-        this.cashoutListeners.forEach((fn) => fn(totalRoundPayout, effectiveFinalMult, this));
         this.emitStateChange(GameState.WON);
         this.emitHistoryUpdate();
+        this.cashoutListeners.forEach((fn) => fn(totalRoundPayout, effectiveFinalMult, this));
 
         return totalRoundPayout;
+    }
+
+    /**
+     * Resets the game state back to IDLE at the starting base (Row 0 / Ready for Row 1)
+     * for both the Victory (Cashout) and Loss ("TRY AGAIN") zero-friction retention loops.
+     */
+    public resetToIdle() {
+        this.currentRow = 1;
+        this.currentMultiplier = 1.0;
+        this.lastChosenLane = 2;
+        this.lastCrashedRow = null;
+        this.lastCrashedLane = null;
+        this.currentPicks = [];
+        this.alienDestroyedRows.clear();
+        this.emitStateChange(GameState.IDLE);
     }
 }

@@ -1,672 +1,1407 @@
-import { GameEngine } from '../game/engine';
 import { GameState } from '../math/types';
 import {
-    formatCurrency,
-    formatMultiplier,
-    formatBtc,
-    calculateEffectiveBet,
-    calculateNextStepMultiplier
+    calculateMultiplier,
+    calculateNextStepMultiplier,
+    calculatePayout,
+    calculateEffectiveBet
 } from '../math/multipliers';
-import { sounds } from '../audio/sounds';
+import { GameStateController } from '../engine/GameState';
+import { PixiRenderer } from '../engine/Renderer';
+import { audioController } from '../engine/AudioController';
+import { stakeRGS } from '../engine/StakeRGSBridge';
+import { createRulesModal, openRulesModal, isRulesModalOpen } from './rulesModal';
+import { getTranslations } from '../i18n/translations';
+import gsap from 'gsap';
+
+const TOTAL_LANES = 5;
+
+interface TryAgainParticle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    size: number;
+    alpha: number;
+    decay: number;
+    color: string;
+}
+
+type VictoryEmitterType = 'ION_PLASMA' | 'TITANIUM_SPARKS' | 'QUANTUM_BURST' | 'HYPERDRIVE_STREAKS';
+
+interface VictoryParticle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    size: number;
+    rot: number;
+    rotSpeed: number;
+    spinPhase: number;
+    spinSpeed: number;
+    alpha: number;
+    color: string;
+    secondaryColor: string;
+    leafCount: number;
+}
+
+const VICTORY_HEADLINES = [
+    'WARP ESCAPE SECURED',
+    'HYPER-JUMP CLEARED',
+    'ATMOSPHERIC BREACH COMPLETE',
+    'MAXIMUM EXTRACTION',
+    'ORBITAL TRAJECTORY ACHIEVED'
+];
+
+const VICTORY_EMITTERS: VictoryEmitterType[] = [
+    'ION_PLASMA',
+    'TITANIUM_SPARKS',
+    'QUANTUM_BURST',
+    'HYPERDRIVE_STREAKS'
+];
 
 export function createControlsUI(
+    topHeader: HTMLElement,
+    leftDock: HTMLElement,
     stageContainer: HTMLElement,
-    controlDock: HTMLElement,
-    engine: GameEngine
+    stateCtrl: GameStateController,
+    _renderer: PixiRenderer
 ) {
-    // 1. ULTRA-CLEAN SINGLE-LINE TOP BAR (Inside stageContainer)
-    const topHeader = document.createElement('div');
-    topHeader.className =
-        'absolute top-0 left-0 w-full px-3.5 pt-2.5 pb-1.5 z-30 flex justify-between items-center pointer-events-auto bg-gradient-to-b from-[#071118]/90 via-[#071118]/40 to-transparent';
+    const engine = stateCtrl.engine;
+    const isReplay = stakeRGS.session.isReplay;
+    const lang = stakeRGS.session.language;
+    const isSocial = stakeRGS.session.isSocial;
+    const t = getTranslations(lang, isSocial);
 
-    topHeader.innerHTML = `
-        <!-- Left: Faceted Brand Emblem -->
-        <div class="flex items-center gap-2 select-none">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <defs>
-                    <linearGradient id="brandGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                        <stop offset="0%" stop-color="#86efac"/>
-                        <stop offset="50%" stop-color="#00e701"/>
-                        <stop offset="100%" stop-color="#15803d"/>
-                    </linearGradient>
-                </defs>
-                <path d="M12 22L2.5 4.5L12 9.5L21.5 4.5L12 22Z" fill="url(#brandGrad)"/>
-                <path d="M12 22L12 9.5L21.5 4.5L12 22Z" fill="#00b801" fill-opacity="0.45"/>
-                <path d="M8.5 8.5L12 15.5L15.5 8.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <div class="flex items-baseline gap-1">
-                <span class="font-black text-[11px] tracking-[0.16em] text-white">ENDLESS</span>
-                <span class="font-semibold text-[10px] tracking-[0.12em] text-[#7f96a7]">DESCENT</span>
-            </div>
-        </div>
+    let currentBetLevels: number[] = [...stakeRGS.betConfig.betLevels].sort((a, b) => a - b);
 
-        <!-- Right: Compact Wallet Pill + Studio Utility Icons -->
-        <div class="flex items-center gap-1.5 select-none">
-            <div class="relative flex items-center gap-1.5 bg-[#0c1821]/95 border border-[#263d4d] rounded-md px-2.5 py-1 shadow-inner" id="wallet-pill" title="${formatBtc(engine.balance)}">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-                    <polygon points="12 2 20 8 20 16 12 22 4 16 4 8" fill="#00e701" fill-opacity="0.25" stroke="#00e701" stroke-width="2"/>
-                    <polygon points="12 6 16 9 16 15 12 18 8 15 8 9" fill="#00e701"/>
-                </svg>
-                <span id="balance-usd" class="text-xs font-mono font-bold text-white tabular-nums leading-none">${formatCurrency(engine.balance)}</span>
-                <span id="wallet-delta" class="hidden absolute -bottom-4 right-1 text-[10px] font-mono font-extrabold text-[#00e701] tabular-nums pointer-events-none"></span>
-            </div>
+    function formatBetLevelVal(v: number): string {
+        return stakeRGS.session.currency === 'JPY' ? v.toFixed(0) : v.toFixed(2);
+    }
 
-            <button id="header-fair-btn" class="p-1.5 rounded-md bg-[#142530]/95 border border-[#263d4d] text-[#9cb3c5] hover:text-[#00e701] hover:border-[#38576e] transition-colors cursor-pointer" title="Provably Fair (HMAC-SHA256)">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <path d="M12 21.5C12 21.5 19 17.8 19 11.5V5.2L12 2.5L5 5.2V11.5C5 17.8 12 21.5 12 21.5Z" fill="#00e701" fill-opacity="0.14" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/>
-                    <path d="M9 12L11 14L15.2 9.8" stroke="#00e701" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-
-            <button id="btn-sim-panel" class="p-1.5 rounded-md bg-[#142530]/95 border border-[#263d4d] text-[#9cb3c5] hover:text-[#00e701] hover:border-[#38576e] transition-colors cursor-pointer" title="Simulador Monte Carlo RTP (96%)">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="13" width="4" height="7" rx="1" fill="#00e701" fill-opacity="0.3" stroke="currentColor" stroke-width="1.7"/>
-                    <rect x="10" y="8" width="4" height="12" rx="1" fill="#00e701" fill-opacity="0.5" stroke="currentColor" stroke-width="1.7"/>
-                    <rect x="17" y="4" width="4" height="16" rx="1" fill="#00e701" stroke="currentColor" stroke-width="1.7"/>
-                </svg>
-            </button>
-
-            <button id="sound-toggle-btn" class="p-1.5 rounded-md bg-[#142530]/95 border border-[#263d4d] text-[#9cb3c5] hover:text-white hover:border-[#38576e] transition-colors cursor-pointer" title="Audio">
-                <svg id="sound-icon-on" class="${sounds.isMuted ? 'hidden' : ''}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" fill-opacity="0.2"></polygon>
-                    <path d="M18.5 5.5a9 9 0 0 1 0 13M15 9a4.5 4.5 0 0 1 0 6" stroke="#00e701" stroke-linecap="round"></path>
-                </svg>
-                <svg id="sound-icon-off" class="${sounds.isMuted ? '' : 'hidden'}" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <line x1="22" y1="9" x2="16" y2="15" stroke="#ff1e42"></line>
-                    <line x1="16" y1="9" x2="22" y2="15" stroke="#ff1e42"></line>
-                </svg>
-            </button>
-        </div>
-    `;
-    stageContainer.appendChild(topHeader);
-
-    // 2. FRAMELESS FLOATING TELEMETRY READOUT (Clean, airy, never crowds the horizon)
-    const multHUD = document.createElement('div');
-    multHUD.className =
-        'absolute top-10 left-0 w-full flex flex-col items-center z-20 pointer-events-none select-none';
-    multHUD.innerHTML = `
-        <div class="flex items-baseline gap-2">
-            <span id="multiplier-text" class="text-2xl font-mono font-extrabold text-[#00e701] tabular-nums tracking-tight drop-shadow-[0_2px_10px_rgba(0,231,1,0.3)]">1.00x</span>
-            <span id="next-mult-preview" class="text-[10px] font-mono font-bold text-[#7f96a7] tabular-nums">SIG 1.60x</span>
-        </div>
-        <div id="active-perks-strip" class="flex items-center gap-1.5 mt-0.5"></div>
-    `;
-    stageContainer.appendChild(multHUD);
-
-    // 3. STREAMLINED BOTTOM CONTROL DOCK
-    controlDock.className = 'control-dock select-none';
-    controlDock.innerHTML = `
-        <!-- Row 1: Unified Mode Switcher + Compact Tactile Bonus Chips -->
-        <div class="flex justify-between items-center gap-1.5">
-            <div class="flex bg-[#0f212e] p-0.5 rounded-md border border-[#243847] text-[10px] font-bold">
-                <button id="tab-manual" class="px-2.5 py-1 rounded bg-[#213743] text-white transition-colors cursor-pointer">MANUAL</button>
-                <button id="tab-auto" class="px-2.5 py-1 rounded text-[#8ea4b8] hover:text-white transition-colors cursor-pointer">AUTO</button>
-            </div>
-
-            <div class="flex items-center gap-1.5">
-                <button id="toggle-lucky-boost" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all cursor-pointer" title="Activa Cartas Doradas (2x/3x) e Interceptor OVNI (+2 Filas) • +25% Apuesta">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <defs>
-                            <linearGradient id="goldStar" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stop-color="#fef08a"/>
-                                <stop offset="55%" stop-color="#f59e0b"/>
-                                <stop offset="100%" stop-color="#b45309"/>
-                            </linearGradient>
-                        </defs>
-                        <path d="M12 1.5L15.1 8.9L22.5 12L15.1 15.1L12 22.5L8.9 15.1L1.5 12L8.9 8.9L12 1.5Z" fill="url(#goldStar)"/>
-                        <circle cx="12" cy="12" r="2.2" fill="#ffffff"/>
-                    </svg>
-                    <span class="text-[10px] font-extrabold uppercase tracking-wider">Suerte</span>
-                    <span id="lucky-badge" class="text-[9px] font-mono font-bold px-1 py-0.2 rounded bg-[#1a2c38] text-[#7f96a7] tabular-nums">+25%</span>
-                </button>
-
-                <button id="toggle-shield-boost" class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all cursor-pointer" title="Escudo Deflector: Absorbe 1 mina por ronda • +25% Apuesta">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-                        <defs>
-                            <linearGradient id="cyanShield" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
-                                <stop offset="0%" stop-color="#a5f3fc"/>
-                                <stop offset="55%" stop-color="#06b6d4"/>
-                                <stop offset="100%" stop-color="#0e7490"/>
-                            </linearGradient>
-                        </defs>
-                        <polygon points="12 2 20.5 6.5 18.5 16.5 12 22 5.5 16.5 3.5 6.5" fill="url(#cyanShield)" stroke="#cffafe" stroke-width="1.3"/>
-                        <polyline points="8.5 11.5 12 15 15.5 11.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span class="text-[10px] font-extrabold uppercase tracking-wider">Escudo</span>
-                    <span id="shield-badge" class="text-[9px] font-mono font-bold px-1 py-0.2 rounded bg-[#1a2c38] text-[#7f96a7] tabular-nums">+25%</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- MANUAL CONTROLS -->
-        <div id="controls-manual" class="flex flex-col gap-2">
-            <div class="flex gap-2">
-                <!-- Bet Input Well -->
-                <div class="flex-1 flex flex-col">
-                    <div class="flex justify-between items-center mb-0.5">
-                        <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase tracking-wider">APUESTA</label>
-                        <span id="effective-bet-label" class="text-[9px] font-mono font-bold text-[#8ea4b8] tabular-nums">Total: $10.00</span>
-                    </div>
-                    <div class="stake-well flex items-center p-1">
-                        <span class="text-[#7f96a7] font-mono font-bold px-1.5 text-xs">$</span>
-                        <input type="number" id="bet-amount" value="10.00" min="0.10" max="250000" step="1.00" class="bg-transparent text-white font-mono font-bold text-xs w-full outline-none tabular-nums" />
-                        <div class="flex gap-1 ml-1">
-                            <button id="btn-half" class="stake-btn-secondary px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer">½</button>
-                            <button id="btn-double" class="stake-btn-secondary px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer">2×</button>
-                            <button id="btn-max" class="stake-btn-secondary px-1.5 py-0.5 text-[10px] font-mono font-bold rounded cursor-pointer">MAX</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mines Risk Selector with LED Dots -->
-                <div class="w-28 flex flex-col">
-                    <div class="flex justify-between items-center mb-0.5">
-                        <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase tracking-wider">MINAS</label>
-                        <div id="mines-led-strip" class="flex items-center gap-1"></div>
-                    </div>
-                    <div class="stake-well flex items-center justify-between p-1 h-full">
-                        <button id="btn-mines-minus" class="stake-btn-secondary w-6 h-6 flex items-center justify-center font-mono font-bold text-xs rounded cursor-pointer">−</button>
-                        <span id="mines-count" class="font-mono font-extrabold text-white text-xs tabular-nums">3</span>
-                        <button id="btn-mines-plus" class="stake-btn-secondary w-6 h-6 flex items-center justify-center font-mono font-bold text-xs rounded cursor-pointer">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Primary CTA & Partial 50% Cashout Row -->
-            <div class="flex gap-2">
-                <button id="partial-cashout-btn" class="hidden flex-1 bg-[#1e2923] hover:bg-[#27362d] border border-[#ffc700] text-[#ffc700] font-extrabold rounded-lg py-2 px-2 flex-col items-center justify-center transition-all cursor-pointer">
-                    <span class="text-[10px] tracking-wider uppercase leading-tight">COBRAR 50%</span>
-                    <span id="partial-cashout-subtitle" class="text-[10px] font-mono font-bold text-white tabular-nums leading-tight">$0.00</span>
-                </button>
-
-                <button id="action-btn" class="stake-cta-green flex-[1.65] w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer">
-                    <span id="action-btn-title" class="text-sm font-black tracking-wider uppercase leading-tight">DESCENDER</span>
-                    <span id="action-btn-subtitle" class="text-[11px] font-mono font-bold text-[#051a05] uppercase tabular-nums hidden">COBRAR: $0.00</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- AUTO CONTROLS -->
-        <div id="controls-auto" class="hidden flex-col gap-2">
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase mb-0.5 block">NÚMERO DE RONDAS</label>
-                    <input type="number" id="auto-bet-count" value="10" min="1" max="1000" class="stake-well w-full p-1.5 text-xs text-white font-mono font-bold outline-none tabular-nums" />
-                </div>
-                <div>
-                    <label class="text-[9px] text-[#7f96a7] font-extrabold uppercase mb-0.5 block">COBRO EN FILA</label>
-                    <input type="number" id="auto-cashout-row" value="3" min="1" max="20" class="stake-well w-full p-1.5 text-xs text-white font-mono font-bold outline-none tabular-nums" />
-                </div>
-            </div>
-            <button id="auto-action-btn" class="stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer">
-                <span id="auto-btn-title" class="text-xs font-black tracking-wider uppercase">INICIAR PILOTO AUTOMÁTICO</span>
-            </button>
-        </div>
-
-        <!-- Recent Multipliers Audit Strip -->
-        <div class="flex items-center justify-between pt-1 border-t border-[#213743]/80">
-            <div class="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar flex-1 mr-2" id="history-pills">
-                <span class="text-[9px] text-[#5b7487] font-bold uppercase tracking-wider">HISTORIAL</span>
-                <span class="text-[9px] text-[#475d6e] font-mono">—</span>
-            </div>
-            <span class="text-[9px] font-mono font-semibold text-[#5b7487] whitespace-nowrap">1-5 CARRILES • ESPACIO</span>
-        </div>
-    `;
-
-    // ELEMENT REFERENCES
-    const betInput = document.getElementById('bet-amount') as HTMLInputElement;
-    const effectiveBetLabel = document.getElementById('effective-bet-label') as HTMLSpanElement;
-    const minesCountSpan = document.getElementById('mines-count') as HTMLSpanElement;
-    const minesLedStrip = document.getElementById('mines-led-strip') as HTMLDivElement;
-    const btnAction = document.getElementById('action-btn') as HTMLButtonElement;
-    const actionTitle = document.getElementById('action-btn-title') as HTMLSpanElement;
-    const actionSubtitle = document.getElementById('action-btn-subtitle') as HTMLSpanElement;
-    const btnPartial = document.getElementById('partial-cashout-btn') as HTMLButtonElement;
-    const partialSubtitle = document.getElementById('partial-cashout-subtitle') as HTMLSpanElement;
-    const multText = document.getElementById('multiplier-text') as HTMLSpanElement;
-    const nextMultPreview = document.getElementById('next-mult-preview') as HTMLSpanElement;
-    const activePerksStrip = document.getElementById('active-perks-strip') as HTMLDivElement;
-    const balanceUsd = document.getElementById('balance-usd') as HTMLSpanElement;
-    const walletPill = document.getElementById('wallet-pill') as HTMLDivElement;
-    const walletDelta = document.getElementById('wallet-delta') as HTMLSpanElement;
-    const historyContainer = document.getElementById('history-pills') as HTMLDivElement;
-
-    const toggleLucky = document.getElementById('toggle-lucky-boost') as HTMLButtonElement;
-    const luckyBadge = document.getElementById('lucky-badge') as HTMLSpanElement;
-    const toggleShield = document.getElementById('toggle-shield-boost') as HTMLButtonElement;
-    const shieldBadge = document.getElementById('shield-badge') as HTMLSpanElement;
-
-    const tabManual = document.getElementById('tab-manual') as HTMLButtonElement;
-    const tabAuto = document.getElementById('tab-auto') as HTMLButtonElement;
-    const controlsManual = document.getElementById('controls-manual') as HTMLDivElement;
-    const controlsAuto = document.getElementById('controls-auto') as HTMLDivElement;
-    const autoActionBtn = document.getElementById('auto-action-btn') as HTMLButtonElement;
-    const autoBtnTitle = document.getElementById('auto-btn-title') as HTMLSpanElement;
-
-    let isAutoRunning = false;
-    let autoInterval: number | null = null;
-    let previousBalance = engine.balance;
-
-    const renderMinesLeds = () => {
-        minesLedStrip.innerHTML = '';
-        for (let i = 1; i <= 4; i++) {
-            const dot = document.createElement('span');
-            const active = i <= engine.minesCount;
-            dot.className = `w-1.5 h-1.5 rounded-full transition-colors ${
-                active ? 'bg-[#ff1e42] shadow-[0_0_4px_#ff1e42]' : 'bg-[#243847]'
-            }`;
-            minesLedStrip.appendChild(dot);
-        }
-    };
-
-    const updateBonusUI = () => {
-        const baseBet = parseFloat(betInput.value) || 10;
-        const effBet = calculateEffectiveBet(baseBet, engine.luckyBoost, engine.shieldPurchased);
-        effectiveBetLabel.innerText = `Total: ${formatCurrency(effBet)}`;
-
-        renderMinesLeds();
-
-        // Update Next Multiplier Preview or Live Profit Preview
-        const isFirst = engine.state !== GameState.PLAYING || engine.currentRow === 1;
-        const baseMult = engine.state === GameState.PLAYING ? engine.currentMultiplier : 1.0;
-        const activeShield =
-            engine.state === GameState.PLAYING ? engine.hasActiveShield : engine.shieldPurchased;
-        const previewMult = calculateNextStepMultiplier(
-            baseMult,
-            engine.minesCount,
-            isFirst,
-            1.0,
-            activeShield
-        );
-
-        if (engine.state === GameState.PLAYING && engine.currentRow > 1) {
-            const currentWin = engine.activeBetAmount * engine.currentMultiplier;
-            nextMultPreview.className = 'text-xs font-mono font-extrabold text-[#00e701] tabular-nums';
-            nextMultPreview.innerText = `+${formatCurrency(currentWin)}`;
-        } else {
-            nextMultPreview.className = 'text-[10px] font-mono font-bold text-[#7f96a7] tabular-nums';
-            nextMultPreview.innerText = `SIG ${formatMultiplier(previewMult)}`;
-        }
-
-        if (engine.luckyBoost) {
-            toggleLucky.className =
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#ffc700] bg-[#ffc700]/12 text-white transition-all cursor-pointer';
-            luckyBadge.className =
-                'text-[9px] font-mono font-black px-1 py-0.2 rounded bg-[#ffc700] text-[#071118] tabular-nums';
-            luckyBadge.innerText = 'ON';
-        } else {
-            toggleLucky.className =
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all cursor-pointer';
-            luckyBadge.className =
-                'text-[9px] font-mono font-bold px-1 py-0.2 rounded bg-[#1a2c38] text-[#7f96a7] tabular-nums';
-            luckyBadge.innerText = '+25%';
-        }
-
-        if (engine.shieldPurchased) {
-            toggleShield.className =
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#00f0ff] bg-[#00f0ff]/12 text-white transition-all cursor-pointer';
-            shieldBadge.className =
-                'text-[9px] font-mono font-black px-1 py-0.2 rounded bg-[#00f0ff] text-[#071118] tabular-nums';
-            shieldBadge.innerText = 'ON';
-        } else {
-            toggleShield.className =
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[#243847] bg-[#0f212e] text-[#8ea4b8] hover:border-[#3c5a70] transition-all cursor-pointer';
-            shieldBadge.className =
-                'text-[9px] font-mono font-bold px-1 py-0.2 rounded bg-[#1a2c38] text-[#7f96a7] tabular-nums';
-            shieldBadge.innerText = '+25%';
-        }
-
-        // Minimalist active status strip (only shows streak or banked partial cashout during active play)
-        activePerksStrip.innerHTML = '';
-        const streakCount = engine.currentPicks.filter((p) => p.isSafe || p.shieldSaved).length;
-        if (engine.state === GameState.PLAYING && streakCount >= 2) {
-            activePerksStrip.innerHTML += `
-                <span class="px-1.5 py-0.2 rounded bg-[#00e701]/15 border border-[#00e701]/40 text-[#00e701] text-[9px] font-mono font-bold uppercase tracking-wider">
-                    RACHA x${streakCount}
-                </span>`;
-        }
-        if (engine.state === GameState.PLAYING && engine.partialPayoutBanked > 0) {
-            activePerksStrip.innerHTML += `
-                <span class="px-1.5 py-0.2 rounded bg-[#ffc700]/15 border border-[#ffc700]/40 text-[#ffc700] text-[9px] font-mono font-bold uppercase tabular-nums">
-                    50% EN BANCO: ${formatCurrency(engine.partialPayoutBanked)}
-                </span>`;
-        }
-    };
-
-    toggleLucky.addEventListener('click', () => {
-        if (engine.state === GameState.PLAYING) return;
-        sounds.playClick();
-        engine.luckyBoost = !engine.luckyBoost;
-        updateBonusUI();
-    });
-
-    toggleShield.addEventListener('click', () => {
-        if (engine.state === GameState.PLAYING) return;
-        sounds.playClick();
-        engine.shieldPurchased = !engine.shieldPurchased;
-        updateBonusUI();
-    });
-
-    betInput.addEventListener('input', () => updateBonusUI());
-
-    // TAB SWITCHING
-    tabManual.addEventListener('click', () => {
-        sounds.playClick();
-        tabManual.className = 'px-2.5 py-1 rounded bg-[#213743] text-white transition-colors cursor-pointer';
-        tabAuto.className = 'px-2.5 py-1 rounded text-[#8ea4b8] hover:text-white transition-colors cursor-pointer';
-        controlsManual.classList.remove('hidden');
-        controlsAuto.classList.add('hidden');
-    });
-
-    tabAuto.addEventListener('click', () => {
-        sounds.playClick();
-        tabAuto.className = 'px-2.5 py-1 rounded bg-[#213743] text-white transition-colors cursor-pointer';
-        tabManual.className = 'px-2.5 py-1 rounded text-[#8ea4b8] hover:text-white transition-colors cursor-pointer';
-        controlsAuto.classList.remove('hidden');
-        controlsManual.classList.add('hidden');
-    });
-
-    // SOUND TOGGLE
-    const soundToggle = document.getElementById('sound-toggle-btn') as HTMLButtonElement;
-    const soundIconOn = document.getElementById('sound-icon-on') as unknown as SVGElement;
-    const soundIconOff = document.getElementById('sound-icon-off') as unknown as SVGElement;
-
-    soundToggle.addEventListener('click', () => {
-        const muted = sounds.toggleMute();
-        if (muted) {
-            soundIconOn.classList.add('hidden');
-            soundIconOff.classList.remove('hidden');
-        } else {
-            soundIconOff.classList.add('hidden');
-            soundIconOn.classList.remove('hidden');
-            sounds.playClick();
-        }
-    });
-
-    // MINES STEPPER
-    document.getElementById('btn-mines-minus')?.addEventListener('click', () => {
-        if (engine.state === GameState.PLAYING) return;
-        sounds.playClick();
-        if (engine.minesCount > 1) {
-            engine.minesCount--;
-            minesCountSpan.innerText = engine.minesCount.toString();
-            updateBonusUI();
-        }
-    });
-
-    document.getElementById('btn-mines-plus')?.addEventListener('click', () => {
-        if (engine.state === GameState.PLAYING) return;
-        sounds.playClick();
-        if (engine.minesCount < 4) {
-            engine.minesCount++;
-            minesCountSpan.innerText = engine.minesCount.toString();
-            updateBonusUI();
-        }
-    });
-
-    // BET AMOUNT QUICK BUTTONS
-    document.getElementById('btn-half')?.addEventListener('click', () => {
-        if (engine.state === GameState.PLAYING) return;
-        sounds.playClick();
-        const cur = parseFloat(betInput.value) || 10;
-        betInput.value = Math.max(0.1, cur / 2).toFixed(2);
-        updateBonusUI();
-    });
-
-    document.getElementById('btn-double')?.addEventListener('click', () => {
-        if (engine.state === GameState.PLAYING) return;
-        sounds.playClick();
-        const cur = parseFloat(betInput.value) || 10;
-        betInput.value = Math.min(engine.balance, cur * 2).toFixed(2);
-        updateBonusUI();
-    });
-
-    document.getElementById('btn-max')?.addEventListener('click', () => {
-        if (engine.state === GameState.PLAYING) return;
-        sounds.playClick();
-        betInput.value = Math.min(250000, engine.balance).toFixed(2);
-        updateBonusUI();
-    });
-
-    // MAIN ACTION BUTTON
-    btnAction.addEventListener('click', () => {
-        if (
-            engine.state === GameState.IDLE ||
-            engine.state === GameState.WON ||
-            engine.state === GameState.CRASHED
-        ) {
-            const bet = parseFloat(betInput.value) || 10;
-            engine.startBet(bet, engine.minesCount, engine.luckyBoost, engine.shieldPurchased);
-        } else if (engine.state === GameState.PLAYING) {
-            if (engine.currentRow > 1) {
-                engine.cashout();
+    function snapToNearestBetLevel(val: number): number {
+        if (!currentBetLevels || currentBetLevels.length === 0) return val;
+        let closest = currentBetLevels[0];
+        let minDiff = Math.abs(val - closest);
+        for (const lvl of currentBetLevels) {
+            const diff = Math.abs(val - lvl);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closest = lvl;
             }
         }
-    });
+        return closest;
+    }
 
-    // PARTIAL 50% CASHOUT BUTTON
-    btnPartial.addEventListener('click', () => {
-        if (engine.canPartialCashout()) {
-            engine.partialCashout();
-        }
-    });
+    // 1. PRODUCTION TOP VIP HEADER BAR
+    topHeader.innerHTML = `
+      <div class="brand-cluster">
+        <div class="brand-emblem" title="Endless Descent">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff"/>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <span class="brand-name">${t.gameTitle}</span>
+          <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator">
+            <span class="${isReplay ? 'rgs-pulse-dot' : 'sandbox-dot'}"></span>
+            ${t.studioName} · ${isReplay ? t.replayBadge : t.sandboxDemo}
+          </span>
+        </div>
+      </div>
 
-    // KEYBOARD SHORTCUTS (Dopamine Speed Play: 1-5 picks lane, Space starts or cashes out)
-    window.addEventListener('keydown', (e) => {
-        if (document.activeElement?.tagName === 'INPUT') return;
-        const seedModal = document.getElementById('seed-modal');
-        const simModal = document.getElementById('sim-modal');
-        if (
-            (seedModal && !seedModal.classList.contains('hidden')) ||
-            (simModal && !simModal.classList.contains('hidden'))
-        ) {
-            return;
-        }
+      <div class="header-ticker-strip" id="history-ticker">
+        <span class="ticker-empty">${lang === 'es' ? 'Historial de multiplicadores' : 'Multiplier History'}</span>
+      </div>
 
-        if (e.code === 'Space') {
-            e.preventDefault();
-            btnAction.click();
-        } else if (engine.state === GameState.PLAYING && e.key >= '1' && e.key <= '5') {
-            const laneIdx = parseInt(e.key, 10) - 1;
-            engine.pickLane(laneIdx);
-        }
-    });
+      <div class="header-telemetry-cluster">
+        <button class="icon-btn" id="btn-rules" type="button" title="${t.rulesToggleTitle}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <span id="rules-label">${lang === 'es' ? 'Reglas' : 'Rules'}</span>
+        </button>
+        <button class="icon-btn active" id="btn-audio" type="button" title="${t.soundToggleTitle}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <span id="audio-label">${lang === 'es' ? 'Sonido' : 'Sound'}</span>
+        </button>
+        <div class="balance-pill" title="${t.balanceLabel}">
+          <div>
+            <div class="balance-label" id="balance-title-label">${isReplay ? t.replayBadge : t.balanceLabel}</div>
+            <div class="balance-value" id="hud-balance">${stakeRGS.formatCurrency(isReplay && stakeRGS.session.replayParams ? stakeRGS.session.replayParams.amount : engine.balance)}</div>
+          </div>
+        </div>
+      </div>
+    `;
 
-    // AUTO BET LOGIC
-    autoActionBtn.addEventListener('click', () => {
-        if (isAutoRunning) {
-            isAutoRunning = false;
-            if (autoInterval) clearInterval(autoInterval);
-            autoActionBtn.className =
-                'stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer';
-            autoBtnTitle.innerText = 'INICIAR PILOTO AUTOMÁTICO';
-        } else {
-            isAutoRunning = true;
-            autoActionBtn.className =
-                'w-full bg-[#ff1e42] hover:bg-[#e01537] text-white font-black rounded-lg py-2.5 flex flex-col items-center justify-center transition-all shadow-[0_3px_0_#9e0b22] cursor-pointer';
-            autoBtnTitle.innerText = 'DETENER PILOTO AUTOMÁTICO';
+    // 2. BOTTOM PANEL: REPLAY HUD OR REGULAR BETTING DOCK
+    if (isReplay) {
+        const rp = stakeRGS.session.replayParams || {
+            game: 'endless-descent',
+            version: '1.0',
+            mode: 'base',
+            event: '',
+            amount: 1.0,
+            currency: stakeRGS.session.currency,
+            language: lang,
+            social: isSocial,
+            device: 'desktop'
+        };
 
-            const roundsTotal =
-                parseInt((document.getElementById('auto-bet-count') as HTMLInputElement).value, 10) || 10;
-            const targetRow =
-                parseInt((document.getElementById('auto-cashout-row') as HTMLInputElement).value, 10) || 3;
-            let roundsCompleted = 0;
+        leftDock.innerHTML = `
+          <div class="replay-dock-panel" id="replay-dock-panel">
+            <div class="replay-telemetry">
+              <span class="replay-tag-pill">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                ${t.replayBadge}
+              </span>
+              <div class="replay-metrics-row">
+                <span class="replay-metric-item">${t.betAmountLabel}: <strong id="replay-base-bet">${stakeRGS.formatCurrency(rp.amount)}</strong></span>
+                <span class="replay-metric-item">${t.replayFinalMultiplierLabel}: <strong id="replay-mult-val">0.00×</strong></span>
+                <span class="replay-metric-item">${t.replayTotalWinLabel}: <strong id="replay-payout-val" style="color: #00e676;">${stakeRGS.formatCurrency(0)}</strong></span>
+              </div>
+            </div>
+            <button class="replay-btn-action" id="btn-replay-action" type="button">
+              ${t.replayPlayBtn}
+            </button>
+          </div>
+        `;
+    } else {
+        const currSym = stakeRGS.getCurrencySymbol();
+        const initialDefLevel = stakeRGS.betConfig.defaultBetLevel;
+        const initialEffVal = initialDefLevel;
 
-            const runAutoStep = () => {
-                if (!isAutoRunning || roundsCompleted >= roundsTotal) {
-                    isAutoRunning = false;
-                    if (autoInterval) clearInterval(autoInterval);
-                    autoActionBtn.className =
-                        'stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer';
-                    autoBtnTitle.innerText = 'INICIAR PILOTO AUTOMÁTICO';
-                    return;
-                }
+        leftDock.innerHTML = `
+          <div class="betting-panel-main-row">
+            <!-- Column 1: Bet Amount Input & Quick Modifiers -->
+            <div class="betting-field-group">
+              <div class="betting-field-header">
+                <span class="betting-field-label" id="bet-field-label">${t.betAmountLabel}</span>
+                <span class="betting-field-meta" id="bet-pct-badge">Total: ${stakeRGS.formatCurrency(initialEffVal)}</span>
+              </div>
+              <div class="fintech-bet-input-box">
+                <span class="fintech-currency-sign" id="fintech-curr-sign">${currSym}</span>
+                <input type="number" inputmode="decimal" id="bet-input" value="${formatBetLevelVal(initialDefLevel)}" min="${stakeRGS.betConfig.minBet}" max="${stakeRGS.betConfig.maxBet}" step="${stakeRGS.betConfig.stepBet}" aria-label="${t.betAmountLabel}" />
+                <div class="fintech-quick-segments">
+                  <button class="fintech-quick-pill" id="btn-min" type="button">${t.quickMin}</button>
+                  <button class="fintech-quick-pill" id="btn-half" type="button">${t.quickHalf}</button>
+                  <button class="fintech-quick-pill" id="btn-double" type="button">${t.quickDouble}</button>
+                  <button class="fintech-quick-pill" id="btn-max" type="button">${t.quickMax}</button>
+                </div>
+              </div>
+            </div>
 
-                if (engine.state !== GameState.PLAYING) {
-                    const bet = parseFloat(betInput.value) || 10;
-                    roundsCompleted++;
-                    engine.startBet(bet, engine.minesCount, engine.luckyBoost, engine.shieldPurchased);
+            <!-- Column 2: Segmented Control for Mines / Hazards -->
+            <div class="betting-field-group">
+              <div class="betting-field-header">
+                <span class="betting-field-label" id="mines-field-label">${t.minesCountLabel}</span>
+                <span class="betting-field-meta" id="survival-odds-badge">80% ${t.minesProbLabel} · 1.20×</span>
+              </div>
+              <div class="fintech-segmented-track" id="mine-selector" role="radiogroup" aria-label="${t.minesCountLabel}">
+                <button class="fintech-segment-btn active" data-mines="1" type="button">
+                  <span class="segment-main-num">1</span>
+                  <span class="segment-sub-odds">80%</span>
+                </button>
+                <button class="fintech-segment-btn" data-mines="2" type="button">
+                  <span class="segment-main-num">2</span>
+                  <span class="segment-sub-odds">60%</span>
+                </button>
+                <button class="fintech-segment-btn" data-mines="3" type="button">
+                  <span class="segment-main-num">3</span>
+                  <span class="segment-sub-odds">40%</span>
+                </button>
+                <button class="fintech-segment-btn" data-mines="4" type="button">
+                  <span class="segment-main-num">4</span>
+                  <span class="segment-sub-odds">20%</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Column 3: Primary Visual Focal Point — Action Button & Partial Cashout -->
+            <div class="betting-field-group fintech-cta-wrap">
+              <div class="betting-field-header">
+                <span class="betting-field-label" id="focal-cta-header-label">${t.focalActionLabel}</span>
+                <span class="betting-field-meta" id="focal-cta-header-shortcut">${t.shortcutSpace}</span>
+              </div>
+              <div class="focal-cta-actions-cluster">
+                <button class="btn-primary-focal" id="btn-primary-cta" type="button">
+                  <span class="focal-btn-headline" id="focal-cta-title">${t.focalDropCapsule}</span>
+                  <span class="focal-btn-sub" id="focal-cta-sub">${stakeRGS.formatCurrency(initialEffVal)} · ${t.focalActionReady}</span>
+                </button>
+                <button class="btn-partial-focal" id="btn-partial-cta" type="button" style="display: none;">
+                  <div class="partial-btn-left">
+                    <span class="partial-btn-headline">${t.focalPartialCashoutBtn}</span>
+                    <span class="partial-btn-sub" id="partial-cta-sub">+${stakeRGS.formatCurrency(0)}</span>
+                  </div>
+                  <span class="partial-pill-badge">${t.shortcutKeyP}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+    }
+
+    // 3. CENTER FLOATING MULTIPLIER DISPLAY & REWARD CALLOUT
+    const stageOverlay = document.createElement('div');
+    stageOverlay.className = 'stage-hud-overlay';
+    stageOverlay.innerHTML = `
+      <div class="stage-top-hud-stack">
+        <div class="multiplier-hero-banner" id="mult-hero-wrap">
+          <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
+          <div class="multiplier-sub-pill">
+            <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
+            <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
+          </div>
+        </div>
+
+        <div class="hitstop-callout-pill" id="hitstop-comic-stamp">1.20×</div>
+      </div>
+      <div></div>
+    `;
+    stageContainer.appendChild(stageOverlay);
+
+    // 4. LOSS STATE RETENTION OVERLAY
+    const tryAgainOverlay = document.createElement('div');
+    tryAgainOverlay.className = 'try-again-overlay';
+    tryAgainOverlay.id = 'try-again-overlay';
+    tryAgainOverlay.innerHTML = `
+      <canvas class="try-again-particles-canvas" id="try-again-particles-canvas"></canvas>
+      <div class="try-again-content" id="try-again-content">
+        <div class="try-again-headline">HULL BREACH DETECTED</div>
+        <div class="try-again-sub">${lang === 'es' ? 'PURGA DE SISTEMA · REINICIANDO NAVE...' : 'SYSTEM PURGE · RE-ENGAGING PROPULSION...'}</div>
+      </div>
+    `;
+    stageContainer.appendChild(tryAgainOverlay);
+
+    // 5. DYNAMIC DOPAMINE VICTORY CELEBRATION OVERLAY
+    const megaBanner = document.createElement('div');
+    megaBanner.className = 'mega-win-overlay';
+    megaBanner.id = 'mega-win-banner';
+    megaBanner.innerHTML = `
+      <canvas class="victory-particles-canvas" id="victory-particles-canvas"></canvas>
+      <div class="supernova-god-rays"></div>
+      <div class="supernova-anamorphic-flare" id="supernova-flare-bar"></div>
+      <div class="mega-win-card" id="mega-win-card-inner">
+        <div class="mega-win-headline" id="mega-win-title">IS YOUR LUCKY DAY, TRY AGAIN</div>
+        <div class="mega-win-payout" id="mega-win-amount">+${stakeRGS.formatCurrency(0)}</div>
+        <div class="mega-win-mult" id="mega-win-mult">1.00× Multiplier</div>
+      </div>
+    `;
+    stageContainer.appendChild(megaBanner);
+
+    engine.minesCount = 1;
+
+    // --- DOM REFERENCES ---
+    const balanceEl = document.getElementById('hud-balance')!;
+    const historyTicker = document.getElementById('history-ticker')!;
+    const multHeroWrap = document.getElementById('mult-hero-wrap')!;
+    const multHeroVal = document.getElementById('mult-hero-value')!;
+    const multHeroSub = document.getElementById('mult-hero-sub')!;
+    const multNextPreview = document.getElementById('mult-next-preview')!;
+    const hitStopStamp = document.getElementById('hitstop-comic-stamp')!;
+
+    const betInput = document.getElementById('bet-input') as HTMLInputElement | null;
+    const betPctBadge = document.getElementById('bet-pct-badge');
+    const survivalOddsBadge = document.getElementById('survival-odds-badge');
+    const mineBtns = leftDock.querySelectorAll<HTMLButtonElement>(
+        '#mine-selector .fintech-segment-btn'
+    );
+    const quickBetBtns = leftDock.querySelectorAll<HTMLButtonElement>('.fintech-quick-pill');
+
+    const btnPrimaryCta = document.getElementById('btn-primary-cta') as HTMLButtonElement | null;
+    const focalCtaTitle = document.getElementById('focal-cta-title');
+    const focalCtaSub = document.getElementById('focal-cta-sub');
+    const focalCtaHeaderLabel = document.getElementById('focal-cta-header-label');
+    const focalCtaHeaderShortcut = document.getElementById('focal-cta-header-shortcut');
+
+    const btnPartialCta = document.getElementById('btn-partial-cta') as HTMLButtonElement | null;
+    const partialCtaSub = document.getElementById('partial-cta-sub');
+
+    const btnAudio = document.getElementById('btn-audio') as HTMLButtonElement;
+    const btnRules = document.getElementById('btn-rules') as HTMLButtonElement;
+
+    // Initialize Official Game Rules & Paytable Modal
+    createRulesModal();
+    if (btnRules) {
+        btnRules.addEventListener('click', () => {
+            audioController.playClick();
+            openRulesModal();
+        });
+    }
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('rules') === 'true') {
+        openRulesModal();
+    }
+
+    if (btnAudio) {
+        btnAudio.addEventListener('click', () => {
+            const isMuted = audioController.toggleMute();
+            btnAudio.classList.toggle('active', !isMuted);
+            const iconSvg = document.getElementById('audio-icon-svg');
+            if (iconSvg) {
+                iconSvg.innerHTML = isMuted
+                    ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line>'
+                    : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>';
+            }
+        });
+    }
+
+    const tryAgainContent = document.getElementById('try-again-content')!;
+    const tryAgainCanvas = document.getElementById(
+        'try-again-particles-canvas'
+    ) as HTMLCanvasElement;
+
+    const megaWinTitle = document.getElementById('mega-win-title')!;
+    const megaWinAmount = document.getElementById('mega-win-amount')!;
+    const megaWinMult = document.getElementById('mega-win-mult')!;
+    const megaWinCardInner = document.getElementById('mega-win-card-inner')!;
+    const supernovaFlareBar = document.getElementById('supernova-flare-bar')!;
+    const victoryParticlesCanvas = document.getElementById(
+        'victory-particles-canvas'
+    ) as HTMLCanvasElement;
+
+    let crashResetTimeoutId: number | null = null;
+    let tryAgainAnimFrameId: number | null = null;
+    let victoryTimeoutId: number | null = null;
+    let victoryAnimFrameId: number | null = null;
+    let victoryCounterObj = { val: 0 };
+    let victoryCallCount = 0;
+    let lastHeadlineIdx = -1;
+    let lastEmitterIdx = -1;
+
+    // 6. STAKE ENGINE RGS AUTHENTICATION & SESSION LIFECYCLE
+    if (!isReplay) {
+        stakeRGS.authenticate().then((auth) => {
+            // [274] If connection error, render blocking modal (do NOT fall back silently to sandbox)
+            if (auth.isConnectionError) {
+                const blocker = document.createElement('div');
+                blocker.className = 'rgs-connection-blocker';
+                blocker.innerHTML = `
+                  <div class="rgs-error-card">
+                    <div class="rgs-error-icon">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                    </div>
+                    <h2 class="rgs-error-title">${t.connectionErrorTitle}</h2>
+                    <p class="rgs-error-desc">${auth.errorMessage || t.connectionErrorDesc}</p>
+                    <button class="rgs-reload-btn" type="button" id="btn-rgs-reload">${t.reloadButton}</button>
+                  </div>
+                `;
+                document.body.appendChild(blocker);
+                document.getElementById('btn-rgs-reload')?.addEventListener('click', () => {
+                    window.location.reload();
+                });
+                return;
+            }
+
+            // Sync dynamic betLevels from RGS [242]
+            if (auth.config && auth.config.betLevels && auth.config.betLevels.length > 0) {
+                currentBetLevels = [...auth.config.betLevels].sort((a, b) => a - b);
+            }
+
+            const brandTag = document.getElementById('brand-tag-indicator');
+            if (brandTag) {
+                if (stakeRGS.session.isLiveRGS && auth.success) {
+                    engine.balance = auth.balance;
+                    brandTag.className = 'brand-tag live-rgs';
+                    brandTag.innerHTML = `<span class="rgs-pulse-dot"></span> ${t.studioName} · ${t.rgsConnected} (${stakeRGS.session.currency})`;
                 } else {
-                    const specials = engine.getSpecialsForRow(engine.currentRow);
-                    let chosenLane = Math.floor(Math.random() * 5);
-                    if (engine.luckyBoost) {
-                        if (specials.alienLane !== null) chosenLane = specials.alienLane;
-                        else if (specials.goldenLane !== null) chosenLane = specials.goldenLane;
-                    }
-                    const res = engine.pickLane(chosenLane);
+                    brandTag.className = 'brand-tag sandbox';
+                    brandTag.innerHTML = `<span class="sandbox-dot"></span> ${t.studioName} · ${t.sandboxDemo}`;
+                }
+            }
 
-                    if (res && (res.isSafe || res.shieldSaved)) {
-                        if (engine.currentRow > targetRow) {
+            const currencySign = document.getElementById('fintech-curr-sign');
+            if (currencySign) {
+                currencySign.textContent = stakeRGS.getCurrencySymbol();
+            }
+
+            if (betInput) {
+                betInput.min = String(auth.config.minBet);
+                betInput.max = String(auth.config.maxBet);
+                betInput.step = String(auth.config.stepBet);
+
+                // [187] Resume unfinished active round if present
+                if (auth.activeRound && auth.activeRound.active) {
+                    const roundAmt = auth.activeRound.amount;
+                    betInput.value = formatBetLevelVal(roundAmt);
+                    engine.betAmount = roundAmt;
+                    engine.activeBetAmount = roundAmt;
+                    engine.initialEffectiveBet = roundAmt;
+
+                    const mult = typeof auth.activeRound.payoutMultiplier === 'number' && auth.activeRound.payoutMultiplier > 0
+                        ? auth.activeRound.payoutMultiplier
+                        : 1.0;
+                    engine.currentMultiplier = mult;
+                    engine.state = GameState.PLAYING;
+                    engine.currentRow = mult > 1.0 ? 2 : 1;
+
+                    stakeRGS.showToast(lang === 'es' ? 'Ronda activa reanudada.' : 'Active round resumed.', 'info', 3000);
+                } else {
+                    betInput.value = formatBetLevelVal(auth.config.defaultBetLevel);
+                    engine.betAmount = auth.config.defaultBetLevel;
+                }
+            }
+
+            syncBetMetrics();
+            syncUI();
+        });
+    }
+
+    // 7. OFFICIAL REPLAY ENGINE WIRE-UP [171-174, 243, 188]
+    if (isReplay) {
+        const rp = stakeRGS.session.replayParams;
+        const btnReplayAction = document.getElementById('btn-replay-action') as HTMLButtonElement | null;
+        let isReplayRunning = false;
+
+        stakeRGS.fetchReplayEvent().then((replay) => {
+            if (!replay.success) {
+                stakeRGS.showToast(replay.errorMessage || t.replayErrorDesc, 'error');
+                return;
+            }
+
+            const costMult = replay.costMultiplier ?? 1.0;
+            const payoutMult = replay.payoutMultiplier ?? 0;
+            const baseAmount = rp ? rp.amount : 1.0;
+            const realCost = baseAmount * costMult;
+            const totalWin = baseAmount * payoutMult;
+
+            const baseEl = document.getElementById('replay-base-bet');
+            const costEl = document.getElementById('replay-total-cost');
+            const multEl = document.getElementById('replay-mult-val');
+            const winEl = document.getElementById('replay-payout-val');
+
+            if (baseEl) baseEl.textContent = stakeRGS.formatCurrency(baseAmount);
+            if (costEl) costEl.textContent = stakeRGS.formatCurrency(realCost);
+            if (multEl) multEl.textContent = `${payoutMult.toFixed(2)}×`;
+            if (winEl) winEl.textContent = stakeRGS.formatCurrency(totalWin);
+
+            if (btnReplayAction) {
+                btnReplayAction.addEventListener('click', async () => {
+                    if (isReplayRunning) return;
+                    isReplayRunning = true;
+                    btnReplayAction.disabled = true;
+                    btnReplayAction.textContent = '...';
+
+                    engine.resetToIdle();
+                    cancelPendingCrashReset();
+                    cancelPendingVictoryCelebration();
+
+                    audioController.playClick();
+                    audioController.startAmbientDrone();
+                    engine.startBet(baseAmount, 1, false, false);
+                    syncUI();
+
+                    // Step sequence replay from state or simulated steps to match final multiplier
+                    const stepsToPlay = Math.max(1, Math.min(10, Math.round(payoutMult > 0 ? (payoutMult / 1.2) : 2)));
+                    for (let step = 1; step <= stepsToPlay; step++) {
+                        await new Promise((r) => setTimeout(r, 700));
+                        if (step === stepsToPlay && payoutMult === 0) {
+                            // Final crash step
                             engine.cashout();
+                            engine.state = GameState.CRASHED;
+                            triggerTryAgainRetentionLoop();
+                            break;
+                        } else {
+                            // Safe gate advance
+                            stateCtrl.selectLaneWithHitStop(Math.floor(Math.random() * TOTAL_LANES));
                         }
                     }
-                }
-            };
 
-            autoInterval = window.setInterval(runAutoStep, 320);
+                    if (payoutMult > 0) {
+                        await new Promise((r) => setTimeout(r, 400));
+                        engine.cashout();
+                        if (payoutMult >= 5) {
+                            triggerDynamicVictoryCelebration(totalWin, payoutMult);
+                        }
+                    }
+
+                    isReplayRunning = false;
+                    btnReplayAction.disabled = false;
+                    btnReplayAction.textContent = t.replayWatchAgainBtn;
+                    syncUI();
+                });
+            }
+        });
+    }
+
+    function cancelPendingCrashReset() {
+        if (crashResetTimeoutId !== null) {
+            window.clearTimeout(crashResetTimeoutId);
+            crashResetTimeoutId = null;
         }
-    });
-
-    // BALANCE LISTENER WITH DOPAMINE CREDIT FLOAT
-    engine.onBalanceChange((bal) => {
-        const diff = bal - previousBalance;
-        previousBalance = bal;
-
-        balanceUsd.innerText = formatCurrency(bal);
-        walletPill.title = formatBtc(bal);
-
-        if (diff > 0.01) {
-            walletDelta.innerText = `+${formatCurrency(diff)}`;
-            walletDelta.classList.remove('hidden', 'wallet-credit-pop');
-            void walletDelta.offsetWidth;
-            walletDelta.classList.add('wallet-credit-pop');
+        if (tryAgainAnimFrameId !== null) {
+            cancelAnimationFrame(tryAgainAnimFrameId);
+            tryAgainAnimFrameId = null;
         }
-    });
+        const ctx = tryAgainCanvas.getContext('2d');
+        if (ctx) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, tryAgainCanvas.width, tryAgainCanvas.height);
+        }
+        gsap.killTweensOf(tryAgainContent);
+        tryAgainOverlay.classList.remove('visible');
+    }
 
-    // HISTORY PILLS UPDATE
-    engine.onHistoryUpdate((summaries) => {
-        if (summaries.length === 0) {
-            historyContainer.innerHTML = `
-                <span class="text-[9px] text-[#5b7487] font-bold uppercase tracking-wider">HISTORIAL</span>
-                <span class="text-[9px] text-[#475d6e] font-mono">—</span>
-            `;
-            return;
+    function cancelPendingVictoryCelebration() {
+        if (victoryTimeoutId !== null) {
+            window.clearTimeout(victoryTimeoutId);
+            victoryTimeoutId = null;
+        }
+        if (victoryAnimFrameId !== null) {
+            cancelAnimationFrame(victoryAnimFrameId);
+            victoryAnimFrameId = null;
+        }
+        const ctx = victoryParticlesCanvas.getContext('2d');
+        if (ctx) {
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, victoryParticlesCanvas.width, victoryParticlesCanvas.height);
+        }
+        gsap.killTweensOf(victoryCounterObj);
+        gsap.killTweensOf(megaWinCardInner);
+        gsap.killTweensOf(supernovaFlareBar);
+        gsap.killTweensOf(megaWinMult);
+        megaBanner.classList.remove('visible');
+    }
+
+    function triggerTryAgainRetentionLoop() {
+        cancelPendingCrashReset();
+
+        const w = Math.min(stageContainer.clientWidth || window.innerWidth, 1600);
+        const h = Math.min(stageContainer.clientHeight || window.innerHeight, 1000);
+        tryAgainCanvas.width = w;
+        tryAgainCanvas.height = h;
+        const ctx = tryAgainCanvas.getContext('2d', { alpha: true });
+        const cx = w * 0.5;
+        const cy = h * 0.46;
+
+        const palette = ['#ff2a54', '#fb7185', '#fbbf24', '#ffffff', '#00e5ff'];
+        const particles: TryAgainParticle[] = [];
+        for (let i = 0; i < 56; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 160 + Math.random() * 540;
+            particles.push({
+                x: cx + (Math.random() - 0.5) * 70,
+                y: cy + (Math.random() - 0.5) * 30,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 60,
+                size: 3 + Math.random() * 5,
+                alpha: 1,
+                decay: 0.78 + Math.random() * 0.5,
+                color: palette[i % palette.length]
+            });
         }
 
-        historyContainer.innerHTML = `<span class="text-[9px] text-[#5b7487] font-bold uppercase tracking-wider mr-1">HISTORIAL</span>`;
-        summaries.slice(0, 7).forEach((s) => {
-            const pill = document.createElement('button');
-            const isWin = s.isWin && s.finalMultiplier > 0;
-            pill.className = `px-2 py-0.5 rounded text-[10px] font-mono font-bold tabular-nums transition-transform hover:scale-105 cursor-pointer ${
-                isWin
-                    ? s.finalMultiplier >= 5
-                        ? 'bg-[#ffc700]/15 text-[#ffc700] border border-[#ffc700]/40'
-                        : 'bg-[#00e701]/15 text-[#00e701] border border-[#00e701]/40'
-                    : 'bg-[#213743] text-[#7f96a7] border border-[#2f4553]'
-            }`;
-            pill.innerText = isWin ? `${formatMultiplier(s.finalMultiplier)}` : '0.00x';
-            pill.title = `Ronda #${s.nonce} — Auditar Provably Fair`;
-            pill.addEventListener('click', () => {
-                const modal = document.getElementById('seed-modal');
-                if (modal) {
-                    modal.classList.remove('hidden');
-                    const auditInput = document.getElementById('audit-server-seed') as HTMLInputElement;
-                    const auditNonce = document.getElementById('audit-nonce') as HTMLInputElement;
-                    if (auditInput && auditNonce) {
-                        auditInput.value = s.serverSeed;
-                        auditNonce.value = s.nonce.toString();
-                        const verifyBtn = document.getElementById('btn-verify-audit');
-                        verifyBtn?.click();
+        let shockwaveRadius = 20;
+        let lastTs = performance.now();
+
+        tryAgainOverlay.classList.add('visible');
+        gsap.fromTo(
+            tryAgainContent,
+            { scale: 0.35, opacity: 0, y: 18 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.32, ease: 'back.out(2.0)' }
+        );
+
+        const renderParticles = (now: number) => {
+            const dt = Math.min(0.05, (now - lastTs) / 1000);
+            lastTs = now;
+
+            if (ctx) {
+                ctx.clearRect(0, 0, w, h);
+                shockwaveRadius += dt * 620;
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 42, 84, 0.4)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(cx, cy, shockwaveRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.vy += 420 * dt;
+                    p.alpha -= p.decay * dt;
+
+                    if (p.alpha > 0) {
+                        ctx.fillStyle = p.color;
+                        ctx.globalAlpha = p.alpha;
+                        ctx.fillRect(p.x - p.size * 0.5, p.y - p.size * 0.5, p.size, p.size);
                     }
                 }
+                ctx.globalAlpha = 1;
+            }
+
+            tryAgainAnimFrameId = requestAnimationFrame(renderParticles);
+        };
+        tryAgainAnimFrameId = requestAnimationFrame(renderParticles);
+
+        crashResetTimeoutId = window.setTimeout(() => {
+            gsap.to(tryAgainContent, {
+                opacity: 0,
+                scale: 0.85,
+                duration: 0.2,
+                ease: 'power2.in',
+                onComplete: () => {
+                    cancelPendingCrashReset();
+                    engine.resetToIdle();
+                    syncUI();
+                }
             });
-            historyContainer.appendChild(pill);
+        }, 1250);
+    }
+
+    function syncBetInputFontSize() {
+        if (!betInput) return;
+        const rawLen = betInput.value.length;
+        if (rawLen <= 6) {
+            betInput.style.fontSize = '1.15rem';
+        } else if (rawLen <= 9) {
+            betInput.style.fontSize = '0.98rem';
+        } else if (rawLen <= 12) {
+            betInput.style.fontSize = '0.84rem';
+        } else {
+            betInput.style.fontSize = '0.74rem';
+        }
+    }
+
+    function syncBetMetrics() {
+        if (!betInput || isReplay) return;
+        syncBetInputFontSize();
+        const baseVal = Math.max(stakeRGS.betConfig.minBet, parseFloat(betInput.value) || stakeRGS.betConfig.defaultBetLevel);
+        engine.betAmount = baseVal;
+        const effVal = calculateEffectiveBet(baseVal, engine.luckyBoost, engine.shieldPurchased, engine.gameMode);
+        const formattedEff = stakeRGS.formatCurrency(effVal);
+        if (betPctBadge) {
+            betPctBadge.textContent = `Total: ${formattedEff}`;
+        }
+        if (focalCtaSub && engine.state !== GameState.PLAYING) {
+            focalCtaSub.textContent = `${formattedEff} · ${t.focalActionReady}`;
+        }
+    }
+
+    // 8. DYNAMIC BET LEVEL NAVIGATION (STRICTLY VIA SERVER BET LEVELS [242])
+    if (betInput) {
+        betInput.addEventListener('input', () => {
+            if (isRulesModalOpen()) return;
+            syncBetMetrics();
+        });
+
+        betInput.addEventListener('blur', () => {
+            if (isRulesModalOpen()) return;
+            const raw = parseFloat(betInput.value) || currentBetLevels[0];
+            const snapped = snapToNearestBetLevel(raw);
+            betInput.value = formatBetLevelVal(snapped);
+            syncBetMetrics();
+        });
+    }
+
+    const btnMin = document.getElementById('btn-min');
+    if (btnMin) {
+        btnMin.addEventListener('click', () => {
+            if (isRulesModalOpen() || engine.state === GameState.PLAYING || !betInput) return;
+            audioController.playClick();
+            betInput.value = formatBetLevelVal(currentBetLevels[0]);
+            syncBetMetrics();
+        });
+    }
+
+    const btnHalf = document.getElementById('btn-half');
+    if (btnHalf) {
+        btnHalf.addEventListener('click', () => {
+            if (isRulesModalOpen() || engine.state === GameState.PLAYING || !betInput) return;
+            audioController.playClick();
+            const currVal = parseFloat(betInput.value) || currentBetLevels[0];
+            const currentIdx = currentBetLevels.findIndex((lvl) => lvl >= currVal);
+            const targetIdx = currentIdx > 0 ? currentIdx - 1 : 0;
+            betInput.value = formatBetLevelVal(currentBetLevels[targetIdx]);
+            syncBetMetrics();
+        });
+    }
+
+    const btnDouble = document.getElementById('btn-double');
+    if (btnDouble) {
+        btnDouble.addEventListener('click', () => {
+            if (isRulesModalOpen() || engine.state === GameState.PLAYING || !betInput) return;
+            audioController.playClick();
+            const currVal = parseFloat(betInput.value) || currentBetLevels[0];
+            const currentIdx = currentBetLevels.findIndex((lvl) => lvl >= currVal);
+            const targetIdx = currentIdx < currentBetLevels.length - 1 ? currentIdx + 1 : currentBetLevels.length - 1;
+            betInput.value = formatBetLevelVal(currentBetLevels[targetIdx]);
+            syncBetMetrics();
+        });
+    }
+
+    const btnMax = document.getElementById('btn-max');
+    if (btnMax) {
+        btnMax.addEventListener('click', () => {
+            if (isRulesModalOpen() || engine.state === GameState.PLAYING || !betInput) return;
+            audioController.playClick();
+            // Pick highest bet level <= balance or max level
+            const affordableLevels = currentBetLevels.filter((lvl) => lvl <= engine.balance);
+            const maxChoice = affordableLevels.length > 0
+                ? affordableLevels[affordableLevels.length - 1]
+                : currentBetLevels[currentBetLevels.length - 1];
+            betInput.value = formatBetLevelVal(maxChoice);
+            syncBetMetrics();
+        });
+    }
+
+    mineBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (isRulesModalOpen() || engine.state === GameState.PLAYING) return;
+            audioController.playClick();
+            const mines = parseInt(btn.dataset.mines || '1', 10);
+            engine.minesCount = mines;
+            mineBtns.forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            syncUI();
         });
     });
 
-    // STATE CHANGE LISTENER
-    engine.onStateChange((state, eng) => {
-        multText.innerText = formatMultiplier(eng.currentMultiplier);
-        multText.classList.remove('mult-pop');
-        void multText.offsetWidth;
-        multText.classList.add('mult-pop');
+    function triggerMechanicalPress() {
+        if (!btnPrimaryCta) return;
+        btnPrimaryCta.classList.add('depressed-heavy');
+        setTimeout(() => {
+            btnPrimaryCta.classList.remove('depressed-heavy');
+        }, 180);
+    }
 
-        updateBonusUI();
-
-        if (state === GameState.PLAYING) {
-            betInput.disabled = true;
-
-            if (eng.currentRow > 1) {
-                const remainingPayout = eng.activeBetAmount * eng.currentMultiplier;
-                const halfPayout = Math.floor(remainingPayout * 0.5 * 100) / 100;
-
-                btnAction.className =
-                    'stake-cta-green cashout-live-pulse flex-[1.65] w-full rounded-lg py-2 flex flex-col items-center justify-center cursor-pointer';
-                actionTitle.innerText = 'CASHOUT';
-                actionSubtitle.innerText = `COBRAR ${formatCurrency(remainingPayout)}`;
-                actionSubtitle.classList.remove('hidden');
-                btnAction.disabled = false;
-                btnAction.style.opacity = '1';
-
-                btnPartial.classList.remove('hidden');
-                btnPartial.classList.add('flex');
-                if (eng.canPartialCashout()) {
-                    btnPartial.disabled = false;
-                    btnPartial.style.opacity = '1';
-                    partialSubtitle.innerText = `${formatCurrency(halfPayout)} Y SEGUIR`;
-                } else {
-                    btnPartial.disabled = true;
-                    btnPartial.style.opacity = '0.4';
-                    partialSubtitle.innerText = `ASEGURADO`;
+    // 9. PRIMARY FOCAL ACTION WITH CLIENT-SIDE BALANCE GUARD [222]
+    async function handlePrimaryFocalAction() {
+        if (isRulesModalOpen() || isReplay) return;
+        if (engine.state === GameState.PLAYING) {
+            if (engine.currentRow > 1 && !stateCtrl.isHitStopActive) {
+                triggerMechanicalPress();
+                const payout = engine.cashout();
+                syncUI();
+                if (stakeRGS.session.isLiveRGS && payout !== null && payout > 0) {
+                    const endRes = await stakeRGS.endRound();
+                    if (endRes.success && endRes.balance !== undefined) {
+                        engine.balance = endRes.balance;
+                        engine.emitBalanceChange();
+                    }
                 }
-            } else {
-                btnPartial.classList.add('hidden');
-                btnPartial.classList.remove('flex');
-
-                btnAction.className =
-                    'w-full bg-[#14232d] text-[#7f96a7] font-bold rounded-lg py-2.5 flex flex-col items-center justify-center border border-[#223645]';
-                actionTitle.innerText = 'ELIGE UN CARRIL (1–5)';
-                actionSubtitle.classList.add('hidden');
-                btnAction.disabled = true;
             }
-
-            multText.className =
-                'text-2xl font-mono font-extrabold text-[#00e701] tabular-nums tracking-tight drop-shadow-[0_2px_10px_rgba(0,231,1,0.3)] mult-pop';
         } else {
-            betInput.disabled = false;
-            btnAction.disabled = false;
-            btnAction.style.opacity = '1';
-            actionSubtitle.classList.add('hidden');
-            btnPartial.classList.add('hidden');
-            btnPartial.classList.remove('flex');
+            cancelPendingCrashReset();
+            cancelPendingVictoryCelebration();
+            triggerMechanicalPress();
 
-            btnAction.className =
-                'stake-cta-green w-full rounded-lg py-2.5 flex flex-col items-center justify-center cursor-pointer';
-            actionTitle.innerText = 'DESCENDER';
+            const rawVal = betInput ? parseFloat(betInput.value) || currentBetLevels[0] : currentBetLevels[0];
+            const betVal = snapToNearestBetLevel(rawVal);
+            if (betInput) betInput.value = formatBetLevelVal(betVal);
 
-            if (state === GameState.CRASHED) {
-                multText.className =
-                    'text-2xl font-mono font-extrabold text-[#ff1e42] tabular-nums tracking-tight drop-shadow-[0_2px_10px_rgba(255,30,66,0.4)]';
-            } else {
-                multText.className =
-                    'text-2xl font-mono font-extrabold text-[#00e701] tabular-nums tracking-tight drop-shadow-[0_2px_10px_rgba(0,231,1,0.3)]';
+            const effVal = calculateEffectiveBet(betVal);
+
+            // [222] Client-side check preventing /wallet/play if balance < effVal
+            if (engine.balance < effVal) {
+                stakeRGS.showToast(t.focalInsufficientFunds, 'error');
+                return;
             }
+
+            audioController.playClick();
+            audioController.startAmbientDrone();
+
+            if (stakeRGS.session.isLiveRGS) {
+                if (btnPrimaryCta) btnPrimaryCta.disabled = true;
+                if (focalCtaTitle) focalCtaTitle.textContent = t.focalConnecting;
+                const playRes = await stakeRGS.playBet(effVal, 'base');
+                if (btnPrimaryCta) btnPrimaryCta.disabled = false;
+                if (!playRes.success) {
+                    syncUI();
+                    return;
+                }
+                if (playRes.balance !== undefined) {
+                    engine.balance = playRes.balance + effVal;
+                }
+            }
+
+            if (
+                engine.startBet(
+                    betVal,
+                    engine.minesCount
+                )
+            ) {
+                gsap.fromTo(
+                    multHeroWrap,
+                    { scale: 0.92 },
+                    { scale: 1, duration: 0.35, ease: 'back.out(1.8)' }
+                );
+                syncUI();
+            }
+        }
+    }
+
+    async function handlePartialCashoutAction() {
+        if (isRulesModalOpen() || isReplay) return;
+        if (!engine.canPartialCashout() || stateCtrl.isHitStopActive) return;
+
+        audioController.playClick();
+        const halfPayout = engine.partialCashout();
+        if (halfPayout !== null && halfPayout > 0) {
+            audioController.playPartialCashout();
+            gsap.killTweensOf(hitStopStamp);
+            hitStopStamp.textContent = `[SHIELD LOCKED] ${t.focalSecuredToast.toUpperCase()} · +${stakeRGS.formatCurrency(halfPayout)}`;
+            hitStopStamp.style.borderColor = '#38bdf8';
+            hitStopStamp.style.color = '#38bdf8';
+            gsap.fromTo(
+                hitStopStamp,
+                { opacity: 0, scale: 0.88, y: -4 },
+                { opacity: 1, scale: 1.05, y: 0, duration: 0.16, ease: 'back.out(1.8)' }
+            );
+            gsap.to(hitStopStamp, {
+                opacity: 0,
+                scale: 0.94,
+                delay: 0.85,
+                duration: 0.22,
+                ease: 'power2.out'
+            });
+
+            if (btnPartialCta) {
+                btnPartialCta.classList.add('partial-depressed');
+                setTimeout(() => {
+                    btnPartialCta.classList.remove('partial-depressed');
+                }, 180);
+            }
+
+            syncUI();
+        }
+    }
+
+    if (btnPrimaryCta) btnPrimaryCta.addEventListener('click', handlePrimaryFocalAction);
+    if (btnPartialCta) btnPartialCta.addEventListener('click', handlePartialCashoutAction);
+
+    window.addEventListener('keydown', (e) => {
+        if (isRulesModalOpen()) return;
+        if (betInput && document.activeElement === betInput) return;
+
+        if (e.key >= '1' && e.key <= '5') {
+            const laneIdx = parseInt(e.key, 10) - 1;
+            if (engine.state === GameState.PLAYING && !stateCtrl.isHitStopActive) {
+                e.preventDefault();
+                stateCtrl.selectLaneWithHitStop(laneIdx);
+            }
+        } else if (e.key.toLowerCase() === 'p') {
+            e.preventDefault();
+            handlePartialCashoutAction();
+        } else if (e.code === 'Space') {
+            e.preventDefault();
+            handlePrimaryFocalAction();
         }
     });
 
-    // Modal Triggers
-    document.getElementById('header-fair-btn')?.addEventListener('click', () => {
-        sounds.playClick();
-        const modal = document.getElementById('seed-modal');
-        modal?.classList.remove('hidden');
+    // 10. MULTI-CURRENCY HISTORY TICKER WITHOUT HARDCODED $ [219]
+    function renderHistoryTicker() {
+        const items = engine.recentSummaries.slice(0, 8);
+        if (items.length === 0) return;
+
+        historyTicker.innerHTML = items
+            .map((h) => {
+                const cls = h.isWin ? (h.finalMultiplier >= 5 ? 'mega' : 'win') : 'loss';
+                const label = h.isWin ? `${h.finalMultiplier.toFixed(2)}×` : '0.00×';
+                const betFormatted = stakeRGS.formatCurrency(h.effectiveBet);
+                return `<span class="ticker-badge ${cls}" title="${lang === 'es' ? 'Ronda' : 'Round'} #${h.nonce} · ${t.betAmountLabel}: ${betFormatted}">${label}</span>`;
+            })
+            .join('');
+    }
+
+    function syncUI() {
+        const isPlaying = engine.state === GameState.PLAYING;
+        const currentMult = engine.currentMultiplier;
+        const isFirstStep = engine.currentPicks.length === 0;
+        const nextMult = isPlaying
+            ? calculateNextStepMultiplier(
+                  currentMult,
+                  engine.minesCount,
+                  isFirstStep
+              )
+            : calculateMultiplier(1, engine.minesCount);
+
+        const isMobile = window.innerWidth <= 768;
+
+        const balanceTitleLabel = document.getElementById('balance-title-label');
+        if (balanceTitleLabel) {
+            balanceTitleLabel.textContent = isReplay ? t.replayBadge : t.balanceLabel;
+        }
+
+        const safePct = Math.round(((TOTAL_LANES - engine.minesCount) / TOTAL_LANES) * 100);
+        const firstStepMult = calculateMultiplier(1, engine.minesCount);
+        if (survivalOddsBadge) {
+            survivalOddsBadge.textContent = isMobile
+                ? `${safePct}% · ${firstStepMult.toFixed(2)}×`
+                : `${safePct}% ${t.minesProbLabel} · ${firstStepMult.toFixed(2)}×`;
+        }
+
+        if (balanceEl && !isReplay) {
+            balanceEl.textContent = stakeRGS.formatCurrency(engine.balance);
+        }
+
+        multHeroVal.textContent = `${currentMult.toFixed(2)}×`;
+        multNextPreview.textContent = `${t.nextMultiplierLabel}: ${nextMult.toFixed(2)}×`;
+
+        if (isPlaying) {
+            const potentialWin = calculatePayout(engine.activeBetAmount, currentMult);
+            multHeroSub.textContent =
+                engine.currentRow > 1
+                    ? `${t.roundWonSub}: ${stakeRGS.formatCurrency(potentialWin)}`
+                    : isMobile
+                      ? t.touchGatePrompt
+                      : t.selectGatePrompt;
+        } else if (engine.state === GameState.WON) {
+            const lastWin = engine.recentSummaries[0]?.payout ?? 0;
+            multHeroSub.textContent = `${t.roundWonSub}: +${stakeRGS.formatCurrency(lastWin)}`;
+        } else if (engine.state === GameState.CRASHED) {
+            multHeroSub.textContent = `${t.roundCrashedSub} ${engine.lastCrashedRow ?? 1}`;
+        } else {
+            multHeroSub.textContent = t.readyToLaunchSub;
+        }
+
+        if (betInput) {
+            betInput.disabled = isPlaying;
+        }
+        quickBetBtns.forEach((b) => (b.disabled = isPlaying));
+        mineBtns.forEach((b) => (b.disabled = isPlaying));
+
+        if (betInput && betPctBadge && !isReplay) {
+            syncBetInputFontSize();
+            const baseVal = Math.max(stakeRGS.betConfig.minBet, parseFloat(betInput.value) || currentBetLevels[0]);
+            const effVal = calculateEffectiveBet(baseVal);
+            const formattedEff = stakeRGS.formatCurrency(effVal);
+            betPctBadge.textContent = `Total: ${formattedEff}`;
+
+            const canCashout = isPlaying && engine.currentRow > 1 && !stateCtrl.isHitStopActive;
+
+            if (btnPrimaryCta && focalCtaHeaderLabel && focalCtaTitle && focalCtaSub) {
+                if (!isPlaying) {
+                    btnPrimaryCta.disabled = false;
+                    btnPrimaryCta.classList.remove('mode-cashout');
+                    focalCtaHeaderLabel.textContent = t.focalActionLabel;
+                    focalCtaTitle.textContent = t.focalDropCapsule;
+                    focalCtaSub.textContent = `${formattedEff} · ${t.focalActionReady}`;
+                } else if (canCashout) {
+                    const cashoutVal = calculatePayout(engine.activeBetAmount, currentMult);
+                    btnPrimaryCta.disabled = false;
+                    btnPrimaryCta.classList.add('mode-cashout');
+                    focalCtaHeaderLabel.textContent = lang === 'es' ? 'Cobro Disponible' : 'Cashout Available';
+                    focalCtaTitle.textContent = `${t.focalCashout} ${stakeRGS.formatCurrency(cashoutVal)}`;
+                    focalCtaSub.textContent = `${currentMult.toFixed(2)}× · ${t.shortcutSpace}`;
+                } else {
+                    btnPrimaryCta.disabled = true;
+                    btnPrimaryCta.classList.remove('mode-cashout');
+                    focalCtaHeaderLabel.textContent = lang === 'es' ? 'Ronda en Curso' : 'Round Active';
+                    focalCtaTitle.textContent = isMobile ? `[1–5]` : `[1–5]`;
+                    focalCtaSub.textContent = `Row ${engine.currentRow} · ${nextMult.toFixed(2)}×`;
+                }
+            }
+
+            const canPartial = engine.canPartialCashout() && !stateCtrl.isHitStopActive;
+            if (btnPartialCta && partialCtaSub && focalCtaHeaderShortcut) {
+                if (canPartial) {
+                    btnPartialCta.style.display = 'flex';
+                    btnPartialCta.disabled = false;
+                    const halfVal = Math.floor(calculatePayout(engine.activeBetAmount, currentMult) * 0.5 * 100) / 100;
+                    partialCtaSub.textContent = `+${stakeRGS.formatCurrency(halfVal)}`;
+                    focalCtaHeaderShortcut.textContent = `${t.shortcutSpace} / ${t.shortcutKeyP}`;
+                } else {
+                    btnPartialCta.style.display = 'none';
+                    btnPartialCta.disabled = true;
+                    focalCtaHeaderShortcut.textContent = t.shortcutSpace;
+                }
+            }
+        }
+
+        renderHistoryTicker();
+    }
+
+    stateCtrl.onHitStopStart((_row, _lane, _dur, callout) => {
+        syncUI();
+        gsap.killTweensOf(hitStopStamp);
+        hitStopStamp.textContent = callout;
+        hitStopStamp.style.borderColor = 'rgba(0, 229, 255, 0.45)';
+        hitStopStamp.style.color = '#ffffff';
+        gsap.fromTo(
+            hitStopStamp,
+            { opacity: 0, scale: 0.88, y: -4 },
+            { opacity: 1, scale: 1.05, y: 0, duration: 0.12, ease: 'back.out(1.8)' }
+        );
     });
 
-    document.getElementById('btn-sim-panel')?.addEventListener('click', () => {
-        sounds.playClick();
-        const modal = document.getElementById('sim-modal');
-        modal?.classList.remove('hidden');
+    stateCtrl.onHitStopResolve((pick) => {
+        syncUI();
+
+        if (pick.isSafe) {
+            const stepWin = calculatePayout(engine.activeBetAmount, pick.stepMultiplierAfter);
+
+            gsap.killTweensOf(hitStopStamp);
+            hitStopStamp.textContent = `ROW ${pick.row} CLEARED · +${stakeRGS.formatCurrency(stepWin)}`;
+            hitStopStamp.style.borderColor = '#00e676';
+            hitStopStamp.style.color = '#00e676';
+
+            gsap.fromTo(
+                hitStopStamp,
+                { opacity: 1, scale: 1.04, y: 0 },
+                {
+                    opacity: 0,
+                    scale: 0.96,
+                    y: -3,
+                    delay: 0.55,
+                    duration: 0.22,
+                    ease: 'power2.out'
+                }
+            );
+
+            gsap.killTweensOf(multHeroVal);
+            gsap.killTweensOf(multHeroWrap);
+
+            gsap.fromTo(
+                multHeroVal,
+                {
+                    scale: 1.12,
+                    color: '#00e676'
+                },
+                {
+                    scale: 1,
+                    color: '#ffffff',
+                    duration: 0.48,
+                    ease: 'elastic.out(1.4, 0.3)'
+                }
+            );
+
+            gsap.fromTo(
+                multHeroWrap,
+                { scale: 1.04 },
+                { scale: 1, duration: 0.48, ease: 'elastic.out(1.35, 0.32)' }
+            );
+        } else {
+            gsap.killTweensOf(hitStopStamp);
+            gsap.to(hitStopStamp, { opacity: 0, scale: 0.92, duration: 0.12 });
+            gsap.fromTo(
+                multHeroWrap,
+                { x: -18 },
+                { x: 0, duration: 0.45, ease: 'elastic.out(1.5, 0.25)' }
+            );
+            triggerTryAgainRetentionLoop();
+        }
     });
 
-    updateBonusUI();
+    engine.onCashout(() => {
+        engine.resetToIdle();
+        leftDock.classList.remove('betting-dock-ready-pulse');
+        void leftDock.offsetWidth;
+        leftDock.classList.add('betting-dock-ready-pulse');
+        syncUI();
+    });
+
+    stateCtrl.onMegaWin((payout, multiplier) => {
+        triggerDynamicVictoryCelebration(payout, multiplier);
+    });
+
+    engine.onBalanceChange(() => {
+        syncUI();
+    });
+
+    const victorySpriteCache = new Map<string, HTMLCanvasElement>();
+
+    function getVictoryParticleSprite(
+        type: VictoryEmitterType,
+        color: string,
+        secondaryColor: string,
+        leafCount: number
+    ): HTMLCanvasElement {
+        const key = `${type}|${color}|${secondaryColor}|${leafCount}`;
+        const cached = victorySpriteCache.get(key);
+        if (cached) return cached;
+
+        const size = 64;
+        const half = size * 0.5;
+        const c = document.createElement('canvas');
+        c.width = size;
+        c.height = size;
+        const sctx = c.getContext('2d')!;
+        sctx.translate(half, half);
+
+        if (type === 'ION_PLASMA') {
+            const r = 16;
+            const grad = sctx.createRadialGradient(0, 0, 1, 0, 0, r);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.35, color);
+            grad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+            sctx.fillStyle = grad;
+            sctx.shadowColor = '#00f0ff';
+            sctx.shadowBlur = 8;
+            sctx.beginPath();
+            sctx.arc(0, 0, r, 0, Math.PI * 2);
+            sctx.fill();
+
+            sctx.shadowBlur = 0;
+            sctx.strokeStyle = secondaryColor;
+            sctx.lineWidth = 1.8;
+            sctx.beginPath();
+            sctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
+            sctx.stroke();
+        } else if (type === 'TITANIUM_SPARKS') {
+            const r = 16;
+            sctx.fillStyle = color;
+            sctx.shadowColor = '#f59e0b';
+            sctx.shadowBlur = 8;
+            sctx.beginPath();
+            sctx.moveTo(0, -r);
+            sctx.lineTo(r * 0.45, 0);
+            sctx.lineTo(0, r);
+            sctx.lineTo(-r * 0.45, 0);
+            sctx.closePath();
+            sctx.fill();
+
+            sctx.shadowBlur = 0;
+            sctx.fillStyle = '#ffffff';
+            sctx.fillRect(-2, -2, 4, 4);
+        } else if (type === 'QUANTUM_BURST') {
+            const r = 17;
+            sctx.fillStyle = color;
+            sctx.shadowColor = '#c084fc';
+            sctx.shadowBlur = 8;
+            sctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const a = (i * Math.PI) / 3;
+                const x = Math.cos(a) * r;
+                const y = Math.sin(a) * r;
+                if (i === 0) sctx.moveTo(x, y);
+                else sctx.lineTo(x, y);
+            }
+            sctx.closePath();
+            sctx.fill();
+
+            sctx.shadowBlur = 0;
+            sctx.strokeStyle = '#ffffff';
+            sctx.lineWidth = 1.6;
+            sctx.stroke();
+        } else {
+            // HYPERDRIVE_STREAKS
+            const len = 22;
+            const w = 4;
+            sctx.fillStyle = color;
+            sctx.shadowColor = color;
+            sctx.shadowBlur = 8;
+            sctx.beginPath();
+            sctx.ellipse(0, 0, len, w, 0, 0, Math.PI * 2);
+            sctx.fill();
+
+            sctx.shadowBlur = 0;
+            sctx.fillStyle = '#ffffff';
+            sctx.fillRect(-len * 0.5, -1, len, 2);
+        }
+
+        victorySpriteCache.set(key, c);
+        return c;
+    }
+
+    function triggerDynamicVictoryCelebration(payout: number, mult: number) {
+        cancelPendingVictoryCelebration();
+
+        let headlineIdx = 0;
+        let emitterIdx = 0;
+
+        if (victoryCallCount === 0 || victoryCallCount % 4 === 0) {
+            headlineIdx = 0;
+            emitterIdx = 0;
+        } else {
+            do {
+                headlineIdx = Math.floor(Math.random() * VICTORY_HEADLINES.length);
+            } while (headlineIdx === lastHeadlineIdx);
+
+            do {
+                emitterIdx = Math.floor(Math.random() * VICTORY_EMITTERS.length);
+            } while (emitterIdx === lastEmitterIdx);
+        }
+
+        victoryCallCount++;
+        lastHeadlineIdx = headlineIdx;
+        lastEmitterIdx = emitterIdx;
+
+        const chosenHeadline = VICTORY_HEADLINES[headlineIdx];
+        const chosenEmitter = VICTORY_EMITTERS[emitterIdx];
+
+        megaWinTitle.textContent = chosenHeadline;
+        megaWinMult.textContent = `${mult.toFixed(2)}× ${lang === 'es' ? 'MULTIPLICADOR' : 'MULTIPLIER'}`;
+
+        if (chosenEmitter === 'ION_PLASMA') {
+            megaWinTitle.style.background =
+                'linear-gradient(180deg, #ffffff 0%, #38bdf8 48%, #00f0ff 100%)';
+            megaWinTitle.style.webkitBackgroundClip = 'text';
+            megaWinTitle.style.webkitTextFillColor = 'transparent';
+        } else if (chosenEmitter === 'TITANIUM_SPARKS') {
+            megaWinTitle.style.background =
+                'linear-gradient(180deg, #ffffff 0%, #fde047 48%, #f59e0b 100%)';
+            megaWinTitle.style.webkitBackgroundClip = 'text';
+            megaWinTitle.style.webkitTextFillColor = 'transparent';
+        } else if (chosenEmitter === 'QUANTUM_BURST') {
+            megaWinTitle.style.background =
+                'linear-gradient(180deg, #ffffff 0%, #e9d5ff 48%, #a855f7 100%)';
+            megaWinTitle.style.webkitBackgroundClip = 'text';
+            megaWinTitle.style.webkitTextFillColor = 'transparent';
+        } else {
+            megaWinTitle.style.background =
+                'linear-gradient(180deg, #ffffff 0%, #bae6fd 48%, #818cf8 100%)';
+            megaWinTitle.style.webkitBackgroundClip = 'text';
+            megaWinTitle.style.webkitTextFillColor = 'transparent';
+        }
+
+        const w = Math.min(stageContainer.clientWidth || window.innerWidth, 1600);
+        const h = Math.min(stageContainer.clientHeight || window.innerHeight, 1000);
+        victoryParticlesCanvas.width = w;
+        victoryParticlesCanvas.height = h;
+        const ctx = victoryParticlesCanvas.getContext('2d', { alpha: true });
+
+        const palettes: Record<VictoryEmitterType, string[]> = {
+            ION_PLASMA: ['#00f0ff', '#38bdf8', '#0284c7', '#ffffff'],
+            TITANIUM_SPARKS: ['#fde047', '#f59e0b', '#fb923c', '#ffffff'],
+            QUANTUM_BURST: ['#c084fc', '#a855f7', '#7c3aed', '#e9d5ff'],
+            HYPERDRIVE_STREAKS: ['#ffffff', '#38bdf8', '#818cf8', '#00f0ff']
+        };
+        const activePalette = palettes[chosenEmitter];
+        const secondaryColor = chosenEmitter === 'TITANIUM_SPARKS' ? '#f59e0b' : '#38bdf8';
+
+        const particleCount = 68;
+        const particles: (VictoryParticle & { sprite: HTMLCanvasElement })[] = [];
+        for (let i = 0; i < particleCount; i++) {
+            const isBurst = chosenEmitter === 'HYPERDRIVE_STREAKS' && i < 34;
+            const angle = Math.random() * Math.PI * 2;
+            const burstSpeed = 180 + Math.random() * 500;
+            const color = activePalette[i % activePalette.length];
+            const leafCount = i % 3 === 0 ? 4 : 3;
+
+            particles.push({
+                x: isBurst ? w * 0.5 + (Math.random() - 0.5) * 110 : Math.random() * w,
+                y: isBurst ? h * 0.42 + (Math.random() - 0.5) * 70 : -20 - Math.random() * h * 0.85,
+                vx: isBurst ? Math.cos(angle) * burstSpeed : (Math.random() - 0.5) * 130,
+                vy: isBurst ? Math.sin(angle) * burstSpeed - 110 : 250 + Math.random() * 390,
+                size: 16 + Math.random() * 16,
+                rot: Math.random() * Math.PI * 2,
+                rotSpeed: (Math.random() - 0.5) * 5.0,
+                spinPhase: Math.random() * Math.PI * 2,
+                spinSpeed: 3.2 + Math.random() * 5.2,
+                alpha: 0.88 + Math.random() * 0.12,
+                color,
+                secondaryColor,
+                leafCount,
+                sprite: getVictoryParticleSprite(chosenEmitter, color, secondaryColor, leafCount)
+            });
+        }
+
+        megaBanner.classList.add('visible');
+
+        gsap.fromTo(
+            megaWinCardInner,
+            { scale: 0.45, opacity: 0, y: 24 },
+            { scale: 1, opacity: 1, y: 0, duration: 0.42, ease: 'back.out(1.8)' }
+        );
+
+        gsap.fromTo(
+            supernovaFlareBar,
+            { scaleX: 0.1, opacity: 1 },
+            { scaleX: 1.15, opacity: 0.82, duration: 0.48, ease: 'expo.out' }
+        );
+
+        gsap.fromTo(
+            megaWinMult,
+            { scale: 0.45 },
+            { scale: 1.0, duration: 0.58, ease: 'back.out(2.0)' }
+        );
+
+        victoryCounterObj = { val: 0 };
+        gsap.to(victoryCounterObj, {
+            val: payout,
+            duration: 0.7,
+            ease: 'power3.out',
+            onUpdate: () => {
+                megaWinAmount.textContent = `+${stakeRGS.formatCurrency(victoryCounterObj.val)}`;
+            }
+        });
+
+        let lastTs = performance.now();
+        const animateVictoryParticles = (now: number) => {
+            const dt = Math.min(0.05, (now - lastTs) / 1000);
+            lastTs = now;
+
+            if (ctx) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, w, h);
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x += p.vx * dt + Math.sin(now * 0.004 + p.spinPhase) * 32 * dt;
+                    p.y += p.vy * dt;
+                    p.vy += 180 * dt;
+                    p.rot += p.rotSpeed * dt;
+                    p.spinPhase += p.spinSpeed * dt;
+
+                    if (p.y > h + 30) {
+                        p.y = -25;
+                        p.x = Math.random() * w;
+                        p.vy = 240 + Math.random() * 360;
+                    }
+
+                    const tiltScaleX =
+                        chosenEmitter === 'HYPERDRIVE_STREAKS'
+                            ? 1
+                            : Math.max(0.24, Math.abs(Math.cos(p.spinPhase)));
+                    const cos = Math.cos(p.rot);
+                    const sin = Math.sin(p.rot);
+                    const drawSize = p.size * 1.9;
+                    const halfDraw = drawSize * 0.5;
+
+                    ctx.globalAlpha = p.alpha;
+                    ctx.setTransform(
+                        cos * tiltScaleX,
+                        sin * tiltScaleX,
+                        -sin,
+                        cos,
+                        p.x,
+                        p.y
+                    );
+                    ctx.drawImage(p.sprite, -halfDraw, -halfDraw, drawSize, drawSize);
+                }
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.globalAlpha = 1;
+            }
+
+            victoryAnimFrameId = requestAnimationFrame(animateVictoryParticles);
+        };
+        victoryAnimFrameId = requestAnimationFrame(animateVictoryParticles);
+
+        victoryTimeoutId = window.setTimeout(() => {
+            gsap.to(megaWinCardInner, {
+                scale: 0.9,
+                opacity: 0,
+                duration: 0.16,
+                ease: 'power2.in',
+                onComplete: () => {
+                    cancelPendingVictoryCelebration();
+                    if (engine.state !== GameState.PLAYING) {
+                        engine.resetToIdle();
+                        leftDock.classList.remove('betting-dock-ready-pulse');
+                        void leftDock.offsetWidth;
+                        leftDock.classList.add('betting-dock-ready-pulse');
+                        syncUI();
+                    }
+                }
+            });
+        }, 1320);
+    }
+
+    window.addEventListener('resize', () => {
+        syncUI();
+    });
+
+    syncBetMetrics();
+    syncUI();
 }

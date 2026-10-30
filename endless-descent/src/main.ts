@@ -2,62 +2,72 @@ import './style.css';
 import { GameEngine } from './game/engine';
 import { GameState } from './math/types';
 import { generateServerSeed } from './crypto/provablyFair';
-import { CanvasRenderer } from './renderer/canvasView';
-import { RenderLoop } from './renderer/effects';
+import { GameStateController } from './engine/GameState';
+import { PixiRenderer } from './engine/Renderer';
 import { createControlsUI } from './ui/controls';
-import { createSeedModal } from './ui/seedModal';
-import { createSimPanel } from './ui/simPanel';
+import { isRulesModalOpen } from './ui/rulesModal';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div class="viewport-shell" id="viewport-shell">
-    <!-- Dedicated Upper Stage: 3D Corridor Canvas + Top HUD -->
-    <div class="stage-container" id="stage-container">
-      <canvas id="game-canvas"></canvas>
-    </div>
+  <div class="pc-command-shell" id="pc-command-shell">
+    <header class="pc-top-header" id="pc-top-header"></header>
 
-    <!-- Dedicated Bottom Control Deck: Never obscures the active canvas lane -->
-    <div class="control-dock" id="control-dock"></div>
+    <main class="pc-cockpit-grid">
+      <aside class="pc-left-dock" id="left-command-dock"></aside>
+
+      <section class="pc-center-stage" id="stage-container">
+        <canvas id="game-canvas"></canvas>
+      </section>
+    </main>
   </div>
 `;
 
+const topHeader = document.getElementById('pc-top-header') as HTMLElement;
+const leftDock = document.getElementById('left-command-dock') as HTMLElement;
 const stageContainer = document.getElementById('stage-container') as HTMLElement;
-const controlDock = document.getElementById('control-dock') as HTMLElement;
 const canvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 
-// Initialize Core Provably Fair Engine
+// 1. Initialize Core Provably Fair Engine & GameState Controller
 const initialServerSeed = generateServerSeed();
-const initialClientSeed = 'stake_player_1';
+const initialClientSeed = 'stake_production_player_1';
 const engine = new GameEngine(initialServerSeed, initialClientSeed);
+const gameState = new GameStateController(engine);
 
-// Initialize UI Modules first so stageContainer flex height settles before initial DPI measure
-createControlsUI(stageContainer, controlDock, engine);
-createSeedModal(stageContainer, engine);
-createSimPanel(stageContainer);
+// 2. Initialize Three.js 3D Space Renderer
+const renderer = new PixiRenderer(canvas, gameState);
 
-// Initialize 3D Perspective Renderer & 60 FPS Loop
-const renderer = new CanvasRenderer(canvas);
-const loop = new RenderLoop(renderer, engine);
+// 3. Initialize Production Stake-Ready HUD & Betting Panel
+createControlsUI(topHeader, leftDock, stageContainer, gameState, renderer);
 
-// Ensure resize observer keeps canvas sharp if dock height changes (e.g. Manual <-> Auto tab)
+// 4. Ensure initial layout settles and ResizeObserver keeps 3D WebGL stage crisp across monitors
+requestAnimationFrame(() => {
+    renderer.setupDPI(true);
+});
+
 const resizeObs = new ResizeObserver(() => {
     renderer.setupDPI(true);
 });
 resizeObs.observe(stageContainer);
 
-// Wire Canvas Interactions with accurate 3D perspective hit testing
+// 5. Wire 3D Floating Card Pointer & Mobile Touch Interactions
 canvas.addEventListener('pointerdown', (e) => {
-    if (engine.state !== GameState.PLAYING) return;
+    if (isRulesModalOpen()) return;
+    if (engine.state !== GameState.PLAYING || gameState.isHitStopActive) return;
 
     const target = renderer.getClickTarget(e.clientX, e.clientY, engine.currentRow);
     if (!target) return;
 
     if (target.row === engine.currentRow) {
-        engine.pickLane(target.lane);
+        gameState.selectLaneWithHitStop(target.lane);
+        if (e.pointerType === 'touch') {
+            renderer.clearHover();
+        }
     }
 });
 
 canvas.addEventListener('pointermove', (e) => {
-    if (engine.state === GameState.PLAYING) {
+    if (isRulesModalOpen()) return;
+    if (e.pointerType === 'touch') return;
+    if (engine.state === GameState.PLAYING && !gameState.isHitStopActive) {
         renderer.updateHover(e.clientX, e.clientY, engine.currentRow);
     } else {
         renderer.clearHover();
@@ -68,5 +78,6 @@ canvas.addEventListener('pointerleave', () => {
     renderer.clearHover();
 });
 
-// Start Animation Loop
-loop.start();
+canvas.addEventListener('pointercancel', () => {
+    renderer.clearHover();
+});

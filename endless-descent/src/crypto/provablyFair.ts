@@ -1,6 +1,8 @@
 import CryptoJS from 'crypto-js';
 import type { LaneSpecialType, RowSpecialConfig } from '../math/types';
-import { getLaneWinProbability } from '../math/multipliers';
+
+const hmacBytesCache = new Map<string, number[]>();
+const MAX_HMAC_CACHE_SIZE = 512;
 
 /**
  * Computes HMAC-SHA256 of the message using the given server seed.
@@ -14,10 +16,44 @@ export function generateHMAC(serverSeed: string, clientSeed: string, nonce: numb
  * Helper to parse 32 raw bytes from a 64-char hex HMAC hash.
  */
 export function parseHashBytes(hash: string): number[] {
-    const bytes: number[] = [];
-    for (let i = 0; i < hash.length; i += 2) {
-        bytes.push(parseInt(hash.substring(i, i + 2), 16));
+    const bytes: number[] = new Array(32);
+    for (let i = 0; i < 64; i += 2) {
+        bytes[i >> 1] = parseInt(hash.substring(i, i + 2), 16);
     }
+    return bytes;
+}
+
+/**
+ * Cached 32-byte HMAC-SHA256 lookup for `(serverSeed, clientSeed, nonce, row)`.
+ * Extracts raw bytes directly from CryptoJS 32-bit words (zero hex string slicing or parseInt overhead!).
+ */
+export function getCachedHmacBytes(
+    serverSeed: string,
+    clientSeed: string,
+    nonce: number,
+    row: number
+): number[] {
+    const key = `${serverSeed}:${clientSeed}:${nonce}:${row}`;
+    const cached = hmacBytesCache.get(key);
+    if (cached) return cached;
+
+    const digest = CryptoJS.HmacSHA256(`${clientSeed}:${nonce}:${row}`, serverSeed);
+    const words = digest.words;
+    const bytes: number[] = new Array(32);
+    for (let i = 0; i < 8; i++) {
+        const w = words[i];
+        const base = i << 2;
+        bytes[base] = (w >>> 24) & 0xff;
+        bytes[base + 1] = (w >>> 16) & 0xff;
+        bytes[base + 2] = (w >>> 8) & 0xff;
+        bytes[base + 3] = w & 0xff;
+    }
+
+    if (hmacBytesCache.size >= MAX_HMAC_CACHE_SIZE) {
+        const oldestKey = hmacBytesCache.keys().next().value;
+        if (oldestKey !== undefined) hmacBytesCache.delete(oldestKey);
+    }
+    hmacBytesCache.set(key, bytes);
     return bytes;
 }
 
@@ -33,8 +69,7 @@ export function deriveHazards(
     row: number,
     minesCount: number
 ): number[] {
-    const hash = generateHMAC(serverSeed, clientSeed, nonce, row);
-    const bytes = parseHashBytes(hash);
+    const bytes = getCachedHmacBytes(serverSeed, clientSeed, nonce, row);
 
     const lanes = [0, 1, 2, 3, 4];
     const hazards: number[] = [];
@@ -68,59 +103,28 @@ export function deriveHazards(
 }
 
 /**
- * Deterministically derives Golden Card (★) and Alien UFO (👽) special lanes for a row
- * using bytes 16..23 of the row's HMAC-SHA256 digest.
+ * Pure base multipliers configuration (No golden boost, no alien skips).
  */
 export function deriveRowSpecials(
-    serverSeed: string,
-    clientSeed: string,
-    nonce: number,
+    _serverSeed: string,
+    _clientSeed: string,
+    _nonce: number,
     row: number,
-    luckyBoost = false
+    _luckyBoost = false
 ): RowSpecialConfig {
-    const hash = generateHMAC(serverSeed, clientSeed, nonce, row);
-    const bytes = parseHashBytes(hash);
-
-    // Byte 16: Golden Card spawn roll (40% normal, 90% in Lucky Boost mode)
-    const goldenThreshold = luckyBoost ? Math.floor(256 * 0.90) : Math.floor(256 * 0.40);
-    const hasGolden = bytes[16] < goldenThreshold;
-
-    let goldenLane: number | null = null;
-    let goldenBoost = 2.0;
-
-    if (hasGolden) {
-        goldenLane = bytes[17] % 5;
-        // In Lucky Boost mode or on high rolls, Golden Card can be 3.0x
-        const isSuperGold = luckyBoost ? (bytes[18] < 110) : (bytes[18] < 50);
-        goldenBoost = isSuperGold ? 3.0 : 2.0;
-    }
-
-    // Byte 19: Alien UFO Beacon spawn roll (22% normal, 65% in Lucky Boost mode)
-    const alienThreshold = luckyBoost ? Math.floor(256 * 0.65) : Math.floor(256 * 0.22);
-    const hasAlien = bytes[19] < alienThreshold;
-
-    let alienLane: number | null = null;
-    const alienBoost = 2.5;
-    const alienSkipRows = 2;
-
-    if (hasAlien) {
-        const remainingLanes = [0, 1, 2, 3, 4].filter((l) => l !== goldenLane);
-        alienLane = remainingLanes[bytes[20] % remainingLanes.length];
-    }
-
     return {
         row,
-        goldenLane,
-        goldenBoost,
-        alienLane,
-        alienBoost,
-        alienSkipRows
+        goldenLane: null,
+        goldenBoost: 1.0,
+        alienLane: null,
+        alienBoost: 1.0,
+        alienSkipRows: 0
     };
 }
 
 /**
- * Evaluates whether picking `lane` on `row` is safe, taking into account
- * Golden Card or Alien UFO probability scaling so that EV = 96.00% RTP on every choice.
+ * Evaluates whether picking `lane` on `row` is safe.
+ * Standard provably fair hazard derivation: if chosen lane contains a mine -> crash; otherwise -> safe step!
  */
 export function evaluateLanePick(
     serverSeed: string,
@@ -129,7 +133,7 @@ export function evaluateLanePick(
     row: number,
     lane: number,
     minesCount: number,
-    luckyBoost = false
+    _luckyBoost = false
 ): {
     isSafe: boolean;
     specialType: LaneSpecialType;
@@ -138,61 +142,13 @@ export function evaluateLanePick(
     hazards: number[];
 } {
     const baseHazards = deriveHazards(serverSeed, clientSeed, nonce, row, minesCount);
-    const specials = deriveRowSpecials(serverSeed, clientSeed, nonce, row, luckyBoost);
-
-    let specialType: LaneSpecialType = 'NONE';
-    let boostFactor = 1.0;
-    let rowsSkipped = 0;
-
-    if (specials.goldenLane === lane) {
-        specialType = 'GOLDEN';
-        boostFactor = specials.goldenBoost;
-    } else if (specials.alienLane === lane) {
-        specialType = 'ALIEN';
-        boostFactor = specials.alienBoost;
-        rowsSkipped = specials.alienSkipRows;
-    }
-
-    if (specialType === 'NONE') {
-        const isSafe = !baseHazards.includes(lane);
-        return {
-            isSafe,
-            specialType,
-            boostFactor: 1.0,
-            rowsSkipped: 0,
-            hazards: baseHazards
-        };
-    }
-
-    // For GOLDEN or ALIEN lanes: use 32-bit integer from bytes 24..27 for exact p_win = ((5 - M) / 5) / boostFactor
-    const hash = generateHMAC(serverSeed, clientSeed, nonce, row);
-    const bytes = parseHashBytes(hash);
-    const uint32 =
-        ((bytes[24] << 24) >>> 0) +
-        ((bytes[25] << 16) >>> 0) +
-        ((bytes[26] << 8) >>> 0) +
-        (bytes[27] >>> 0);
-    const u01 = uint32 / 0x100000000;
-
-    const pWin = getLaneWinProbability(minesCount, boostFactor);
-    const isSafe = u01 < pWin;
-
-    // Ensure revealed hazards list reflects the special lane's outcome consistently
-    const adjustedHazards = [...baseHazards];
-    if (isSafe && adjustedHazards.includes(lane)) {
-        const idx = adjustedHazards.indexOf(lane);
-        const replacement = [0, 1, 2, 3, 4].find((l) => l !== lane && !adjustedHazards.includes(l));
-        if (replacement !== undefined) adjustedHazards[idx] = replacement;
-    } else if (!isSafe && !adjustedHazards.includes(lane)) {
-        adjustedHazards[0] = lane;
-    }
-
+    const isSafe = !baseHazards.includes(lane);
     return {
         isSafe,
-        specialType,
-        boostFactor,
-        rowsSkipped: isSafe ? rowsSkipped : 0,
-        hazards: adjustedHazards
+        specialType: 'NONE',
+        boostFactor: 1.0,
+        rowsSkipped: 0,
+        hazards: baseHazards
     };
 }
 

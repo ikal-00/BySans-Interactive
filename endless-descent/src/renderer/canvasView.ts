@@ -815,9 +815,7 @@ export class CanvasRenderer {
                     const nextMult = calculateNextStepMultiplier(
                         engine.currentMultiplier,
                         engine.minesCount,
-                        engine.currentRow === 1,
-                        1.0,
-                        engine.hasActiveShield
+                        engine.currentRow === 1
                     );
                     this.ctx.font = `800 10.5px "JetBrains Mono", monospace`;
                     this.ctx.fillStyle = this.colors.green;
