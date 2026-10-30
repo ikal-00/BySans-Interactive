@@ -1736,7 +1736,9 @@ export class PixiRenderer {
                 ? PixiRenderer.laneToWorldX(this.hoveredLane)
                 : null;
 
-        this.ship.update(dt, theme.primaryHex, isHitStop, hitStopX, hoverX, false, isCrashed);
+        const currentMult = engine.currentMultiplier || 1.0;
+        const isCashedOut = engine.state === GameState.WON;
+        this.ship.update(dt, theme.primaryHex, isHitStop, hitStopX, hoverX, false, isCrashed, currentMult, isCashedOut);
         this.updateOrbitalTacticalCamera(dt, isHitStop, hitStopX, hoverX);
 
         this.dirLight.position.set(this.ship.pos.x + 14, 28, this.ship.pos.z + 16);

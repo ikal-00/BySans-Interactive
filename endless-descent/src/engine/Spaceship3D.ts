@@ -150,6 +150,16 @@ export class Spaceship3D {
     private plasmaParticles: PlasmaParticleData[] = [];
     private plasmaSpawnCursor = 0;
 
+    // Classic Looney Tunes Expressive Dynamic Cartoon Eyes & Canopy Visor
+    private eyesCanvas!: HTMLCanvasElement;
+    private eyesCtx!: CanvasRenderingContext2D;
+    public eyesTex!: THREE.CanvasTexture;
+    private visorMesh!: THREE.Mesh;
+    private blinkTimer = 2.8;
+    private blinkProgress = 0; // 0 = open, 1 = fully shut
+    private currentLookX = 0;
+    private currentLookY = 0;
+
     private elapsed = 0;
 
     constructor(scene: THREE.Scene, textures: PBRTexturePack) {
@@ -159,6 +169,7 @@ export class Spaceship3D {
         scene.add(this.root);
 
         this.buildOverdriveSpacecraft(textures);
+        this.buildCartoonVisorAndEyes();
         this.buildLights(scene);
         this.buildWingtipIonRibbons(scene);
         this.buildPlasmaThrusterParticles(scene, textures.particleGlow);
@@ -469,6 +480,302 @@ export class Spaceship3D {
         this.centerNozzle.add(createInvertedHullOutline(centerNacelleGeo, 0.075));
     }
 
+    private buildCartoonVisorAndEyes() {
+        this.eyesCanvas = document.createElement('canvas');
+        this.eyesCanvas.width = 512;
+        this.eyesCanvas.height = 256;
+        this.eyesCtx = this.eyesCanvas.getContext('2d')!;
+        this.eyesTex = new THREE.CanvasTexture(this.eyesCanvas);
+        this.eyesTex.colorSpace = THREE.SRGBColorSpace;
+
+        // Visor plate angled back (~50°) directly facing the elevated 3D camera on the top of the canopy
+        const visorGeo = new THREE.PlaneGeometry(1.24, 0.98);
+        visorGeo.rotateX(-Math.PI * 0.28);
+        const visorMat = new THREE.MeshBasicMaterial({
+            map: this.eyesTex,
+            side: THREE.DoubleSide,
+            depthTest: true
+        });
+        this.visorMesh = new THREE.Mesh(visorGeo, visorMat);
+        this.visorMesh.position.set(0, 0.96, -0.50);
+        this.visorMesh.renderOrder = 10;
+        this.chassis.add(this.visorMesh);
+
+        this.drawCartoonEyes('idle', 0, 0, 0, 1.0);
+    }
+
+    public drawCartoonEyes(
+        mood: 'idle' | 'jumping' | 'nervous' | 'panic' | 'crashed' | 'win',
+        lookX: number,
+        lookY: number,
+        blink: number,
+        _multiplier: number
+    ) {
+        const ctx = this.eyesCtx;
+        const w = 512;
+        const h = 256;
+
+        // 1. Deep Cel-Shaded Midnight Navy / Cyan Visor Background
+        const glassGrad = ctx.createLinearGradient(0, 0, w, h);
+        glassGrad.addColorStop(0, '#060a14');
+        glassGrad.addColorStop(0.5, '#0e1c32');
+        glassGrad.addColorStop(1, '#060a14');
+        ctx.fillStyle = glassGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Bold Looney Tunes diagonal cartoon glass sheen streaks
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.beginPath();
+        ctx.moveTo(80, 0);
+        ctx.lineTo(135, 0);
+        ctx.lineTo(35, h);
+        ctx.lineTo(-20, h);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(170, 0);
+        ctx.lineTo(195, 0);
+        ctx.lineTo(95, h);
+        ctx.lineTo(70, h);
+        ctx.closePath();
+        ctx.fill();
+
+        // Thick comic black ink border
+        ctx.strokeStyle = '#050508';
+        ctx.lineWidth = 14;
+        ctx.strokeRect(7, 7, w - 14, h - 14);
+
+        const eyeCenters = [
+            { x: 168, y: 130 },
+            { x: 344, y: 130 }
+        ];
+
+        // 2. Comedic Defeat / Crashed State (Classic Cartoon "X" Eyes!)
+        if (mood === 'crashed') {
+            for (const { x, y } of eyeCenters) {
+                // Sclera oval
+                ctx.fillStyle = '#e2e8f0';
+                ctx.beginPath();
+                ctx.ellipse(x, y, 56, 68, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Heavy black ink outline
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 10;
+                ctx.beginPath();
+                ctx.ellipse(x, y, 56, 68, 0, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Bold cartoon red X with black underlay
+                const s = 28;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 14;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(x - s, y - s);
+                ctx.lineTo(x + s, y + s);
+                ctx.moveTo(x + s, y - s);
+                ctx.lineTo(x - s, y + s);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(x - s, y - s);
+                ctx.lineTo(x + s, y + s);
+                ctx.moveTo(x + s, y - s);
+                ctx.lineTo(x - s, y + s);
+                ctx.stroke();
+            }
+            this.eyesTex.needsUpdate = true;
+            return;
+        }
+
+        // 3. Victory / Cashed Out State (Happy Crescent Eyes ^  ^ with Golden Sparkles!)
+        if (mood === 'win') {
+            for (const { x, y } of eyeCenters) {
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 18;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.arc(x, y + 16, 42, Math.PI * 1.15, Math.PI * 1.85, false);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 10;
+                ctx.stroke();
+
+                // Cartoon celebration sparkle star
+                ctx.fillStyle = '#fde047';
+                ctx.beginPath();
+                const starSize = 14;
+                ctx.moveTo(x, y - 40 - starSize);
+                ctx.lineTo(x + 4, y - 40);
+                ctx.lineTo(x + starSize, y - 40);
+                ctx.lineTo(x + 5, y - 40 + 5);
+                ctx.lineTo(x + 8, y - 40 + starSize);
+                ctx.lineTo(x, y - 40 + 8);
+                ctx.lineTo(x - 8, y - 40 + starSize);
+                ctx.lineTo(x - 5, y - 40 + 5);
+                ctx.lineTo(x - starSize, y - 40);
+                ctx.lineTo(x - 4, y - 40);
+                ctx.closePath();
+                ctx.fill();
+            }
+            this.eyesTex.needsUpdate = true;
+            return;
+        }
+
+        // 4. Dynamic Expressive Cartoon Eyes (Idle, Jumping, Nervous, Panic)
+        const isPanic = mood === 'panic';
+        const isNervous = mood === 'nervous';
+        const isJumping = mood === 'jumping';
+
+        for (let i = 0; i < 2; i++) {
+            const { x, y } = eyeCenters[i];
+            const eyeW = isJumping ? 54 : isPanic ? 62 : 56;
+            const eyeH = isJumping ? 76 : isPanic ? 72 : 68;
+
+            // Eye drop shadow
+            ctx.fillStyle = '#000000';
+            ctx.beginPath();
+            ctx.ellipse(x, y + 4, eyeW + 2, eyeH + 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Thick cartoon black ink outline
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 9;
+            ctx.beginPath();
+            ctx.ellipse(x, y, eyeW, eyeH, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Sclera fill (pure glossy white)
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(x, y, eyeW - 3, eyeH - 3, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Clip region so pupils never escape eyeball boundaries
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(x, y, eyeW - 4, eyeH - 4, 0, 0, Math.PI * 2);
+            ctx.clip();
+
+            let pOffsetX = lookX * 20;
+            let pOffsetY = lookY * 15;
+
+            // Panic high-multiplier jitter
+            if (isPanic) {
+                pOffsetX += Math.sin(this.elapsed * 48 + i) * 3.5;
+                pOffsetY += Math.cos(this.elapsed * 48 + i) * 3.5;
+            }
+
+            const pupilCenterX = x + pOffsetX;
+            const pupilCenterY = y + pOffsetY;
+
+            const irisRadius = isPanic ? 16 : isNervous ? 24 : 32;
+            const pupilRadius = isPanic ? 8 : isNervous ? 14 : 20;
+
+            // Electric Cyan / Blue cel iris
+            const irisGrad = ctx.createLinearGradient(
+                pupilCenterX - irisRadius,
+                pupilCenterY - irisRadius,
+                pupilCenterX + irisRadius,
+                pupilCenterY + irisRadius
+            );
+            irisGrad.addColorStop(0, '#38bdf8');
+            irisGrad.addColorStop(0.55, '#0284c7');
+            irisGrad.addColorStop(1, '#0369a1');
+            ctx.fillStyle = irisGrad;
+            ctx.beginPath();
+            ctx.ellipse(pupilCenterX, pupilCenterY, irisRadius, irisRadius * 1.15, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Solid black pupil
+            ctx.fillStyle = '#050508';
+            ctx.beginPath();
+            ctx.arc(pupilCenterX, pupilCenterY, pupilRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Double white specular highlights
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(pupilCenterX - pupilRadius * 0.45, pupilCenterY - pupilRadius * 0.45, isPanic ? 3 : 7, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(pupilCenterX + pupilRadius * 0.38, pupilCenterY + pupilRadius * 0.38, isPanic ? 1.5 : 3.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Blinking eyelid
+            if (blink > 0) {
+                const eyelidH = eyeH * 2 * blink;
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.rect(x - eyeW - 5, y - eyeH - 5, (eyeW + 5) * 2, eyelidH);
+                ctx.fill();
+
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 7;
+                ctx.beginPath();
+                ctx.moveTo(x - eyeW, y - eyeH - 5 + eyelidH);
+                ctx.lineTo(x + eyeW, y - eyeH - 5 + eyelidH);
+                ctx.stroke();
+            }
+
+            ctx.restore();
+
+            // Eyebrows
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 7;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            if (isPanic) {
+                const browY = y - eyeH - 8 + Math.sin(this.elapsed * 40 + i) * 2;
+                const slant = i === 0 ? 12 : -12;
+                ctx.moveTo(x - 34, browY + slant);
+                ctx.quadraticCurveTo(x, browY - 14, x + 34, browY - slant);
+            } else if (isNervous) {
+                const browY = y - eyeH - 6;
+                const slant = i === 0 ? 9 : -9;
+                ctx.moveTo(x - 30, browY + slant);
+                ctx.lineTo(x + 30, browY - slant);
+            } else {
+                const browY = y - eyeH - 8;
+                ctx.moveTo(x - 28, browY + 6);
+                ctx.quadraticCurveTo(x, browY - 10, x + 28, browY + 4);
+            }
+            ctx.stroke();
+        }
+
+        // Animated Cartoon Sweat Droplets on temples in tension/panic
+        if (isPanic || isNervous) {
+            const sweatY = 55 + (this.elapsed * 55) % 80;
+            ctx.fillStyle = '#38bdf8';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(435, sweatY);
+            ctx.quadraticCurveTo(442, sweatY + 12, 435, sweatY + 18);
+            ctx.quadraticCurveTo(428, sweatY + 12, 435, sweatY);
+            ctx.fill();
+            ctx.stroke();
+
+            if (isPanic) {
+                const sweat2Y = 68 + (this.elapsed * 65 + 40) % 75;
+                ctx.beginPath();
+                ctx.moveTo(75, sweat2Y);
+                ctx.quadraticCurveTo(82, sweat2Y + 10, 75, sweat2Y + 16);
+                ctx.quadraticCurveTo(68, sweat2Y + 10, 75, sweat2Y);
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+
+        this.eyesTex.needsUpdate = true;
+    }
+
     private buildLights(scene: THREE.Scene) {
         // Forward targeting spotlight illuminates the floating multiplier cards ahead without blinding the ship hull
         this.noseSpotLight = new THREE.SpotLight(0xe0f2fe, 28, 52, Math.PI / 3.6, 0.5, 1.2);
@@ -649,9 +956,47 @@ export class Spaceship3D {
         hitStopLaneX: number | null,
         hoveredLaneX: number | null,
         _hasShield: boolean,
-        isCrashed: boolean
+        isCrashed: boolean,
+        currentMultiplier = 1.0,
+        isCashedOut = false
     ) {
         this.elapsed += dt;
+
+        // Dynamic Looney Tunes Cartoon Eyes: Blinking, Iris Aim & Tension Reactions
+        this.blinkTimer -= dt;
+        if (this.blinkTimer <= 0) {
+            this.blinkProgress += dt * 8.5;
+            if (this.blinkProgress >= 1.0) {
+                this.blinkProgress = 0;
+                this.blinkTimer = 2.2 + Math.random() * 3.0;
+            }
+        } else {
+            this.blinkProgress = 0;
+        }
+
+        const targetLookX =
+            hoveredLaneX !== null
+                ? THREE.MathUtils.clamp((hoveredLaneX - this.pos.x) / 4.8, -1, 1)
+                : this.smoothedCursorAim.x;
+        const targetLookY = isHitStop ? -0.4 : this.smoothedCursorAim.y * 0.45;
+
+        this.currentLookX = THREE.MathUtils.lerp(this.currentLookX, targetLookX, Math.min(1, dt * 12));
+        this.currentLookY = THREE.MathUtils.lerp(this.currentLookY, targetLookY, Math.min(1, dt * 12));
+
+        let mood: 'idle' | 'jumping' | 'nervous' | 'panic' | 'crashed' | 'win' = 'idle';
+        if (isCrashed) {
+            mood = 'crashed';
+        } else if (isCashedOut) {
+            mood = 'win';
+        } else if (isHitStop) {
+            mood = 'jumping';
+        } else if (currentMultiplier >= 3.8) {
+            mood = 'panic';
+        } else if (currentMultiplier >= 1.7) {
+            mood = 'nervous';
+        }
+
+        this.drawCartoonEyes(mood, this.currentLookX, this.currentLookY, this.blinkProgress, currentMultiplier);
 
         if (this.hydraulicPartyTimer > 0) {
             this.hydraulicPartyTimer = Math.max(0, this.hydraulicPartyTimer - dt);
