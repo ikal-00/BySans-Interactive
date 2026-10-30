@@ -678,7 +678,7 @@ export function createControlsUI(
         syncBetInputFontSize();
         const baseVal = Math.max(stakeRGS.betConfig.minBet, parseFloat(betInput.value) || stakeRGS.betConfig.defaultBetLevel);
         engine.betAmount = baseVal;
-        const effVal = calculateEffectiveBet(baseVal, engine.luckyBoost, engine.shieldPurchased, engine.gameMode);
+        const effVal = calculateEffectiveBet(baseVal);
         const formattedEff = stakeRGS.formatCurrency(effVal);
         if (betPctBadge) {
             betPctBadge.textContent = `Total: ${formattedEff}`;
@@ -850,7 +850,7 @@ export function createControlsUI(
         if (halfPayout !== null && halfPayout > 0) {
             audioController.playPartialCashout();
             gsap.killTweensOf(hitStopStamp);
-            hitStopStamp.textContent = `[SHIELD LOCKED] ${t.focalSecuredToast.toUpperCase()} · +${stakeRGS.formatCurrency(halfPayout)}`;
+            hitStopStamp.textContent = `[50% SECURED] ${t.focalSecuredToast.toUpperCase()} · +${stakeRGS.formatCurrency(halfPayout)}`;
             hitStopStamp.style.borderColor = '#38bdf8';
             hitStopStamp.style.color = '#38bdf8';
             gsap.fromTo(

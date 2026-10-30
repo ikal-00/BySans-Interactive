@@ -62,10 +62,7 @@ export function createSimPanel(_container: HTMLElement) {
             <div class="mb-4">
                 <label class="text-[10px] text-[#8ea4b8] font-extrabold uppercase mb-1 block">Mecánica / Estrategia a Auditar</label>
                 <select id="sim-strategy" class="stake-well w-full p-2 text-xs font-bold text-white outline-none">
-                    <option value="normal">Estándar (Carriles Normales)</option>
-                    <option value="golden_hunter">Cazador de Cartas Doradas (x2 / x3 + Bonus Suerte)</option>
-                    <option value="alien_hunter">Cazador de OVNIs Alienígenas (Salto +2 Filas)</option>
-                    <option value="shield_mode">Modo Escudo Deflector Activo (+25% Costo)</option>
+                    <option value="normal">Estándar (Modo Base Puro)</option>
                     <option value="partial_cashout">Estrategia Cobro Parcial 50% + Seguir</option>
                 </select>
             </div>
@@ -166,7 +163,7 @@ export function createSimPanel(_container: HTMLElement) {
             houseEdgeEl.innerText = (results.houseEdge * 100).toFixed(4) + '%';
 
             const specialsEl = document.getElementById('res-specials') as HTMLElement;
-            specialsEl.innerText = `GOLD:${results.goldenHits} | UFO:${results.alienAttacks} | SHD:${results.shieldSaves} | 50%:${results.partialCashouts}`;
+            specialsEl.innerText = `Modo Base 96% | 50% Parcial: ${results.partialCashouts}`;
 
             const winRateEl = document.getElementById('res-win-rate') as HTMLElement;
             winRateEl.innerText = `${results.winRate.toFixed(2)}% (${results.wins.toLocaleString()}W / ${results.losses.toLocaleString()}L)`;
