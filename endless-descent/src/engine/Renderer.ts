@@ -20,7 +20,6 @@ const STAR_PARTICLE_COUNT = 1800;
 const PLANET_COUNT = 6;
 const RING_ASTEROIDS_PER_PLANET = 360; // 1,440 individual 3D asteroids across the 4 ringed planets!
 const SHOOTING_STAR_COUNT = 18;
-const DISTANT_SUPERNOVA_COUNT = 4;
 const HOVER_DEBOUNCE_MS = 90;
 const SHIP_FLIGHT_Y = 2.1;
 
@@ -84,20 +83,6 @@ interface Planet3D {
     baseY: number;
 }
 
-interface DistantSupernova3D {
-    group: THREE.Group;
-    coreSprite: THREE.Sprite;
-    shockRing: THREE.Mesh;
-    shockMat: THREE.MeshBasicMaterial;
-    rayGroup: THREE.Group;
-    rayMat: THREE.MeshBasicMaterial;
-    age: number;
-    cycleDuration: number;
-    baseX: number;
-    baseY: number;
-    baseZ: number;
-}
-
 interface ShootingStar3D {
     group: THREE.Group;
     vel: THREE.Vector3;
@@ -145,10 +130,9 @@ export class PixiRenderer {
     private skyDomeMesh!: THREE.Mesh;
     private skyDomeMat!: THREE.ShaderMaterial;
 
-    // 3D Open Cosmic Void Pools (Floating Cards, Photorealistic Planets, Supernovas, Shooting Stars, Nebulas, Cosmic Dust)
+    // 3D Open Cosmic Void Pools (Floating Cards, Photorealistic Planets, Shooting Stars, Nebulas, Cosmic Dust)
     private rowSlots: FloatingMultiplierCard3D[][] = [];
     private planets: Planet3D[] = [];
-    private distantSupernovas: DistantSupernova3D[] = [];
     private shootingStars: ShootingStar3D[] = [];
     private asteroids: Asteroid3D[] = [];
     private nebulaClouds: NebulaCloud3D[] = [];
@@ -223,7 +207,6 @@ export class PixiRenderer {
         this.buildPhotorealisticGalacticSkyDome();
         this.buildDeepSpaceCosmicVoid();
         this.buildDistantPlanetsWithCityLightsAndAsteroidRings();
-        this.buildDistantSupernovas();
         this.buildShootingStars();
         this.buildAsteroidField();
         this.buildFloatingMultiplierCardsPool();
@@ -928,82 +911,6 @@ export class PixiRenderer {
                 driftSpeedZ: 7.5 + (i % 3) * 2.5,
                 baseX: cfg.baseX,
                 baseY: cfg.baseY
-            });
-        }
-    }
-
-    /**
-     * Builds 4 Distant Supernovas in Deep Space that periodically flare up with
-     * expanding shockwave shells and volumetric 3D God-ray light shafts!
-     */
-    private buildDistantSupernovas() {
-        const ringGeo = new THREE.RingGeometry(0.8, 1.35, 36);
-        const rayConeGeo = new THREE.ConeGeometry(0.65, 16.0, 12, 1, true);
-
-        const coords = [
-            { x: -52, y: 26, z: -165, col: 0xfde047 },
-            { x: 54, y: 24, z: -230, col: 0x00f0ff },
-            { x: -140, y: -45, z: -320, col: 0xa855f7 },
-            { x: 48, y: 28, z: -290, col: 0xf97316 }
-        ];
-
-        for (let i = 0; i < DISTANT_SUPERNOVA_COUNT; i++) {
-            const cfg = coords[i];
-            const group = new THREE.Group();
-            group.position.set(cfg.x, cfg.y, cfg.z);
-
-            const coreMat = new THREE.SpriteMaterial({
-                map: this.textures.particleGlow,
-                color: cfg.col,
-                transparent: true,
-                opacity: 0.9,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-            const coreSprite = new THREE.Sprite(coreMat);
-            coreSprite.scale.setScalar(14);
-            group.add(coreSprite);
-
-            const shockMat = new THREE.MeshBasicMaterial({
-                color: cfg.col,
-                transparent: true,
-                opacity: 0.75,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-            const shockRing = new THREE.Mesh(ringGeo, shockMat);
-            group.add(shockRing);
-
-            const rayGroup = new THREE.Group();
-            const rayMat = new THREE.MeshBasicMaterial({
-                color: cfg.col,
-                transparent: true,
-                opacity: 0.28,
-                side: THREE.DoubleSide,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
-            });
-            for (let r = 0; r < 6; r++) {
-                const cone = new THREE.Mesh(rayConeGeo, rayMat);
-                cone.rotation.z = (r * Math.PI) / 3;
-                rayGroup.add(cone);
-            }
-            group.add(rayGroup);
-
-            this.scene.add(group);
-            this.distantSupernovas.push({
-                group,
-                coreSprite,
-                shockRing,
-                shockMat,
-                rayGroup,
-                rayMat,
-                age: i * 1.8,
-                cycleDuration: 6.5 + i * 1.2,
-                baseX: cfg.x,
-                baseY: cfg.y,
-                baseZ: cfg.z
             });
         }
     }
@@ -2585,31 +2492,7 @@ export class PixiRenderer {
             }
         }
 
-        // 3. Distant Supernovas Pulsing & Expanding Shockwave Shells in Deep Space
-        for (const sn of this.distantSupernovas) {
-            sn.age = (sn.age + dt) % sn.cycleDuration;
-            const phase = sn.age / sn.cycleDuration;
-            const flash = Math.sin(phase * Math.PI);
-
-            sn.coreSprite.scale.setScalar(10 + flash * 16);
-            (sn.coreSprite.material as THREE.SpriteMaterial).opacity = 0.35 + flash * 0.65;
-
-            const ringScale = 1.0 + phase * 18.0;
-            sn.shockRing.scale.setScalar(ringScale);
-            sn.shockMat.opacity = (1.0 - phase) * 0.78;
-
-            sn.rayGroup.rotation.z += dt * 0.45;
-            sn.rayMat.opacity = flash * 0.32;
-
-            sn.group.position.z += 6.5 * speedMult * dt;
-            if (sn.group.position.z > camZ + 25) {
-                sn.group.position.z -= 295;
-            } else if (sn.group.position.z < camZ - 295) {
-                sn.group.position.z += 295;
-            }
-        }
-
-        // 4. Shooting Stars / Comets Streaking Across the Void
+        // 3. Shooting Stars / Comets Streaking Across the Void
         for (const s of this.shootingStars) {
             s.age += dt;
             if (s.age >= s.maxAge || s.group.position.z > camZ + 15) {
