@@ -1013,9 +1013,16 @@ export class Spaceship3D {
         _hasShield: boolean,
         isCrashed: boolean,
         _currentMultiplier = 1.0,
-        _isCashedOut = false
+        _isCashedOut = false,
+        isAbducted = false
     ) {
         this.elapsed += dt;
+
+        if (isAbducted) {
+            this.vel.set(0, 0, 0);
+            this.root.position.copy(this.pos);
+            return;
+        }
 
         if (this.hydraulicPartyTimer > 0) {
             this.hydraulicPartyTimer = Math.max(0, this.hydraulicPartyTimer - dt);

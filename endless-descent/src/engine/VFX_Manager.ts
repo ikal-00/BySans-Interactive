@@ -224,8 +224,6 @@ export class VFXManager {
     private glassShards: VolumetricGlassShard[] = [];
     private glassShardCursor = 0;
     private glassDummy = new THREE.Object3D();
-    private glassTempColor = new THREE.Color();
-    private readonly glassWhiteColor = new THREE.Color(0xffffff);
 
     private hullShardPool: DebrisShard3D[] = [];
     private plasmaGlobPool: DebrisShard3D[] = [];
@@ -332,27 +330,19 @@ export class VFXManager {
     }
 
     /**
-     * Initializes the 420-Instance 3D Volumetric Glass-Shatter Pool:
-     * Faceted 3D triangular crystal/glass prism shards using `THREE.MeshPhysicalMaterial`
-     * with `ior: 1.52`, `clearcoat: 1.0`, and `envMapIntensity: 2.2` to refract and reflect
-     * the HDR cosmic environment light as they scatter off-screen!
+     * Initializes the 420-Instance 3D Volumetric Cardboard-Shatter Pool:
+     * Realistic flat corrugated cardboard scrap chunks with authentic fibrous kraft brown,
+     * tan, and paperboard textures that tumble with angular tumbling physics!
      */
     private initVolumetricGlassShatterPool() {
-        const shardGeo = new THREE.CylinderGeometry(0.03, 0.35, 0.06, 3);
-        shardGeo.rotateX(Math.PI / 2);
+        // Chunky torn cardboard scrap geometry (flat corrugated box fragments)
+        const shardGeo = new THREE.BoxGeometry(0.38, 0.28, 0.05);
         shardGeo.computeVertexNormals();
 
-        const shardMat = new THREE.MeshPhysicalMaterial({
+        const shardMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
-            emissive: 0x38bdf8,
-            emissiveIntensity: 0.42,
-            roughness: 0.04,
-            metalness: 0.25,
-            ior: 1.52,
-            reflectivity: 1.0,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.04,
-            envMapIntensity: 2.2,
+            roughness: 0.85,
+            metalness: 0.04,
             flatShading: true,
             side: THREE.DoubleSide
         });
@@ -367,7 +357,7 @@ export class VFXManager {
 
         for (let i = 0; i < GLASS_SHARD_INSTANCES; i++) {
             this.glassShardMesh.setMatrixAt(i, this.glassDummy.matrix);
-            this.glassShardMesh.setColorAt(i, new THREE.Color(0xe0f2fe));
+            this.glassShardMesh.setColorAt(i, new THREE.Color(0xb47b46));
             this.glassShards.push({
                 active: false,
                 pos: new THREE.Vector3(0, -9999, 0),
@@ -378,7 +368,7 @@ export class VFXManager {
                 baseScale: new THREE.Vector3(1, 1, 1),
                 age: 99,
                 maxAge: 1,
-                baseColor: new THREE.Color(0xe0f2fe)
+                baseColor: new THREE.Color(0xb47b46)
             });
         }
         this.glassShardMesh.instanceMatrix.needsUpdate = true;
@@ -456,10 +446,10 @@ export class VFXManager {
 
         const cardboardPalette =
             boxType === 'orange'
-                ? [0xea580c, 0xf97316, 0xfde047, 0xfef08a, 0xc2410c, 0xffffff]
+                ? [0xff7700, 0xf59e0b, 0xfbbf24, 0xfde047, 0xea580c, 0xffa500, 0xffd700, 0xffffff]
                 : boxType === 'alien'
-                  ? [0x7e22ce, 0xa855f7, 0x06b6d4, 0x38bdf8, 0xc084fc, 0xffffff]
-                  : [0xb47b46, 0xc58b54, 0x9b6432, 0xd4a373, 0x784b23, 0xffffff];
+                  ? [0x7e22ce, 0xa855f7, 0xc084fc, 0x9333ea, 0x3b0764, 0x06b6d4, 0x38bdf8]
+                  : [0x8b5a2b, 0x5c3a1e, 0xb47b46, 0xc58b54, 0x3d2314, 0xd4a373, 0x6e4320, 0x9c6634];
 
         for (let i = 0; i < shardCount; i++) {
             const idx = this.glassShardCursor;
@@ -503,7 +493,7 @@ export class VFXManager {
         }
 
         // Cartoon cardboard fiber dust cloud
-        this.spawnGpuParticleCloud(x, y + 1.0, z, 30, cardboardPalette, 5, 16, 0.55);
+        this.spawnGpuParticleCloud(x, y + 1.0, z, 80, cardboardPalette, 6, 22, 0.65);
     }
 
     private initGpuBurstParticleSystem(particleTex?: THREE.CanvasTexture) {
@@ -1116,10 +1106,8 @@ export class VFXManager {
             this.glassDummy.updateMatrix();
             this.glassShardMesh.setMatrixAt(i, this.glassDummy.matrix);
 
-            // Dynamic chromatic refraction & specular glint as the glass shard rotates
-            const glint = Math.pow(Math.max(0, Math.sin(s.rot.x * 2.0 + s.rot.y * 2.0)), 6);
-            this.glassTempColor.copy(s.baseColor).lerp(this.glassWhiteColor, glint * 0.88);
-            this.glassShardMesh.setColorAt(i, this.glassTempColor);
+            // Matte natural cardboard chunk coloration
+            this.glassShardMesh.setColorAt(i, s.baseColor);
         }
         if (glassUpdated) {
             this.glassShardMesh.instanceMatrix.needsUpdate = true;

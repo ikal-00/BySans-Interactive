@@ -1530,8 +1530,9 @@ export class PixiRenderer {
      * 1. Alien box & core vanish immediately upon impact with cosmic particle burst.
      * 2. In that exact instant, Alien UFO swoops down and activates tractor beam.
      * 3. Abducts ship upwards into the beam.
-     * 4. Cosmic warp flash transports player forward to the destination row.
-     * 5. Drops player on a completely clean row so visuals are pristine and next targets are clear!
+     * 4. Cosmic warp flash transports player forward across the skipped rows.
+     * 5. Drops player on a completely clean tile (with NO box on that landing tile!),
+     *    facing the fresh boxes of the next row ahead!
      */
     public triggerAlienAbductionSequence(worldX: number, worldZ: number, _rowsSkipped: number) {
         this.isAbductionActive = true;
@@ -1539,8 +1540,9 @@ export class PixiRenderer {
         this.alienUfoGroup.position.set(worldX, 18, worldZ);
         this.alienTractorBeam.scale.set(0.1, 1, 0.1);
 
-        const targetRow = this.gameState.engine.currentRow;
-        const targetZ = PixiRenderer.rowToWorldZ(targetRow);
+        // Destination is the resting row behind the active next row (currentRow - 1)
+        const destinationRow = Math.max(1, this.gameState.engine.currentRow - 1);
+        const destinationZ = PixiRenderer.rowToWorldZ(destinationRow);
 
         audioController.playAlienLaser();
 
@@ -1560,6 +1562,23 @@ export class PixiRenderer {
             card.badgeSprite.visible = false;
             card.visualGroup.position.y = 0;
             card.boxLiftY = 0;
+        }
+
+        // Also ensure the destination landing tile has NO box!
+        const destCard = this.rowSlots
+            .flat()
+            .find(
+                (c) =>
+                    Math.abs(c.group.position.z - destinationZ) < 1.2 &&
+                    Math.abs(c.group.position.x - worldX) < 1.2
+            );
+        if (destCard) {
+            destCard.mysteryBoxGroup.visible = false;
+            destCard.miniSunGroup.visible = false;
+            destCard.alienPortalGroup.visible = false;
+            destCard.diffuseHazeSprite.visible = false;
+            destCard.badgeSprite.visible = false;
+            destCard.boxLiftY = 0;
         }
 
         // 2. Explode with vibrant purple cosmic particles of the alien box's color
@@ -1599,13 +1618,23 @@ export class PixiRenderer {
                     duration: 0.28,
                     ease: 'power2.inOut',
                     onComplete: () => {
-                        // Cosmic warp jump! UFO and ship streak forward to clean destination row!
-                        this.vfx.spawnSafeBurst3D(worldX, 4.8, worldZ, true);
-                        this.ship.pos.set(worldX, 4.8, targetZ);
-                        this.alienUfoGroup.position.set(worldX, 8.0, targetZ);
-                        this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, targetZ);
+                        // Cosmic warp jump! UFO and ship streak forward to clean destination tile (NO BOX!)
+                        this.vfx.spawnShockwave3D(worldX, 0.4, destinationZ, 0xa855f7, 12.0, 0.48);
+                        this.vfx.spawnGpuParticleCloud(
+                            worldX,
+                            1.2,
+                            destinationZ,
+                            160,
+                            [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
+                            12,
+                            28,
+                            0.65
+                        );
+                        this.ship.pos.set(worldX, 4.8, destinationZ);
+                        this.alienUfoGroup.position.set(worldX, 8.0, destinationZ);
+                        this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, destinationZ);
 
-                        // Lower ship safely onto the clean track
+                        // Lower ship safely onto the clean track (completely clear tile)
                         gsap.to(this.ship.pos, {
                             y: SHIP_FLIGHT_Y,
                             duration: 0.26,
@@ -1712,15 +1741,18 @@ export class PixiRenderer {
 
             if (pick.isSafe) {
                 if (pick.specialType === 'NONE') {
-                    // 1. Traditional Cardboard Box: explodes into chunky cardboard pieces & brown/tan fibers!
+                    // 1. Traditional Cardboard Box: explodes into chunky cardboard pieces & brown/tan fibers (ZERO BLUE)!
+                    this.vfx.spawnShockwave3D(worldX, 0.4, worldZ, 0xb47b46, 7.5, 0.38);
+                    this.vfx.triggerScreenShake(0.25, 0.22);
+                    this.vfx.stampPermanentPaintSplatter(worldZ, false, 0x8b5a2b);
                     this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'normal');
                     this.vfx.spawnGpuParticleCloud(
                         worldX,
                         1.0,
                         worldZ,
-                        70,
-                        [0x8b5a2b, 0x5c3a1e, 0xb47b46, 0xc58b54, 0x3d2314],
-                        8,
+                        140,
+                        [0x8b5a2b, 0x5c3a1e, 0xb47b46, 0xc58b54, 0x3d2314, 0xd4a373, 0xa06d3b],
+                        7,
                         22,
                         0.65
                     );
@@ -1732,20 +1764,23 @@ export class PixiRenderer {
                         pick.stepMultiplierAfter,
                         pick.row
                     );
-                    this.vfx.spawnSafeBurst3D(worldX, 0.3, worldZ, false);
                     this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ);
                 } else if (pick.specialType === 'GOLDEN') {
-                    // 2. Solar/Orange Box: destroys entire cell cleanly, exploding with amber/golden particles!
+                    // 2. Solar/Orange Box: destroys entire cell cleanly, exploding with intense solar amber/golden particles!
+                    this.vfx.spawnShockwave3D(worldX, 0.4, worldZ, 0xf59e0b, 10.5, 0.44);
+                    this.vfx.spawnShockwave3D(worldX, 0.4, worldZ, 0xfde047, 6.5, 0.34);
+                    this.vfx.triggerScreenShake(0.42, 0.28);
+                    this.vfx.stampPermanentPaintSplatter(worldZ, true, 0xf59e0b);
                     this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'orange');
                     this.vfx.spawnGpuParticleCloud(
                         worldX,
-                        1.0,
+                        1.1,
                         worldZ,
-                        160,
-                        [0xf59e0b, 0xfbbf24, 0xfde047, 0xea580c, 0xffffff],
-                        12,
-                        26,
-                        0.65
+                        280,
+                        [0xff7700, 0xf59e0b, 0xfbbf24, 0xfde047, 0xea580c, 0xffa500, 0xffd700, 0xffffff],
+                        10,
+                        28,
+                        0.72
                     );
                     this.ship.triggerSpeedBurst(0.65);
                     this.vfx.spawnGraffitiMultiplierTag3D(
@@ -1764,14 +1799,14 @@ export class PixiRenderer {
                 // Cinematic Near-Miss Tension: check if an adjacent lane held a deadly mine
                 const rowHazards = engine.getHazardsForActionRow(pick.row);
                 const isNearMiss = rowHazards.some((h) => Math.abs(h - pick.lane) === 1);
-                if (isNearMiss && pick.specialType !== 'ALIEN') {
+                if (isNearMiss && pick.specialType === 'GOLDEN') {
                     this.vfx.triggerScreenShake(0.32, 0.22);
                     this.vfx.spawnGpuParticleCloud(
                         worldX,
                         0.8,
                         worldZ,
-                        140,
-                        [0xfde047, 0xf59e0b, 0xffffff],
+                        100,
+                        [0xfde047, 0xf59e0b, 0xff7700],
                         6,
                         18,
                         0.45
@@ -2032,7 +2067,9 @@ export class PixiRenderer {
 
         const targetShipX = PixiRenderer.laneToWorldX(shipLane);
         const targetShipZ = PixiRenderer.rowToWorldZ(shipRow);
-        this.ship.setTargetPosition(targetShipX, SHIP_FLIGHT_Y, targetShipZ);
+        if (!this.isAbductionActive) {
+            this.ship.setTargetPosition(targetShipX, SHIP_FLIGHT_Y, targetShipZ);
+        }
 
         const hitStopX =
             isHitStop && this.gameState.hitStopLane !== null
@@ -2045,7 +2082,18 @@ export class PixiRenderer {
 
         const currentMult = engine.currentMultiplier || 1.0;
         const isCashedOut = engine.state === GameState.WON;
-        this.ship.update(dt, theme.primaryHex, isHitStop, hitStopX, hoverX, false, isCrashed, currentMult, isCashedOut);
+        this.ship.update(
+            dt,
+            theme.primaryHex,
+            isHitStop,
+            hitStopX,
+            hoverX,
+            false,
+            isCrashed,
+            currentMult,
+            isCashedOut,
+            this.isAbductionActive
+        );
         this.updateOrbitalTacticalCamera(dt, isHitStop, hitStopX, hoverX);
 
         this.dirLight.position.set(this.ship.pos.x + 14, 28, this.ship.pos.z + 16);
@@ -2289,8 +2337,6 @@ export class PixiRenderer {
 
                 // Underneath Content Reveal Logic:
                 // Revealed only while the box is lifted up, before impact destroys the cell
-                const rowHazards = engine.getHazardsForActionRow(rowNumber);
-                const isHazard = rowHazards.includes(lane);
                 const isExposed = plat.boxLiftY > 0.4 && (!pickForRow || !pickForRow.isSafe);
 
                 plat.miniSunGroup.visible = false;
@@ -2299,11 +2345,9 @@ export class PixiRenderer {
                 plat.badgeSprite.visible = false;
 
                 if (isExposed) {
-                    if (isHazard) {
-                        plat.mineGroup.visible = true;
-                        plat.mineGroup.position.y = 0.85;
-                        plat.mineGroup.rotation.y = this.elapsed * 2.5;
-                    } else if (boxType === 'orange') {
+                    // CRITICAL: Bonus boxes when lifted must NEVER reveal the bomb icon even if a mine exists here!
+                    // This prevents giving premature clues to the player. They always show their respective prize icon!
+                    if (boxType === 'orange') {
                         plat.miniSunGroup.visible = true;
                         plat.miniSunGroup.position.y = 1.05 + Math.sin(this.elapsed * 3.6 + lane) * 0.08;
                         plat.miniSunGroup.rotation.y = this.elapsed * 2.8;
@@ -2315,6 +2359,27 @@ export class PixiRenderer {
                         plat.alienRingMesh.rotation.y = this.elapsed * 1.8;
                     }
                 }
+
+                // Check ship current coordinates and alien warp status
+                const lastPick =
+                    engine.currentPicks.length > 0
+                        ? engine.currentPicks[engine.currentPicks.length - 1]
+                        : null;
+                const currentShipRow = lastPick ? lastPick.row + (lastPick.rowsSkipped || 0) : 0;
+                const currentShipLane = lastPick ? lastPick.lane : 2;
+
+                const isTraversedOrSkipped = engine.currentPicks.some(
+                    (p) =>
+                        p.isSafe &&
+                        (p.rowsSkipped || 0) > 0 &&
+                        rowNumber >= p.row &&
+                        rowNumber <= p.row + (p.rowsSkipped || 0)
+                );
+                const isShipRestingTile = currentShipRow === rowNumber && currentShipLane === lane;
+                const isAlienLandingRow =
+                    currentShipRow === rowNumber &&
+                    lastPick !== null &&
+                    (lastPick.rowsSkipped || 0) > 0;
 
                 // Evaluated Row Pick Resolution:
                 // When an impact occurs, DESTROY THE ENTIRE CELL COMPLETELY:
@@ -2348,12 +2413,41 @@ export class PixiRenderer {
                         plat.mineGroup.visible = true;
                         plat.mineGroup.rotation.y = this.elapsed * 2.5;
                     } else {
-                        // Unpicked safe lanes on already played rows stay clean or subtle
-                        plat.mysteryBoxGroup.visible = true;
+                        // Unpicked safe lanes on already played rows stay clean
+                        plat.mysteryBoxGroup.visible = !isTraversedOrSkipped && rowNumber >= engine.currentRow;
                     }
+                } else if (rowNumber < engine.currentRow) {
+                    // Row was skipped or bypassed by alien abduction warp!
+                    // MUST BE COMPLETELY CLEAN - NO BOXES, NO RESIDUAL CLUTTER!
+                    plat.mysteryBoxGroup.visible = false;
+                    plat.miniSunGroup.visible = false;
+                    plat.alienPortalGroup.visible = false;
+                    plat.mineGroup.visible = false;
+                    plat.diffuseHazeSprite.visible = false;
+                    plat.badgeSprite.visible = false;
                 } else {
                     // Current and future unpicked rows: ALL BOXES ARE 100% VISIBLE!
                     plat.mysteryBoxGroup.visible = true;
+                }
+
+                // Guaranteed cleanliness for avatar landing tile, alien landing row, and all passed rows:
+                const isPassedRow = isPlaying && rowNumber < engine.currentRow;
+                const isAbductionLandingRow =
+                    this.isAbductionActive && rowNumber === Math.max(1, engine.currentRow - 1);
+
+                if (
+                    isShipRestingTile ||
+                    isAlienLandingRow ||
+                    isPassedRow ||
+                    isAbductionLandingRow ||
+                    (isTraversedOrSkipped && rowNumber < engine.currentRow)
+                ) {
+                    plat.mysteryBoxGroup.visible = false;
+                    plat.miniSunGroup.visible = false;
+                    plat.alienPortalGroup.visible = false;
+                    plat.mineGroup.visible = false;
+                    plat.diffuseHazeSprite.visible = false;
+                    plat.badgeSprite.visible = false;
                 }
 
                 if (isCurrentRow) {

@@ -81,3 +81,8 @@ canvas.addEventListener('pointerleave', () => {
 canvas.addEventListener('pointercancel', () => {
     renderer.clearHover();
 });
+
+// Testing / Debug hooks
+(window as any).__engine = engine;
+(window as any).__gameState = gameState;
+(window as any).__renderer = renderer;
