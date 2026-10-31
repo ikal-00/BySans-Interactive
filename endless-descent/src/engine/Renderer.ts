@@ -40,10 +40,10 @@ interface FloatingMultiplierCard3D {
     lidOutlineL: THREE.Mesh;
     lidOutlineR: THREE.Mesh;
 
-    // Materials for the 3 types of boxes
-    boxMatNormal: THREE.MeshStandardMaterial;
-    boxMatOrange: THREE.MeshStandardMaterial;
-    boxMatAlien: THREE.MeshStandardMaterial;
+    // Materials for the 3 types of boxes (6-face array: [+X, -X, +Y Top, -Y Bottom, +Z Front, -Z Back])
+    boxMatNormal: THREE.MeshStandardMaterial[];
+    boxMatOrange: THREE.MeshStandardMaterial[];
+    boxMatAlien: THREE.MeshStandardMaterial[];
 
     // Soft Diffuse Background Atmospheric Glow (Integrated with cosmic space, NO separate floating aura or floor circle)
     diffuseHazeSprite: THREE.Sprite;
@@ -1178,9 +1178,9 @@ export class PixiRenderer {
             depthWrite: false
         });
 
-        // 3D Cardboard Mystery Box Geometries
-        const boxBodyGeo = new THREE.BoxGeometry(2.1, 1.8, 1.8);
-        const flapGeo = new THREE.BoxGeometry(1.06, 0.06, 1.82);
+        // 3D Cardboard Mystery Crate Geometries
+        const boxBodyGeo = new THREE.BoxGeometry(2.02, 1.92, 1.92);
+        const flapGeo = new THREE.BoxGeometry(1.01, 0.05, 1.92);
 
         // 3D Mini Sun Geometries
         const sunCoreGeo = new THREE.SphereGeometry(0.52, 16, 14);
@@ -1192,28 +1192,71 @@ export class PixiRenderer {
         const bombWickGeo = new THREE.TorusGeometry(0.18, 0.045, 8, 16, Math.PI * 0.95);
         const bombSparkGeo = new THREE.OctahedronGeometry(0.09, 0);
 
-        // Materials for the 3 types of mystery boxes
-        const boxMatNormal = new THREE.MeshStandardMaterial({
+        // Multi-Materials for the 3 types of mystery crates (Side with '?' + Top with 'X' crossed tape)
+        const boxMatNormalSide = new THREE.MeshStandardMaterial({
             map: this.textures.cardboardBoxTex,
-            roughness: 0.88,
+            roughness: 0.85,
             metalness: 0.05
         });
+        const boxMatNormalTop = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardBoxTopTex,
+            roughness: 0.85,
+            metalness: 0.05
+        });
+        const boxMatNormal: THREE.MeshStandardMaterial[] = [
+            boxMatNormalSide,
+            boxMatNormalSide,
+            boxMatNormalTop,
+            boxMatNormalSide,
+            boxMatNormalSide,
+            boxMatNormalSide
+        ];
 
-        const boxMatOrange = new THREE.MeshStandardMaterial({
+        const boxMatOrangeSide = new THREE.MeshStandardMaterial({
             map: this.textures.cardboardOrangeBoxTex,
             emissive: 0xf59e0b,
-            emissiveIntensity: 0.38,
-            roughness: 0.75,
-            metalness: 0.08
+            emissiveIntensity: 0.35,
+            roughness: 0.78,
+            metalness: 0.06
         });
+        const boxMatOrangeTop = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardOrangeBoxTopTex,
+            emissive: 0xf59e0b,
+            emissiveIntensity: 0.35,
+            roughness: 0.78,
+            metalness: 0.06
+        });
+        const boxMatOrange: THREE.MeshStandardMaterial[] = [
+            boxMatOrangeSide,
+            boxMatOrangeSide,
+            boxMatOrangeTop,
+            boxMatOrangeSide,
+            boxMatOrangeSide,
+            boxMatOrangeSide
+        ];
 
-        const boxMatAlien = new THREE.MeshStandardMaterial({
+        const boxMatAlienSide = new THREE.MeshStandardMaterial({
             map: this.textures.cardboardAlienBoxTex,
             emissive: 0x8b5cf6,
-            emissiveIntensity: 0.42,
-            roughness: 0.75,
-            metalness: 0.08
+            emissiveIntensity: 0.40,
+            roughness: 0.78,
+            metalness: 0.06
         });
+        const boxMatAlienTop = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardAlienBoxTopTex,
+            emissive: 0x8b5cf6,
+            emissiveIntensity: 0.40,
+            roughness: 0.78,
+            metalness: 0.06
+        });
+        const boxMatAlien: THREE.MeshStandardMaterial[] = [
+            boxMatAlienSide,
+            boxMatAlienSide,
+            boxMatAlienTop,
+            boxMatAlienSide,
+            boxMatAlienSide,
+            boxMatAlienSide
+        ];
 
         // Classic Cartoon Bomb Materials
         const cartoonBombMat = new THREE.MeshStandardMaterial({
@@ -1278,25 +1321,27 @@ export class PixiRenderer {
                 group.add(hitboxMesh);
                 this.interactiveHitboxMeshes.push(hitboxMesh);
 
-                // 2. 3D Cardboard Mystery Box Structure
+                // 2. 3D Cardboard Mystery Crate Structure (Sealed crate with "X" crossed tape on top)
                 const mysteryBoxGroup = new THREE.Group();
                 const boxBody = new THREE.Mesh(boxBodyGeo, boxMatNormal);
-                boxBody.position.set(0, 0.95, 0);
+                boxBody.position.set(0, 0.96, 0);
                 const boxBodyOutline = this.createOutline(boxBodyGeo, 0.08, boxBody.position);
                 mysteryBoxGroup.add(boxBody, boxBodyOutline);
 
-                // Upper Dual Flaps (Hinged to swing open upwards)
+                // Upper Flaps (Hidden on the sealed "X"-taped crate so the crossed tape top is always visible)
                 const lidLeft = new THREE.Group();
-                lidLeft.position.set(-1.05, 1.85, 0);
-                const lidFlapL = new THREE.Mesh(flapGeo, boxMatNormal);
-                lidFlapL.position.set(0.53, 0, 0);
+                lidLeft.position.set(-1.01, 1.92, 0);
+                lidLeft.visible = false;
+                const lidFlapL = new THREE.Mesh(flapGeo, boxMatNormalSide);
+                lidFlapL.position.set(0.505, 0, 0);
                 const lidOutlineL = this.createOutline(flapGeo, 0.06, lidFlapL.position);
                 lidLeft.add(lidFlapL, lidOutlineL);
 
                 const lidRight = new THREE.Group();
-                lidRight.position.set(1.05, 1.85, 0);
-                const lidFlapR = new THREE.Mesh(flapGeo, boxMatNormal);
-                lidFlapR.position.set(-0.53, 0, 0);
+                lidRight.position.set(1.01, 1.92, 0);
+                lidRight.visible = false;
+                const lidFlapR = new THREE.Mesh(flapGeo, boxMatNormalSide);
+                lidFlapR.position.set(-0.505, 0, 0);
                 const lidOutlineR = this.createOutline(flapGeo, 0.06, lidFlapR.position);
                 lidRight.add(lidFlapR, lidOutlineR);
 
@@ -2252,7 +2297,7 @@ export class PixiRenderer {
                 }
                 plat.boxType = boxType;
 
-                // Bind appropriate cartoon texture
+                // Bind appropriate cartoon texture array
                 const activeMat =
                     boxType === 'orange'
                         ? plat.boxMatOrange
@@ -2262,8 +2307,6 @@ export class PixiRenderer {
 
                 if (plat.boxBody.material !== activeMat) {
                     plat.boxBody.material = activeMat;
-                    plat.lidFlapL.material = activeMat;
-                    plat.lidFlapR.material = activeMat;
                 }
 
                 // Keep plat.group stationary at Y = 0 so hitboxMesh never oscillates on hover!

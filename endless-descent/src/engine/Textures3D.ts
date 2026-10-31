@@ -16,9 +16,12 @@ export interface PBRTexturePack {
     nebulaVeilTex: THREE.CanvasTexture;
     chainLinkTex: THREE.CanvasTexture;
     glassCardTex: THREE.CanvasTexture;
-    cardboardBoxTex: THREE.CanvasTexture;
-    cardboardOrangeBoxTex: THREE.CanvasTexture;
-    cardboardAlienBoxTex: THREE.CanvasTexture;
+    cardboardBoxTex: THREE.Texture;
+    cardboardBoxTopTex: THREE.Texture;
+    cardboardOrangeBoxTex: THREE.Texture;
+    cardboardOrangeBoxTopTex: THREE.Texture;
+    cardboardAlienBoxTex: THREE.Texture;
+    cardboardAlienBoxTopTex: THREE.Texture;
     miniSunTex: THREE.CanvasTexture;
     dollarBillTex: THREE.CanvasTexture;
     particleGlow: THREE.CanvasTexture;
@@ -512,7 +515,7 @@ export function createPBRTexturePack(): PBRTexturePack {
     gcCtx.stroke();
 
     // =========================================================================
-    // 5B. CLASSIC CARTOON 3D CARDBOARD MYSTERY BOXES & MINI SUN (512x512)
+    // 5B. CLASSIC CARTOON 3D WOODEN/CARDBOARD MYSTERY CRATES & MINI SUN (512x512)
     // =========================================================================
     function createCardboardBoxCanvas(type: 'normal' | 'orange' | 'alien'): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
@@ -520,157 +523,289 @@ export function createPBRTexturePack(): PBRTexturePack {
         canvas.height = 512;
         const ctx = canvas.getContext('2d')!;
 
-        // 1. Base Kraft Cardboard Background
-        const baseGrad = ctx.createLinearGradient(0, 0, 512, 512);
-        if (type === 'orange') {
-            baseGrad.addColorStop(0, '#c2410c');
-            baseGrad.addColorStop(0.5, '#ea580c');
-            baseGrad.addColorStop(1, '#9a3412');
-        } else if (type === 'alien') {
-            baseGrad.addColorStop(0, '#581c87');
-            baseGrad.addColorStop(0.5, '#6b21a8');
-            baseGrad.addColorStop(1, '#3b0764');
-        } else {
-            baseGrad.addColorStop(0, '#b47b46');
-            baseGrad.addColorStop(0.5, '#c58b54');
-            baseGrad.addColorStop(1, '#9b6432');
-        }
-        ctx.fillStyle = baseGrad;
-        ctx.fillRect(0, 0, 512, 512);
+        let p1: string, p2: string, p3: string, p4: string;
+        let frameC: string, frameHi: string, frameSh: string;
+        let inkC: string, tapeC: string, tapeHi: string;
+        let haloC: string, qFill: string;
 
-        // 2. Corrugated Fluting Paper Fibers (Horizontal Lines)
-        ctx.strokeStyle =
-            type === 'orange'
-                ? 'rgba(154, 52, 18, 0.45)'
-                : type === 'alien'
-                  ? 'rgba(59, 7, 100, 0.45)'
-                  : 'rgba(120, 75, 35, 0.35)';
-        ctx.lineWidth = 3;
-        for (let y = 14; y < 512; y += 16) {
+        if (type === 'orange') {
+            p1 = '#c2410c'; p2 = '#ea580c'; p3 = '#b45309'; p4 = '#9a3412';
+            frameC = '#f59e0b'; frameHi = '#fde047'; frameSh = '#b45309';
+            inkC = '#18100c'; tapeC = '#fde047'; tapeHi = '#fef08a';
+            haloC = '#fef08a'; qFill = '#18100c';
+        } else if (type === 'alien') {
+            p1 = '#4c1d95'; p2 = '#6b21a8'; p3 = '#581c87'; p4 = '#3b0764';
+            frameC = '#9333ea'; frameHi = '#c084fc'; frameSh = '#4c1d95';
+            inkC = '#0e0a1a'; tapeC = '#38bdf8'; tapeHi = '#a5f3fc';
+            haloC = '#67e8f9'; qFill = '#0e0a1a';
+        } else {
+            p1 = '#c58b53'; p2 = '#b87e49'; p3 = '#ab713e'; p4 = '#bc8350';
+            frameC = '#d29a65'; frameHi = '#e5b382'; frameSh = '#9d6738';
+            inkC = '#16110d'; tapeC = '#d7d0c3'; tapeHi = '#eae4da';
+            haloC = '#ffffff'; qFill = '#16110d';
+        }
+
+        // 1. Recessed Wood Planks (4 horizontal planks)
+        const plankH = 128;
+        const colors = [p1, p2, p3, p4];
+        for (let i = 0; i < 4; i++) {
+            ctx.fillStyle = colors[i];
+            ctx.fillRect(0, i * plankH, 512, plankH);
+
+            // Subtle organic woodgrain fibers
+            ctx.strokeStyle = type === 'alien' ? 'rgba(30, 10, 60, 0.25)' : 'rgba(80, 45, 18, 0.22)';
+            ctx.lineWidth = 2.5;
+            for (let y = i * plankH + 14; y < (i + 1) * plankH; y += 16) {
+                ctx.beginPath();
+                ctx.moveTo(10, y + Math.sin(y * 0.18) * 2);
+                ctx.lineTo(502, y + Math.cos(y * 0.14) * 2);
+                ctx.stroke();
+            }
+
+            // Seam between planks
+            if (i > 0) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0, i * plankH - 1); ctx.lineTo(512, i * plankH - 1); ctx.stroke();
+
+                ctx.strokeStyle = inkC;
+                ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(0, i * plankH); ctx.lineTo(512, i * plankH); ctx.stroke();
+
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+                ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(0, i * plankH + 2); ctx.lineTo(512, i * plankH + 2); ctx.stroke();
+            }
+        }
+
+        // 2. Beveled Wooden Perimeter Frame (width 54px)
+        const fw = 54;
+        ctx.fillStyle = frameC;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(fw, fw); ctx.lineTo(fw, 512 - fw); ctx.lineTo(0, 512); ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(512, 0); ctx.lineTo(512 - fw, fw); ctx.lineTo(512 - fw, 512 - fw); ctx.lineTo(512, 512); ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = frameHi;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(512, 0); ctx.lineTo(512 - fw, fw); ctx.lineTo(fw, fw); ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = frameSh;
+        ctx.beginPath();
+        ctx.moveTo(0, 512); ctx.lineTo(512, 512); ctx.lineTo(512 - fw, 512 - fw); ctx.lineTo(fw, 512 - fw); ctx.closePath();
+        ctx.fill();
+
+        // 45° Corner Miter seams
+        ctx.strokeStyle = inkC;
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(fw, fw); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(512, 0); ctx.lineTo(512 - fw, fw); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, 512); ctx.lineTo(fw, 512 - fw); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(512, 512); ctx.lineTo(512 - fw, 512 - fw); ctx.stroke();
+
+        // Inner & Outer Frame Borders
+        ctx.strokeRect(fw, fw, 512 - fw * 2, 512 - fw * 2);
+        ctx.lineWidth = 10;
+        ctx.strokeRect(0, 0, 512, 512);
+
+        // Hand-drawn comic notches in frame
+        ctx.fillStyle = 'rgba(50, 25, 10, 0.7)';
+        const notches: [number, number][][] = [
+            [[fw - 8, 160], [fw + 8, 172], [fw - 6, 184]],
+            [[512 - fw - 6, 320], [512 - fw + 10, 332], [512 - fw + 4, 344]],
+            [[180, fw - 6], [195, fw + 10], [210, fw - 4]],
+            [[360, 512 - fw + 6], [375, 512 - fw - 10], [390, 512 - fw + 4]]
+        ];
+        for (const poly of notches) {
             ctx.beginPath();
-            ctx.moveTo(10, y);
-            ctx.lineTo(502, y);
+            ctx.moveTo(poly[0][0], poly[0][1]);
+            ctx.lineTo(poly[1][0], poly[1][1]);
+            ctx.lineTo(poly[2][0], poly[2][1]);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = inkC;
+            ctx.lineWidth = 3;
             ctx.stroke();
         }
 
-        // 3. Shaded Box Edges & Fold Bevels
-        const shadowEdge = ctx.createLinearGradient(0, 0, 512, 0);
-        shadowEdge.addColorStop(0, 'rgba(0, 0, 0, 0.42)');
-        shadowEdge.addColorStop(0.08, 'rgba(0, 0, 0, 0)');
-        shadowEdge.addColorStop(0.92, 'rgba(0, 0, 0, 0)');
-        shadowEdge.addColorStop(1, 'rgba(0, 0, 0, 0.42)');
-        ctx.fillStyle = shadowEdge;
-        ctx.fillRect(0, 0, 512, 512);
+        // 3. Top Hanging Tape Tab (draped from top edge with frayed teeth)
+        const tx0 = 204, tx1 = 308;
+        ctx.fillStyle = tapeC;
+        ctx.beginPath();
+        ctx.moveTo(tx0, 0);
+        ctx.lineTo(tx0, 130);
+        ctx.lineTo(tx0 + 16, 148);
+        ctx.lineTo(tx0 + 34, 128);
+        ctx.lineTo(tx0 + 52, 154);
+        ctx.lineTo(tx0 + 70, 134);
+        ctx.lineTo(tx0 + 88, 148);
+        ctx.lineTo(tx1, 130);
+        ctx.lineTo(tx1, 0);
+        ctx.closePath();
+        ctx.fill();
 
-        // 4. Packaging Tape down the vertical center seam
-        const tapeGrad = ctx.createLinearGradient(216, 0, 296, 0);
-        if (type === 'orange') {
-            tapeGrad.addColorStop(0, 'rgba(253, 224, 71, 0.6)');
-            tapeGrad.addColorStop(0.5, 'rgba(251, 146, 60, 0.75)');
-            tapeGrad.addColorStop(1, 'rgba(253, 224, 71, 0.6)');
-        } else if (type === 'alien') {
-            tapeGrad.addColorStop(0, 'rgba(6, 182, 212, 0.6)');
-            tapeGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.75)');
-            tapeGrad.addColorStop(1, 'rgba(6, 182, 212, 0.6)');
-        } else {
-            tapeGrad.addColorStop(0, 'rgba(215, 175, 120, 0.48)');
-            tapeGrad.addColorStop(0.5, 'rgba(240, 205, 150, 0.68)');
-            tapeGrad.addColorStop(1, 'rgba(215, 175, 120, 0.48)');
-        }
-        ctx.fillStyle = tapeGrad;
-        ctx.fillRect(216, 0, 80, 512);
+        ctx.fillStyle = tapeHi;
+        ctx.fillRect(tx0 + 10, 0, 32, 126);
 
-        // Tape edges (glossy highlight)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.strokeStyle = 'rgba(100, 80, 60, 0.35)';
         ctx.lineWidth = 2;
-        ctx.strokeRect(217, 0, 78, 512);
-
-        // 5. Thick Cartoon Inverted Hull Outer Ink Border (Looney Tunes style)
-        ctx.strokeStyle = '#050508';
-        ctx.lineWidth = 18;
-        ctx.strokeRect(9, 9, 494, 494);
-
-        // 6. Corner Decorative Shipping Stencil Stamped Marks
-        ctx.save();
-        ctx.fillStyle = '#050508';
-        ctx.font = '900 16px sans-serif';
-        if (type === 'orange') {
-            ctx.fillText('SOLAR CORE · HOT', 28, 48);
-            ctx.fillText('ACME EXP-77', 340, 480);
-        } else if (type === 'alien') {
-            ctx.fillText('UFO HAZARD · 42', 28, 48);
-            ctx.fillText('COSMIC WARP', 340, 480);
-        } else {
-            ctx.fillText('FRAGILE · THIS SIDE UP', 28, 48);
-            ctx.fillText('BYSANS · ACME', 330, 480);
+        for (let y = 20; y < 125; y += 22) {
+            ctx.beginPath(); ctx.moveTo(tx0 + 8, y); ctx.lineTo(tx1 - 8, y + 2); ctx.stroke();
         }
-        ctx.restore();
 
-        // 7. Large Iconic Question Mark ("?") in the Center
+        ctx.strokeStyle = inkC;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Bottom Tape Tab (wrapped up from bottom edge)
+        ctx.fillStyle = tapeC;
+        ctx.beginPath();
+        ctx.moveTo(tx0 + 10, 512);
+        ctx.lineTo(tx0 + 10, 512 - 75);
+        ctx.lineTo(tx0 + 30, 512 - 92);
+        ctx.lineTo(tx0 + 55, 512 - 76);
+        ctx.lineTo(tx0 + 75, 512 - 90);
+        ctx.lineTo(tx1 - 10, 512 - 72);
+        ctx.lineTo(tx1 - 10, 512);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = inkC;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Corner peeled paper tabs
+        ctx.fillStyle = '#ece3ce';
+        ctx.beginPath();
+        ctx.moveTo(512 - fw - 25, fw + 10);
+        ctx.lineTo(512 - fw + 8, fw - 6);
+        ctx.lineTo(512 - fw - 4, fw + 32);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = inkC;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // 4. Iconic Cartoon Question Mark ("?") with Thick White Outline & Solid Black Interior
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = '900 240px sans-serif';
+        ctx.font = '900 248px "Arial Black", Impact, sans-serif';
 
-        // 7A. Background Glow Aura for Special Boxes
-        if (type === 'orange') {
-            const glow = ctx.createRadialGradient(256, 256, 40, 256, 256, 180);
-            glow.addColorStop(0, 'rgba(253, 224, 71, 0.55)');
-            glow.addColorStop(0.6, 'rgba(245, 158, 11, 0.25)');
-            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = glow;
-            ctx.beginPath();
-            ctx.arc(256, 256, 180, 0, Math.PI * 2);
-            ctx.fill();
-        } else if (type === 'alien') {
-            const glow = ctx.createRadialGradient(256, 256, 40, 256, 256, 180);
-            glow.addColorStop(0, 'rgba(6, 182, 212, 0.55)');
-            glow.addColorStop(0.6, 'rgba(168, 85, 247, 0.25)');
-            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = glow;
-            ctx.beginPath();
-            ctx.arc(256, 256, 180, 0, Math.PI * 2);
-            ctx.fill();
-        }
+        ctx.shadowColor = 'rgba(16, 12, 10, 0.45)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 8;
 
-        // 7B. Ink Drop Shadow
-        ctx.fillStyle = '#050508';
-        ctx.fillText('?', 256, 268);
-
-        // 7C. Heavy Black Ink Outline (28px)
-        ctx.strokeStyle = '#050508';
+        ctx.strokeStyle = haloC;
         ctx.lineWidth = 28;
         ctx.lineJoin = 'round';
-        ctx.strokeText('?', 256, 256);
+        ctx.lineCap = 'round';
+        ctx.strokeText('?', 256, 276);
 
-        // 7D. Vibrant Interior Fill
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = qFill;
+        ctx.fillText('?', 256, 276);
+        ctx.restore();
+
+        return canvas;
+    }
+
+    function createCardboardBoxTopCanvas(type: 'normal' | 'orange' | 'alien'): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        let p1: string, p2: string, p3: string, p4: string;
+        let frameC: string, frameHi: string, frameSh: string;
+        let inkC: string, tapeC: string, tapeHi: string;
+
         if (type === 'orange') {
-            const qGrad = ctx.createLinearGradient(256, 130, 256, 380);
-            qGrad.addColorStop(0, '#fef08a');
-            qGrad.addColorStop(0.5, '#f59e0b');
-            qGrad.addColorStop(1, '#ea580c');
-            ctx.fillStyle = qGrad;
+            p1 = '#c2410c'; p2 = '#ea580c'; p3 = '#b45309'; p4 = '#9a3412';
+            frameC = '#f59e0b'; frameHi = '#fde047'; frameSh = '#b45309';
+            inkC = '#18100c'; tapeC = '#fde047'; tapeHi = '#fef08a';
         } else if (type === 'alien') {
-            const qGrad = ctx.createLinearGradient(256, 130, 256, 380);
-            qGrad.addColorStop(0, '#67e8f9');
-            qGrad.addColorStop(0.5, '#38bdf8');
-            qGrad.addColorStop(1, '#c084fc');
-            ctx.fillStyle = qGrad;
+            p1 = '#4c1d95'; p2 = '#6b21a8'; p3 = '#581c87'; p4 = '#3b0764';
+            frameC = '#9333ea'; frameHi = '#c084fc'; frameSh = '#4c1d95';
+            inkC = '#0e0a1a'; tapeC = '#38bdf8'; tapeHi = '#a5f3fc';
         } else {
-            const qGrad = ctx.createLinearGradient(256, 130, 256, 380);
-            qGrad.addColorStop(0, '#ffffff');
-            qGrad.addColorStop(0.7, '#f1f5f9');
-            qGrad.addColorStop(1, '#cbd5e1');
-            ctx.fillStyle = qGrad;
+            p1 = '#c58b53'; p2 = '#b87e49'; p3 = '#ab713e'; p4 = '#bc8350';
+            frameC = '#d29a65'; frameHi = '#e5b382'; frameSh = '#9d6738';
+            inkC = '#16110d'; tapeC = '#d7d0c3'; tapeHi = '#eae4da';
         }
-        ctx.fillText('?', 256, 256);
 
-        // 7E. Specular White Highlight Glint on top curve of "?"
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.ellipse(235, 175, 14, 8, -Math.PI / 4, 0, Math.PI * 2);
-        ctx.fill();
+        // Planks
+        const plankH = 128;
+        const colors = [p1, p2, p3, p4];
+        for (let i = 0; i < 4; i++) {
+            ctx.fillStyle = colors[i];
+            ctx.fillRect(0, i * plankH, 512, plankH);
+            if (i > 0) {
+                ctx.strokeStyle = inkC; ctx.lineWidth = 4;
+                ctx.beginPath(); ctx.moveTo(0, i * plankH); ctx.lineTo(512, i * plankH); ctx.stroke();
+            }
+        }
 
+        // Outer Frame
+        const fw = 54;
+        ctx.fillStyle = frameC;
+        ctx.fillRect(0, 0, fw, 512);
+        ctx.fillRect(512 - fw, 0, fw, 512);
+        ctx.fillStyle = frameHi;
+        ctx.fillRect(0, 0, 512, fw);
+        ctx.fillStyle = frameSh;
+        ctx.fillRect(0, 512 - fw, 512, fw);
+
+        ctx.strokeStyle = inkC; ctx.lineWidth = 4;
+        ctx.strokeRect(fw, fw, 512 - fw * 2, 512 - fw * 2);
+        ctx.lineWidth = 10;
+        ctx.strokeRect(0, 0, 512, 512);
+
+        // Diagonal "X" Crossed Packaging Tape
+        const tapeW = 96;
+
+        // Strip 1: Top-Left to Bottom-Right
+        ctx.save();
+        ctx.translate(256, 256);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillStyle = tapeC;
+        ctx.fillRect(-380, -tapeW / 2, 760, tapeW);
+        ctx.fillStyle = tapeHi;
+        ctx.fillRect(-380, -tapeW / 2 + 10, 760, 26);
+        ctx.strokeStyle = 'rgba(100, 80, 60, 0.3)';
+        ctx.lineWidth = 2;
+        for (let x = -360; x < 360; x += 28) {
+            ctx.beginPath(); ctx.moveTo(x, -tapeW / 2); ctx.lineTo(x + 4, tapeW / 2); ctx.stroke();
+        }
+        ctx.strokeStyle = inkC;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-380, -tapeW / 2, 760, tapeW);
+        ctx.restore();
+
+        // Strip 2: Top-Right to Bottom-Left
+        ctx.save();
+        ctx.translate(256, 256);
+        ctx.rotate(-Math.PI / 4);
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = tapeC;
+        ctx.fillRect(-380, -tapeW / 2, 760, tapeW);
+
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = tapeHi;
+        ctx.fillRect(-380, -tapeW / 2 + 10, 760, 26);
+        ctx.strokeStyle = 'rgba(100, 80, 60, 0.3)';
+        ctx.lineWidth = 2;
+        for (let x = -360; x < 360; x += 28) {
+            ctx.beginPath(); ctx.moveTo(x, -tapeW / 2); ctx.lineTo(x + 4, tapeW / 2); ctx.stroke();
+        }
+        ctx.strokeStyle = inkC;
+        ctx.lineWidth = 4;
+        ctx.strokeRect(-380, -tapeW / 2, 760, tapeW);
         ctx.restore();
 
         return canvas;
@@ -1118,14 +1253,51 @@ export function createPBRTexturePack(): PBRTexturePack {
     const glassCardTex = new THREE.CanvasTexture(glassCardCanvas);
     glassCardTex.colorSpace = THREE.SRGBColorSpace;
 
-    const cardboardBoxTex = new THREE.CanvasTexture(createCardboardBoxCanvas('normal'));
+    const normalSideCanvas = createCardboardBoxCanvas('normal');
+    const cardboardBoxTex = new THREE.CanvasTexture(normalSideCanvas);
     cardboardBoxTex.colorSpace = THREE.SRGBColorSpace;
 
-    const cardboardOrangeBoxTex = new THREE.CanvasTexture(createCardboardBoxCanvas('orange'));
+    const normalTopCanvas = createCardboardBoxTopCanvas('normal');
+    const cardboardBoxTopTex = new THREE.CanvasTexture(normalTopCanvas);
+    cardboardBoxTopTex.colorSpace = THREE.SRGBColorSpace;
+
+    const orangeSideCanvas = createCardboardBoxCanvas('orange');
+    const cardboardOrangeBoxTex = new THREE.CanvasTexture(orangeSideCanvas);
     cardboardOrangeBoxTex.colorSpace = THREE.SRGBColorSpace;
 
-    const cardboardAlienBoxTex = new THREE.CanvasTexture(createCardboardBoxCanvas('alien'));
+    const orangeTopCanvas = createCardboardBoxTopCanvas('orange');
+    const cardboardOrangeBoxTopTex = new THREE.CanvasTexture(orangeTopCanvas);
+    cardboardOrangeBoxTopTex.colorSpace = THREE.SRGBColorSpace;
+
+    const alienSideCanvas = createCardboardBoxCanvas('alien');
+    const cardboardAlienBoxTex = new THREE.CanvasTexture(alienSideCanvas);
     cardboardAlienBoxTex.colorSpace = THREE.SRGBColorSpace;
+
+    const alienTopCanvas = createCardboardBoxTopCanvas('alien');
+    const cardboardAlienBoxTopTex = new THREE.CanvasTexture(alienTopCanvas);
+    cardboardAlienBoxTopTex.colorSpace = THREE.SRGBColorSpace;
+
+    // Upgrade synchronously-initialized canvas textures with the extracted reference PNG assets
+    if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
+        const texLoader = new THREE.TextureLoader();
+        const upgradeCanvas = (canvas: HTMLCanvasElement, tex: THREE.CanvasTexture, url: string) => {
+            texLoader.load(url, (t) => {
+                if (t.image) {
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(t.image, 0, 0, 512, 512);
+                        tex.needsUpdate = true;
+                    }
+                }
+            });
+        };
+        upgradeCanvas(normalSideCanvas, cardboardBoxTex, '/assets/crate_side_normal.png');
+        upgradeCanvas(normalTopCanvas, cardboardBoxTopTex, '/assets/crate_top_normal.png');
+        upgradeCanvas(orangeSideCanvas, cardboardOrangeBoxTex, '/assets/crate_side_orange.png');
+        upgradeCanvas(orangeTopCanvas, cardboardOrangeBoxTopTex, '/assets/crate_top_orange.png');
+        upgradeCanvas(alienSideCanvas, cardboardAlienBoxTex, '/assets/crate_side_alien.png');
+        upgradeCanvas(alienTopCanvas, cardboardAlienBoxTopTex, '/assets/crate_top_alien.png');
+    }
 
     const miniSunTex = new THREE.CanvasTexture(createMiniSunCanvas());
     miniSunTex.colorSpace = THREE.SRGBColorSpace;
@@ -1192,8 +1364,11 @@ export function createPBRTexturePack(): PBRTexturePack {
         chainLinkTex,
         glassCardTex,
         cardboardBoxTex,
+        cardboardBoxTopTex,
         cardboardOrangeBoxTex,
+        cardboardOrangeBoxTopTex,
         cardboardAlienBoxTex,
+        cardboardAlienBoxTopTex,
         miniSunTex,
         dollarBillTex,
         particleGlow,
