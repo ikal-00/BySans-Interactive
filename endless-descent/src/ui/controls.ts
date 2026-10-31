@@ -230,6 +230,145 @@ export function createControlsUI(
         const initialEffVal = initialDefLevel;
 
         leftDock.innerHTML = `
+          <!-- Heavy-Duty AAA Sci-Fi Armored Cockpit Console Bezel -->
+          <svg class="dock-armored-bezel-svg" viewBox="0 0 1280 142" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="dockArmorMetal" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#475569"/>
+                <stop offset="16%" stop-color="#334155"/>
+                <stop offset="52%" stop-color="#1e293b"/>
+                <stop offset="88%" stop-color="#0f172a"/>
+                <stop offset="100%" stop-color="#090d16"/>
+              </linearGradient>
+              <linearGradient id="dockArmorRimStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(148, 163, 184, 0.55)"/>
+                <stop offset="22%" stop-color="rgba(56, 189, 248, 0.85)"/>
+                <stop offset="50%" stop-color="rgba(148, 163, 184, 0.45)"/>
+                <stop offset="78%" stop-color="rgba(251, 191, 36, 0.65)"/>
+                <stop offset="100%" stop-color="rgba(148, 163, 184, 0.55)"/>
+              </linearGradient>
+              <linearGradient id="dockInnerScreenBg" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="rgba(8, 22, 38, 0.94)"/>
+                <stop offset="50%" stop-color="rgba(5, 14, 26, 0.96)"/>
+                <stop offset="100%" stop-color="rgba(3, 9, 18, 0.98)"/>
+              </linearGradient>
+              <radialGradient id="dockTopCyanCore" cx="25.5%" cy="12%" r="24%">
+                <stop offset="0%" stop-color="rgba(0, 240, 255, 0.42)"/>
+                <stop offset="45%" stop-color="rgba(56, 189, 248, 0.14)"/>
+                <stop offset="100%" stop-color="rgba(56, 189, 248, 0)"/>
+              </radialGradient>
+              <radialGradient id="dockRightEmeraldGlow" cx="84%" cy="58%" r="26%">
+                <stop offset="0%" stop-color="rgba(0, 230, 118, 0.22)"/>
+                <stop offset="60%" stop-color="rgba(16, 185, 129, 0.06)"/>
+                <stop offset="100%" stop-color="rgba(0, 230, 118, 0)"/>
+              </radialGradient>
+              <linearGradient id="dockNeonCyanTube" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00f0ff"/>
+                <stop offset="26%" stop-color="#38bdf8"/>
+                <stop offset="68%" stop-color="#0ea5e9"/>
+                <stop offset="100%" stop-color="#10b981"/>
+              </linearGradient>
+              <filter id="dockNeonBloom" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                <feMerge>
+                  <feMergeNode in="blur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- 1. Outer Heavy Sloped Gunmetal Titanium Chassis -->
+            <polygon
+              points="34,6 392,6 404,13 876,13 888,6 1246,6 1272,34 1258,126 1242,137 38,137 22,126 8,34"
+              fill="url(#dockArmorMetal)"
+              stroke="url(#dockArmorRimStroke)"
+              stroke-width="1.6"
+            />
+
+            <!-- Machined Bevel Highlight on Top Armored Shoulders -->
+            <polyline
+              points="36,8.5 390,8.5 402,15.5 878,15.5 890,8.5 1244,8.5"
+              fill="none"
+              stroke="rgba(226, 232, 240, 0.38)"
+              stroke-width="1.2"
+            />
+
+            <!-- Mechanical Panel Seam Lines on Outer Bezel -->
+            <line x1="168" y1="6" x2="160" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.6"/>
+            <line x1="1112" y1="6" x2="1120" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.6"/>
+            <line x1="490" y1="13" x2="490" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.5"/>
+            <line x1="790" y1="13" x2="790" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.5"/>
+
+            <!-- 2. Recessed Inner Cockpit Screen Chamber -->
+            <polygon
+              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
+              fill="url(#dockInnerScreenBg)"
+            />
+            <polygon
+              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
+              fill="url(#dockTopCyanCore)"
+            />
+            <polygon
+              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
+              fill="url(#dockRightEmeraldGlow)"
+            />
+
+            <!-- Continuous Glowing Cyan/Teal Neon Inner Frame -->
+            <polygon
+              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
+              fill="none"
+              stroke="url(#dockNeonCyanTube)"
+              stroke-width="1.85"
+              filter="url(#dockNeonBloom)"
+            />
+
+            <!-- Inner Hairline Tech Contour -->
+            <polygon
+              points="48,25 1232,25 1248,42 1238,114 1226,123 54,123 42,114 32,42"
+              fill="none"
+              stroke="rgba(125, 211, 252, 0.16)"
+              stroke-width="0.9"
+            />
+
+            <!-- 3. Left Shoulder Triple Orange Hazard Chevrons /// + Cyan Plasma Core -->
+            <g filter="url(#dockNeonBloom)">
+              <polygon points="256,16 265,9 273,9 264,16" fill="#fbbf24"/>
+              <polygon points="270,16 279,9 287,9 278,16" fill="#f59e0b"/>
+              <polygon points="284,16 293,9 301,9 292,16" fill="#fb923c"/>
+              <!-- Intense Cyan Plasma Node next to Left Chevrons -->
+              <ellipse cx="326" cy="13.5" rx="18" ry="3.5" fill="#00f0ff"/>
+              <ellipse cx="326" cy="13.5" rx="8" ry="2" fill="#ffffff"/>
+            </g>
+
+            <!-- 4. Right Shoulder Triple Orange Hazard Chevrons /// -->
+            <g filter="url(#dockNeonBloom)">
+              <polygon points="966,16 975,9 983,9 974,16" fill="#fbbf24"/>
+              <polygon points="980,16 989,9 997,9 988,16" fill="#f59e0b"/>
+              <polygon points="994,16 1003,9 1011,9 1002,16" fill="#fb923c"/>
+            </g>
+
+            <!-- 5. Left & Right Sloped Flank Cyan Energy Light Bars -->
+            <line
+              x1="15" y1="50" x2="23" y2="108"
+              stroke="#00f0ff"
+              stroke-width="3.6"
+              stroke-linecap="round"
+              filter="url(#dockNeonBloom)"
+            />
+            <line
+              x1="1265" y1="50" x2="1257" y2="108"
+              stroke="#00f0ff"
+              stroke-width="3.6"
+              stroke-linecap="round"
+              filter="url(#dockNeonBloom)"
+            />
+
+            <!-- Bottom Subtle Amber Telemetry Accents -->
+            <rect x="196" y="129.5" width="12" height="2.5" rx="1" fill="rgba(251, 191, 36, 0.55)"/>
+            <rect x="212" y="129.5" width="6" height="2.5" rx="1" fill="rgba(251, 191, 36, 0.35)"/>
+            <rect x="1062" y="129.5" width="12" height="2.5" rx="1" fill="rgba(16, 185, 129, 0.55)"/>
+          </svg>
+
           <div class="betting-panel-main-row">
             <!-- Column 1: Bet Amount Input & Quick Modifiers -->
             <div class="betting-field-group">
@@ -241,10 +380,10 @@ export function createControlsUI(
                 <span class="fintech-currency-sign" id="fintech-curr-sign">${currSym}</span>
                 <input type="number" inputmode="decimal" id="bet-input" value="${formatBetLevelVal(initialDefLevel)}" min="${stakeRGS.betConfig.minBet}" max="${stakeRGS.betConfig.maxBet}" step="${stakeRGS.betConfig.stepBet}" aria-label="${t.betAmountLabel}" />
                 <div class="fintech-quick-segments">
-                  <button class="fintech-quick-pill" id="btn-min" type="button">${t.quickMin}</button>
+                  <button class="fintech-quick-pill pill-edge-accent" id="btn-min" type="button">${t.quickMin}</button>
                   <button class="fintech-quick-pill" id="btn-half" type="button">${t.quickHalf}</button>
                   <button class="fintech-quick-pill" id="btn-double" type="button">${t.quickDouble}</button>
-                  <button class="fintech-quick-pill" id="btn-max" type="button">${t.quickMax}</button>
+                  <button class="fintech-quick-pill pill-edge-accent" id="btn-max" type="button">${t.quickMax}</button>
                 </div>
               </div>
             </div>
@@ -253,7 +392,7 @@ export function createControlsUI(
             <div class="betting-field-group">
               <div class="betting-field-header">
                 <span class="betting-field-label" id="mines-field-label">${t.minesCountLabel}</span>
-                <span class="betting-field-meta" id="survival-odds-badge">80% ${t.minesProbLabel} · 1.20×</span>
+                <span class="betting-field-meta" id="survival-odds-badge">80% ${t.minesProbLabel} | 1.20×</span>
               </div>
               <div class="fintech-segmented-track" id="mine-selector" role="radiogroup" aria-label="${t.minesCountLabel}">
                 <button class="fintech-segment-btn active" data-mines="1" type="button">
@@ -275,16 +414,30 @@ export function createControlsUI(
               </div>
             </div>
 
-            <!-- Column 3: Primary Visual Focal Point — Action Button & Partial Cashout -->
+            <!-- Column 3: Primary Visual Focal Point — Armored Reactor Action Bay & Partial Cashout -->
             <div class="betting-field-group fintech-cta-wrap">
-              <div class="betting-field-header">
+              <div class="betting-field-header cta-telemetry-header">
                 <span class="betting-field-label" id="focal-cta-header-label">${t.focalActionLabel}</span>
+                <span class="cta-micro-code" aria-hidden="true">· 14 · 88 · 02 ·</span>
                 <span class="betting-field-meta" id="focal-cta-header-shortcut">${t.shortcutSpace}</span>
               </div>
               <div class="focal-cta-actions-cluster">
                 <button class="btn-primary-focal" id="btn-primary-cta" type="button">
-                  <span class="focal-btn-headline" id="focal-cta-title">${t.focalDropCapsule}</span>
-                  <span class="focal-btn-sub" id="focal-cta-sub">${stakeRGS.formatCurrency(initialEffVal)} · ${t.focalActionReady}</span>
+                  <span class="focal-btn-copy">
+                    <span class="focal-btn-headline" id="focal-cta-title">${t.focalDropCapsule}</span>
+                    <span class="focal-btn-sub" id="focal-cta-sub">(${t.shortcutSpace.toUpperCase()}) · ${stakeRGS.formatCurrency(initialEffVal)}</span>
+                  </span>
+                  <span class="focal-btn-turbine" aria-hidden="true">
+                    <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+                      <circle cx="14" cy="14" r="10.5" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3.2 2.2"/>
+                      <circle cx="14" cy="14" r="6.8" stroke="currentColor" stroke-width="1.5"/>
+                      <circle cx="14" cy="14" r="2.6" fill="currentColor"/>
+                      <line x1="14" y1="1.5" x2="14" y2="5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <line x1="14" y1="22.8" x2="14" y2="26.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <line x1="1.5" y1="14" x2="5.2" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                      <line x1="22.8" y1="14" x2="26.5" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                  </span>
                 </button>
                 <button class="btn-partial-focal" id="btn-partial-cta" type="button" style="display: none;">
                   <div class="partial-btn-left">
@@ -1134,8 +1287,8 @@ export function createControlsUI(
         const firstStepMult = calculateMultiplier(1, engine.minesCount);
         if (survivalOddsBadge) {
             survivalOddsBadge.textContent = isMobile
-                ? `${safePct}% · ${firstStepMult.toFixed(2)}×`
-                : `${safePct}% ${t.minesProbLabel} · ${firstStepMult.toFixed(2)}×`;
+                ? `${safePct}% | ${firstStepMult.toFixed(2)}×`
+                : `${safePct}% ${t.minesProbLabel} | ${firstStepMult.toFixed(2)}×`;
         }
 
         if (balanceEl && !isReplay) {
@@ -1186,7 +1339,7 @@ export function createControlsUI(
                     btnPrimaryCta.classList.remove('mode-cashout');
                     focalCtaHeaderLabel.textContent = t.focalActionLabel;
                     focalCtaTitle.textContent = t.focalDropCapsule;
-                    focalCtaSub.textContent = `${formattedEff} · ${t.focalActionReady}`;
+                    focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
                 } else if (canCashout) {
                     const cashoutVal = calculatePayout(engine.activeBetAmount, currentMult);
                     btnPrimaryCta.disabled = false;
