@@ -1,0 +1,19 @@
+{
+  "game": "Endless Descent",
+  "version": "1.0.0",
+  "art_style": "Classic Cartoon 3D (Cel-Shaded Looney Tunes Aesthetic)",
+  "jurisdiction": "Stake Engine RGS Compliant",
+  "modes": {
+    "base": {
+      "name": "base",
+      "cost": 1.0,
+      "target_rtp": 0.96,
+      "verified_rtp": 0.96,
+      "total_simulations": 10000000,
+      "unique_books": 100000,
+      "hit_rate_pct": 40.4736,
+      "max_win_multiplier": 10000.0,
+      "status": "APPROVED"
+    }
+  }
+}

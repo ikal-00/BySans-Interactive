@@ -94,7 +94,14 @@ export class GameStateController {
         if (laneIndex < 0 || laneIndex > 4) return Promise.resolve(null);
 
         const targetRow = this.engine.currentRow;
-        const durationMs = this.turboMode ? 65 : isAutoPlay ? 85 : 95;
+        const specials = this.engine.getSpecialsForRow(targetRow);
+        const isSpecialBox = laneIndex === specials.alienLane || laneIndex === specials.goldenLane;
+        const baseDuration = isSpecialBox ? 360 : 150;
+        const durationMs = this.turboMode
+            ? Math.round(baseDuration * 0.45)
+            : isAutoPlay
+              ? Math.round(baseDuration * 0.6)
+              : baseDuration;
 
         this.isHitStopActive = true;
         this.hitStopRow = targetRow;

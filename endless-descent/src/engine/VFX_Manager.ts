@@ -440,6 +440,72 @@ export class VFXManager {
         }
     }
 
+    /**
+     * Smashes the 3D Mystery Cardboard Box into 240+ Volumetric Cardboard Flakes & Corrugated Shards
+     * with comic dust "POOF!" motes and realistic rotational cardboard physics!
+     */
+    public spawnVolumetricCardboardShatter3D(
+        x: number,
+        y: number,
+        z: number,
+        boxType: 'normal' | 'orange' | 'alien' = 'normal'
+    ) {
+        const shardCount = 200;
+        const boxWidth = 2.1;
+        const boxHeight = 1.9;
+
+        const cardboardPalette =
+            boxType === 'orange'
+                ? [0xea580c, 0xf97316, 0xfde047, 0xfef08a, 0xc2410c, 0xffffff]
+                : boxType === 'alien'
+                  ? [0x7e22ce, 0xa855f7, 0x06b6d4, 0x38bdf8, 0xc084fc, 0xffffff]
+                  : [0xb47b46, 0xc58b54, 0x9b6432, 0xd4a373, 0x784b23, 0xffffff];
+
+        for (let i = 0; i < shardCount; i++) {
+            const idx = this.glassShardCursor;
+            this.glassShardCursor = (this.glassShardCursor + 1) % GLASS_SHARD_INSTANCES;
+
+            const s = this.glassShards[idx];
+            s.active = true;
+            s.age = 0;
+            s.maxAge = 0.65 + Math.random() * 0.45;
+
+            const localX = (Math.random() - 0.5) * boxWidth;
+            const localY = (Math.random() - 0.5) * boxHeight;
+            const localZ = (Math.random() - 0.5) * 1.5;
+            s.pos.set(x + localX, y + 1.0 + localY, z + localZ);
+
+            // Explosive dispersal outward and toward camera
+            const radialX = localX * (5.5 + Math.random() * 7.0) + (Math.random() - 0.5) * 6.0;
+            const radialY = localY * (4.5 + Math.random() * 6.0) + 3.5 + Math.random() * 5.0;
+            const scatterZ = (Math.random() < 0.7 ? 1 : -0.5) * (10.0 + Math.random() * 18.0);
+            s.vel.set(radialX, radialY, scatterZ);
+
+            s.rot.set(
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2
+            );
+            s.rotVel.set(
+                (Math.random() - 0.5) * 32,
+                (Math.random() - 0.5) * 32,
+                (Math.random() - 0.5) * 32
+            );
+
+            // Flat cardboard chunk proportions
+            const sx = 0.75 + Math.random() * 1.5;
+            const sy = 0.85 + Math.random() * 1.6;
+            const sz = 0.25 + Math.random() * 0.35;
+            s.baseScale.set(sx, sy, sz);
+            s.scale.copy(s.baseScale);
+
+            s.baseColor.setHex(cardboardPalette[i % cardboardPalette.length]);
+        }
+
+        // Cartoon cardboard fiber dust cloud
+        this.spawnGpuParticleCloud(x, y + 1.0, z, 30, cardboardPalette, 5, 16, 0.55);
+    }
+
     private initGpuBurstParticleSystem(particleTex?: THREE.CanvasTexture) {
         this.gpuBurstGeo = new THREE.BufferGeometry();
         this.gpuBurstPositions = new Float32Array(GPU_BURST_PARTICLE_COUNT * 3);

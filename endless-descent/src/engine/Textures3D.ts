@@ -16,6 +16,10 @@ export interface PBRTexturePack {
     nebulaVeilTex: THREE.CanvasTexture;
     chainLinkTex: THREE.CanvasTexture;
     glassCardTex: THREE.CanvasTexture;
+    cardboardBoxTex: THREE.CanvasTexture;
+    cardboardOrangeBoxTex: THREE.CanvasTexture;
+    cardboardAlienBoxTex: THREE.CanvasTexture;
+    miniSunTex: THREE.CanvasTexture;
     dollarBillTex: THREE.CanvasTexture;
     particleGlow: THREE.CanvasTexture;
     asteroidColor: THREE.CanvasTexture;
@@ -153,179 +157,138 @@ function ridgedFbm2D(x: number, y: number, octaves = 5, periodX = 256, periodY =
  */
 export function createPBRTexturePack(): PBRTexturePack {
     // =========================================================================
-    // 1. AAA SPACECRAFT TITANIUM & GUNMETAL HULL ARMOR (512x512)
+    // 1. AAA SCI-FI CERAMIC WHITE & DARK CARBON COMPOSITE HULL (512x512)
     // =========================================================================
     const hullColorCanvas = document.createElement('canvas');
     hullColorCanvas.width = 512;
     hullColorCanvas.height = 512;
     const hCtx = hullColorCanvas.getContext('2d')!;
 
+    // 1A. Satin Pristine Ceramic White Base
     const hullGrad = hCtx.createLinearGradient(0, 0, 512, 512);
-    hullGrad.addColorStop(0, '#334155');
-    hullGrad.addColorStop(0.5, '#1e293b');
-    hullGrad.addColorStop(1, '#293548');
+    hullGrad.addColorStop(0, '#f8fafc');
+    hullGrad.addColorStop(0.5, '#e2e8f0');
+    hullGrad.addColorStop(1, '#cbd5e1');
     hCtx.fillStyle = hullGrad;
     hCtx.fillRect(0, 0, 512, 512);
 
-    hCtx.fillStyle = 'rgba(255, 255, 255, 0.045)';
-    for (let y = 0; y < 512; y += 3) {
-        hCtx.fillRect(0, y, 512, 1);
+    // Subtle composite fiber weave (matte, non-glare)
+    hCtx.fillStyle = 'rgba(0, 0, 0, 0.025)';
+    for (let y = 0; y < 512; y += 4) {
+        hCtx.fillRect(0, y, 512, 1.5);
     }
 
-    const plates = [
-        [14, 14, 234, 224],
-        [264, 14, 234, 224],
-        [14, 254, 484, 114],
-        [14, 382, 234, 116],
-        [264, 382, 234, 116]
+    // 1B. Dark Carbon / Gunmetal Armor Insets
+    const darkPlates = [
+        [24, 24, 216, 180],
+        [272, 24, 216, 180],
+        [36, 234, 440, 110],
+        [48, 368, 196, 120],
+        [268, 368, 196, 120]
     ];
-    for (const [x, y, w, h] of plates) {
-        hCtx.fillStyle = 'rgba(30, 41, 59, 0.88)';
+    for (const [x, y, w, h] of darkPlates) {
+        // Dark carbon plate fill
+        hCtx.fillStyle = '#0f172a';
         hCtx.fillRect(x, y, w, h);
 
-        hCtx.strokeStyle = '#090d16';
-        hCtx.lineWidth = 4;
+        // Carbon fiber micro-weave
+        hCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+        for (let py = y + 3; py < y + h - 3; py += 4) {
+            hCtx.fillRect(x + 3, py, w - 6, 1.5);
+        }
+
+        // Inner beveled stroke
+        hCtx.strokeStyle = '#1e293b';
+        hCtx.lineWidth = 3;
         hCtx.strokeRect(x, y, w, h);
 
-        hCtx.strokeStyle = 'rgba(203, 213, 225, 0.46)';
+        // Cyan LED Seam Glow along borders
+        hCtx.strokeStyle = 'rgba(0, 240, 255, 0.85)';
         hCtx.lineWidth = 2;
-        hCtx.strokeRect(x + 3, y + 3, w - 6, h - 6);
-
-        hCtx.fillStyle = '#94a3b8';
-        for (const [rx, ry] of [
-            [x + 10, y + 10],
-            [x + w - 14, y + 10],
-            [x + 10, y + h - 14],
-            [x + w - 14, y + h - 14]
-        ]) {
-            hCtx.fillRect(rx, ry, 4, 4);
-        }
+        hCtx.beginPath();
+        hCtx.moveTo(x + 8, y + 2);
+        hCtx.lineTo(x + w - 8, y + 2);
+        hCtx.stroke();
     }
 
-    for (let vy = 42; vy <= 190; vy += 18) {
-        hCtx.fillStyle = '#090d16';
-        hCtx.fillRect(46, vy, 86, 10);
-        hCtx.fillRect(380, vy, 86, 10);
-        hCtx.fillStyle = '#475569';
-        hCtx.fillRect(50, vy + 2, 78, 3);
-        hCtx.fillRect(384, vy + 2, 78, 3);
-    }
+    // 1C. Technical Stencils and Chevron Indicators
+    hCtx.fillStyle = '#0f172a';
+    hCtx.font = '900 18px sans-serif';
+    hCtx.fillText('EXP-07', 38, 52);
+    hCtx.fillText('BYSANS', 384, 52);
 
-    hCtx.fillStyle = '#d97706';
+    // Cyan circuit indicator lines
+    hCtx.strokeStyle = '#00f0ff';
+    hCtx.lineWidth = 3;
     hCtx.beginPath();
-    hCtx.moveTo(38, 268);
-    hCtx.lineTo(188, 268);
-    hCtx.lineTo(148, 356);
-    hCtx.lineTo(20, 356);
-    hCtx.closePath();
-    hCtx.fill();
+    hCtx.moveTo(40, 214);
+    hCtx.lineTo(160, 214);
+    hCtx.lineTo(190, 226);
+    hCtx.stroke();
 
     hCtx.beginPath();
-    hCtx.moveTo(324, 268);
-    hCtx.lineTo(474, 268);
-    hCtx.lineTo(492, 356);
-    hCtx.lineTo(364, 356);
-    hCtx.closePath();
-    hCtx.fill();
+    hCtx.moveTo(472, 214);
+    hCtx.lineTo(352, 214);
+    hCtx.lineTo(322, 226);
+    hCtx.stroke();
 
     // =========================================================================
-    // 2. CLASSIC CARTOON LOONEY TUNES WINDSHIELD EYES & INK CANOPY (512x256)
+    // 2. HIGH-TECH FACETED CRYSTALLINE COCKPIT CANOPY (512x256)
     // =========================================================================
     const eyesCanvas = document.createElement('canvas');
     eyesCanvas.width = 512;
     eyesCanvas.height = 256;
     const eCtx = eyesCanvas.getContext('2d')!;
 
-    // Rich saturated cel-shaded comic canopy background
+    // Deep polarized obsidian / cyber-cyan background
     const glassGrad = eCtx.createLinearGradient(0, 0, 512, 256);
-    glassGrad.addColorStop(0, '#090d16');
-    glassGrad.addColorStop(0.5, '#0f1f38');
-    glassGrad.addColorStop(1, '#090d16');
+    glassGrad.addColorStop(0, '#06101e');
+    glassGrad.addColorStop(0.5, '#0b1d35');
+    glassGrad.addColorStop(1, '#06101e');
     eCtx.fillStyle = glassGrad;
     eCtx.fillRect(0, 0, 512, 256);
 
-    // Thick outer comic ink border
-    eCtx.strokeStyle = '#000000';
-    eCtx.lineWidth = 14;
-    eCtx.strokeRect(7, 7, 498, 242);
-
-    // Draw two classic expressive Looney Tunes style cartoon eyes:
-    const eyeCenters = [
-        { x: 175, y: 132 },
-        { x: 337, y: 132 }
-    ];
-
-    for (const { x, y } of eyeCenters) {
-        // Drop shadow / ink under-glow
-        eCtx.fillStyle = '#000000';
-        eCtx.beginPath();
-        eCtx.ellipse(x, y + 2, 64, 76, 0, 0, Math.PI * 2);
-        eCtx.fill();
-
-        // Thick black cartoon ink outline for eyeball
-        eCtx.lineWidth = 9;
-        eCtx.strokeStyle = '#000000';
-        eCtx.beginPath();
-        eCtx.ellipse(x, y, 62, 74, 0, 0, Math.PI * 2);
-        eCtx.stroke();
-
-        // Glossy vibrant white cartoon sclera
-        eCtx.fillStyle = '#f8fafc';
-        eCtx.beginPath();
-        eCtx.ellipse(x, y, 58, 70, 0, 0, Math.PI * 2);
-        eCtx.fill();
-
-        // Iris: Vibrant Cyan / Electric Blue Cel Gradient
-        const irisGrad = eCtx.createLinearGradient(x - 24, y - 24, x + 24, y + 24);
-        irisGrad.addColorStop(0, '#38bdf8');
-        irisGrad.addColorStop(0.55, '#0284c7');
-        irisGrad.addColorStop(1, '#0369a1');
-        eCtx.fillStyle = irisGrad;
-        eCtx.beginPath();
-        eCtx.ellipse(x + 4, y + 4, 32, 42, 0, 0, Math.PI * 2);
-        eCtx.fill();
-
-        // Deep black pupil with thick ink outline
-        eCtx.fillStyle = '#050505';
-        eCtx.beginPath();
-        eCtx.ellipse(x + 5, y + 5, 20, 27, 0, 0, Math.PI * 2);
-        eCtx.fill();
-
-        // Primary comic specular glint (top-left)
-        eCtx.fillStyle = '#ffffff';
-        eCtx.beginPath();
-        eCtx.ellipse(x - 6, y - 10, 11, 14, -0.25, 0, Math.PI * 2);
-        eCtx.fill();
-
-        // Secondary small comic glint (bottom-right)
-        eCtx.beginPath();
-        eCtx.arc(x + 16, y + 15, 5, 0, Math.PI * 2);
-        eCtx.fill();
-
-        // Expressive cartoon eyebrow ridge (determined, adventurous angle)
-        eCtx.strokeStyle = '#000000';
-        eCtx.lineWidth = 8;
-        eCtx.lineCap = 'round';
-        eCtx.beginPath();
-        if (x < 256) {
-            eCtx.moveTo(x - 54, y - 68);
-            eCtx.quadraticCurveTo(x, y - 82, x + 50, y - 64);
-        } else {
-            eCtx.moveTo(x - 50, y - 64);
-            eCtx.quadraticCurveTo(x, y - 82, x + 54, y - 68);
+    // Faceted geometric grid / hexagonal crystalline lattice
+    eCtx.strokeStyle = 'rgba(0, 240, 255, 0.45)';
+    eCtx.lineWidth = 2;
+    const hexSize = 28;
+    for (let hy = 0; hy < 256; hy += hexSize * 1.5) {
+        for (let hx = 0; hx < 512; hx += hexSize * Math.sqrt(3)) {
+            const cx = hx + ((Math.floor(hy / (hexSize * 1.5)) % 2) * (hexSize * Math.sqrt(3)) / 2);
+            eCtx.beginPath();
+            for (let a = 0; a < 6; a++) {
+                const angle = (a * Math.PI) / 3;
+                const px = cx + hexSize * 0.55 * Math.cos(angle);
+                const py = hy + hexSize * 0.55 * Math.sin(angle);
+                if (a === 0) eCtx.moveTo(px, py);
+                else eCtx.lineTo(px, py);
+            }
+            eCtx.closePath();
+            eCtx.stroke();
         }
-        eCtx.stroke();
     }
 
-    // Dynamic diagonal comic glare streak
-    eCtx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+    // Central structural mullion strut
+    eCtx.fillStyle = '#0f172a';
+    eCtx.fillRect(248, 0, 16, 256);
+    eCtx.strokeStyle = 'rgba(0, 240, 255, 0.85)';
+    eCtx.lineWidth = 2;
+    eCtx.strokeRect(248, 0, 16, 256);
+
+    // Subtle soft diagonal reflection sheen
+    eCtx.fillStyle = 'rgba(255, 255, 255, 0.08)';
     eCtx.beginPath();
-    eCtx.moveTo(70, 240);
-    eCtx.lineTo(145, 14);
-    eCtx.lineTo(185, 14);
-    eCtx.lineTo(110, 240);
+    eCtx.moveTo(100, 256);
+    eCtx.lineTo(210, 0);
+    eCtx.lineTo(250, 0);
+    eCtx.lineTo(140, 256);
     eCtx.closePath();
     eCtx.fill();
+
+    // Thick outer dark frame border
+    eCtx.strokeStyle = '#050a14';
+    eCtx.lineWidth = 12;
+    eCtx.strokeRect(6, 6, 500, 244);
 
     const hullBumpCanvas = document.createElement('canvas');
     hullBumpCanvas.width = 256;
@@ -349,7 +312,8 @@ export function createPBRTexturePack(): PBRTexturePack {
     hullRoughCanvas.width = 256;
     hullRoughCanvas.height = 256;
     const hrCtx = hullRoughCanvas.getContext('2d')!;
-    hrCtx.fillStyle = '#383838';
+    // Soft satin/matte roughness (eliminates harsh glare/overwhelming shine)
+    hrCtx.fillStyle = '#9e9e9e';
     hrCtx.fillRect(0, 0, 256, 256);
 
     // =========================================================================
@@ -546,6 +510,207 @@ export function createPBRTexturePack(): PBRTexturePack {
     gcCtx.beginPath();
     gcCtx.arc(256, 170, 48, 0, Math.PI * 2);
     gcCtx.stroke();
+
+    // =========================================================================
+    // 5B. CLASSIC CARTOON 3D CARDBOARD MYSTERY BOXES & MINI SUN (512x512)
+    // =========================================================================
+    function createCardboardBoxCanvas(type: 'normal' | 'orange' | 'alien'): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        // 1. Base Kraft Cardboard Background
+        const baseGrad = ctx.createLinearGradient(0, 0, 512, 512);
+        if (type === 'orange') {
+            baseGrad.addColorStop(0, '#c2410c');
+            baseGrad.addColorStop(0.5, '#ea580c');
+            baseGrad.addColorStop(1, '#9a3412');
+        } else if (type === 'alien') {
+            baseGrad.addColorStop(0, '#581c87');
+            baseGrad.addColorStop(0.5, '#6b21a8');
+            baseGrad.addColorStop(1, '#3b0764');
+        } else {
+            baseGrad.addColorStop(0, '#b47b46');
+            baseGrad.addColorStop(0.5, '#c58b54');
+            baseGrad.addColorStop(1, '#9b6432');
+        }
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // 2. Corrugated Fluting Paper Fibers (Horizontal Lines)
+        ctx.strokeStyle =
+            type === 'orange'
+                ? 'rgba(154, 52, 18, 0.45)'
+                : type === 'alien'
+                  ? 'rgba(59, 7, 100, 0.45)'
+                  : 'rgba(120, 75, 35, 0.35)';
+        ctx.lineWidth = 3;
+        for (let y = 14; y < 512; y += 16) {
+            ctx.beginPath();
+            ctx.moveTo(10, y);
+            ctx.lineTo(502, y);
+            ctx.stroke();
+        }
+
+        // 3. Shaded Box Edges & Fold Bevels
+        const shadowEdge = ctx.createLinearGradient(0, 0, 512, 0);
+        shadowEdge.addColorStop(0, 'rgba(0, 0, 0, 0.42)');
+        shadowEdge.addColorStop(0.08, 'rgba(0, 0, 0, 0)');
+        shadowEdge.addColorStop(0.92, 'rgba(0, 0, 0, 0)');
+        shadowEdge.addColorStop(1, 'rgba(0, 0, 0, 0.42)');
+        ctx.fillStyle = shadowEdge;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // 4. Packaging Tape down the vertical center seam
+        const tapeGrad = ctx.createLinearGradient(216, 0, 296, 0);
+        if (type === 'orange') {
+            tapeGrad.addColorStop(0, 'rgba(253, 224, 71, 0.6)');
+            tapeGrad.addColorStop(0.5, 'rgba(251, 146, 60, 0.75)');
+            tapeGrad.addColorStop(1, 'rgba(253, 224, 71, 0.6)');
+        } else if (type === 'alien') {
+            tapeGrad.addColorStop(0, 'rgba(6, 182, 212, 0.6)');
+            tapeGrad.addColorStop(0.5, 'rgba(168, 85, 247, 0.75)');
+            tapeGrad.addColorStop(1, 'rgba(6, 182, 212, 0.6)');
+        } else {
+            tapeGrad.addColorStop(0, 'rgba(215, 175, 120, 0.48)');
+            tapeGrad.addColorStop(0.5, 'rgba(240, 205, 150, 0.68)');
+            tapeGrad.addColorStop(1, 'rgba(215, 175, 120, 0.48)');
+        }
+        ctx.fillStyle = tapeGrad;
+        ctx.fillRect(216, 0, 80, 512);
+
+        // Tape edges (glossy highlight)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(217, 0, 78, 512);
+
+        // 5. Thick Cartoon Inverted Hull Outer Ink Border (Looney Tunes style)
+        ctx.strokeStyle = '#050508';
+        ctx.lineWidth = 18;
+        ctx.strokeRect(9, 9, 494, 494);
+
+        // 6. Corner Decorative Shipping Stencil Stamped Marks
+        ctx.save();
+        ctx.fillStyle = '#050508';
+        ctx.font = '900 16px sans-serif';
+        if (type === 'orange') {
+            ctx.fillText('SOLAR CORE · HOT', 28, 48);
+            ctx.fillText('ACME EXP-77', 340, 480);
+        } else if (type === 'alien') {
+            ctx.fillText('UFO HAZARD · 42', 28, 48);
+            ctx.fillText('COSMIC WARP', 340, 480);
+        } else {
+            ctx.fillText('FRAGILE · THIS SIDE UP', 28, 48);
+            ctx.fillText('BYSANS · ACME', 330, 480);
+        }
+        ctx.restore();
+
+        // 7. Large Iconic Question Mark ("?") in the Center
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '900 240px sans-serif';
+
+        // 7A. Background Glow Aura for Special Boxes
+        if (type === 'orange') {
+            const glow = ctx.createRadialGradient(256, 256, 40, 256, 256, 180);
+            glow.addColorStop(0, 'rgba(253, 224, 71, 0.55)');
+            glow.addColorStop(0.6, 'rgba(245, 158, 11, 0.25)');
+            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(256, 256, 180, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'alien') {
+            const glow = ctx.createRadialGradient(256, 256, 40, 256, 256, 180);
+            glow.addColorStop(0, 'rgba(6, 182, 212, 0.55)');
+            glow.addColorStop(0.6, 'rgba(168, 85, 247, 0.25)');
+            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(256, 256, 180, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 7B. Ink Drop Shadow
+        ctx.fillStyle = '#050508';
+        ctx.fillText('?', 256, 268);
+
+        // 7C. Heavy Black Ink Outline (28px)
+        ctx.strokeStyle = '#050508';
+        ctx.lineWidth = 28;
+        ctx.lineJoin = 'round';
+        ctx.strokeText('?', 256, 256);
+
+        // 7D. Vibrant Interior Fill
+        if (type === 'orange') {
+            const qGrad = ctx.createLinearGradient(256, 130, 256, 380);
+            qGrad.addColorStop(0, '#fef08a');
+            qGrad.addColorStop(0.5, '#f59e0b');
+            qGrad.addColorStop(1, '#ea580c');
+            ctx.fillStyle = qGrad;
+        } else if (type === 'alien') {
+            const qGrad = ctx.createLinearGradient(256, 130, 256, 380);
+            qGrad.addColorStop(0, '#67e8f9');
+            qGrad.addColorStop(0.5, '#38bdf8');
+            qGrad.addColorStop(1, '#c084fc');
+            ctx.fillStyle = qGrad;
+        } else {
+            const qGrad = ctx.createLinearGradient(256, 130, 256, 380);
+            qGrad.addColorStop(0, '#ffffff');
+            qGrad.addColorStop(0.7, '#f1f5f9');
+            qGrad.addColorStop(1, '#cbd5e1');
+            ctx.fillStyle = qGrad;
+        }
+        ctx.fillText('?', 256, 256);
+
+        // 7E. Specular White Highlight Glint on top curve of "?"
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(235, 175, 14, 8, -Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        return canvas;
+    }
+
+    function createMiniSunCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+
+        const sunGrad = ctx.createRadialGradient(128, 128, 12, 128, 128, 120);
+        sunGrad.addColorStop(0, '#ffffff');
+        sunGrad.addColorStop(0.25, '#fef08a');
+        sunGrad.addColorStop(0.55, '#f59e0b');
+        sunGrad.addColorStop(0.85, '#ea580c');
+        sunGrad.addColorStop(1, 'rgba(194, 65, 12, 0)');
+
+        ctx.fillStyle = sunGrad;
+        ctx.beginPath();
+        ctx.arc(128, 128, 120, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
+        for (let i = 0; i < 12; i++) {
+            const angle = (i * Math.PI) / 6;
+            ctx.save();
+            ctx.translate(128, 128);
+            ctx.rotate(angle);
+            ctx.beginPath();
+            ctx.moveTo(-10, 80);
+            ctx.lineTo(0, 124);
+            ctx.lineTo(10, 80);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+
+        return canvas;
+    }
 
     // =========================================================================
     // 6. PHOTOREALISTIC HIGH-RES PLANET TEXTURES (512x256 Pixel-Synthesized fBm)
@@ -953,6 +1118,18 @@ export function createPBRTexturePack(): PBRTexturePack {
     const glassCardTex = new THREE.CanvasTexture(glassCardCanvas);
     glassCardTex.colorSpace = THREE.SRGBColorSpace;
 
+    const cardboardBoxTex = new THREE.CanvasTexture(createCardboardBoxCanvas('normal'));
+    cardboardBoxTex.colorSpace = THREE.SRGBColorSpace;
+
+    const cardboardOrangeBoxTex = new THREE.CanvasTexture(createCardboardBoxCanvas('orange'));
+    cardboardOrangeBoxTex.colorSpace = THREE.SRGBColorSpace;
+
+    const cardboardAlienBoxTex = new THREE.CanvasTexture(createCardboardBoxCanvas('alien'));
+    cardboardAlienBoxTex.colorSpace = THREE.SRGBColorSpace;
+
+    const miniSunTex = new THREE.CanvasTexture(createMiniSunCanvas());
+    miniSunTex.colorSpace = THREE.SRGBColorSpace;
+
     const dollarBillTex = new THREE.CanvasTexture(billCanvas);
     const particleGlow = new THREE.CanvasTexture(glowCanvas);
     particleGlow.colorSpace = THREE.SRGBColorSpace;
@@ -1014,6 +1191,10 @@ export function createPBRTexturePack(): PBRTexturePack {
         nebulaVeilTex,
         chainLinkTex,
         glassCardTex,
+        cardboardBoxTex,
+        cardboardOrangeBoxTex,
+        cardboardAlienBoxTex,
+        miniSunTex,
         dollarBillTex,
         particleGlow,
         asteroidColor,

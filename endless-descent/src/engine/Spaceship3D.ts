@@ -24,40 +24,282 @@ interface PlasmaParticleData {
 }
 
 /**
- * Creates a thick bold black cartoon ink outline using the inverted hull technique
- * (extruding vertices along face/vertex normals with BackSide rendering).
- * Delivers clean, authentic Looney Tunes cel-shaded borders in full 3D!
+ * Constructs a custom faceted crystalline diamond canopy geometry with sharp planar facets.
+ * Faithfully matches the signature faceted diamond cockpit canopy from the hero craft reference.
  */
-function createInvertedHullOutline(
-    geo: THREE.BufferGeometry,
-    thickness = 0.08,
-    pos?: THREE.Vector3,
-    rot?: THREE.Euler
-): THREE.Mesh {
-    const outlineGeo = geo.clone();
-    const posAttr = outlineGeo.attributes.position;
-    const normAttr = outlineGeo.attributes.normal;
-    if (posAttr && normAttr) {
-        for (let i = 0; i < posAttr.count; i++) {
-            posAttr.setXYZ(
-                i,
-                posAttr.getX(i) + normAttr.getX(i) * thickness,
-                posAttr.getY(i) + normAttr.getY(i) * thickness,
-                posAttr.getZ(i) + normAttr.getZ(i) * thickness
-            );
-        }
-        outlineGeo.computeVertexNormals();
+function buildFacetedDiamondCanopyGeometry(scale = 1.0): THREE.BufferGeometry {
+    const s = scale;
+    const positions: number[] = [];
+    const uvs: number[] = [];
+
+    function addTri(
+        p1: [number, number, number],
+        p2: [number, number, number],
+        p3: [number, number, number],
+        uv1: [number, number],
+        uv2: [number, number],
+        uv3: [number, number]
+    ) {
+        positions.push(p1[0] * s, p1[1] * s, p1[2] * s);
+        positions.push(p2[0] * s, p2[1] * s, p2[2] * s);
+        positions.push(p3[0] * s, p3[1] * s, p3[2] * s);
+        uvs.push(...uv1, ...uv2, ...uv3);
     }
-    const outlineMat = new THREE.MeshBasicMaterial({
-        color: 0x050508,
-        side: THREE.BackSide,
-        depthWrite: true
-    });
-    const outlineMesh = new THREE.Mesh(outlineGeo, outlineMat);
-    if (pos) outlineMesh.position.copy(pos);
-    if (rot) outlineMesh.rotation.copy(rot);
-    outlineMesh.renderOrder = -1;
-    return outlineMesh;
+
+    // Key vertices of the faceted diamond canopy:
+    const vNose: [number, number, number] = [0, 0.08, -1.25];
+    const vCrest: [number, number, number] = [0, 0.62, -0.20];
+    const vAftRidge: [number, number, number] = [0, 0.42, 0.75];
+
+    const vTempleL: [number, number, number] = [-0.58, 0.38, -0.20];
+    const vTempleR: [number, number, number] = [0.58, 0.38, -0.20];
+
+    const vBaseNoseL: [number, number, number] = [-0.28, 0.02, -0.92];
+    const vBaseNoseR: [number, number, number] = [0.28, 0.02, -0.92];
+
+    const vBaseMidL: [number, number, number] = [-0.62, 0.02, -0.18];
+    const vBaseMidR: [number, number, number] = [0.62, 0.02, -0.18];
+
+    const vBaseAftL: [number, number, number] = [-0.44, 0.02, 0.75];
+    const vBaseAftR: [number, number, number] = [0.44, 0.02, 0.75];
+
+    // 1. Forward Windshield Facet Pair (Left & Right)
+    addTri(vNose, vBaseNoseL, vCrest, [0.5, 0], [0.2, 0.3], [0.5, 0.6]);
+    addTri(vNose, vCrest, vBaseNoseR, [0.5, 0], [0.5, 0.6], [0.8, 0.3]);
+
+    // 2. Upper Temple Facet Pair
+    addTri(vCrest, vBaseNoseL, vTempleL, [0.5, 0.6], [0.2, 0.3], [0.1, 0.6]);
+    addTri(vCrest, vTempleR, vBaseNoseR, [0.5, 0.6], [0.9, 0.6], [0.8, 0.3]);
+
+    // 3. Lower Temple Side Glass Pair
+    addTri(vTempleL, vBaseNoseL, vBaseMidL, [0.1, 0.6], [0.2, 0.3], [0.05, 0.5]);
+    addTri(vTempleR, vBaseMidR, vBaseNoseR, [0.9, 0.6], [0.95, 0.5], [0.8, 0.3]);
+
+    // 4. Aft Crown Roof Facet Pair
+    addTri(vCrest, vTempleL, vAftRidge, [0.5, 0.6], [0.1, 0.6], [0.5, 1.0]);
+    addTri(vCrest, vAftRidge, vTempleR, [0.5, 0.6], [0.5, 1.0], [0.9, 0.6]);
+
+    // 5. Aft Flank Upper Facet Pair
+    addTri(vAftRidge, vTempleL, vBaseAftL, [0.5, 1.0], [0.1, 0.6], [0.25, 0.95]);
+    addTri(vAftRidge, vBaseAftR, vTempleR, [0.5, 1.0], [0.75, 0.95], [0.9, 0.6]);
+
+    // 6. Aft Flank Lower Facet Pair
+    addTri(vTempleL, vBaseMidL, vBaseAftL, [0.1, 0.6], [0.05, 0.5], [0.25, 0.95]);
+    addTri(vTempleR, vBaseAftR, vBaseMidR, [0.9, 0.6], [0.75, 0.95], [0.95, 0.5]);
+
+    // 7. Rear Bulkhead Wall
+    addTri(vAftRidge, vBaseAftL, vBaseAftR, [0.5, 1.0], [0.25, 0.95], [0.75, 0.95]);
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.computeVertexNormals();
+    return geo;
+}
+
+/**
+ * Constructs a sleek swept delta starfighter wing with authentic taper and aerodynamic leading-edge angle.
+ * Accurately reproduces the low-profile swept wing from the hero spacecraft reference image.
+ */
+function buildSweptWingGeometry(isLeft: boolean): THREE.BufferGeometry {
+    const geo = new THREE.BufferGeometry();
+    const s = isLeft ? -1 : 1;
+    const yT = 0.05;
+    const yB = -0.05;
+
+    // Wing corner coordinates in chassis coordinates
+    const rLead: [number, number, number] = [s * 0.72, yT, -0.15];
+    const rTrail: [number, number, number] = [s * 0.72, yT, 1.15];
+    const tLead: [number, number, number] = [s * 1.95, yT, 0.42];
+    const tTrail: [number, number, number] = [s * 1.95, yT, 0.90];
+
+    const brLead: [number, number, number] = [s * 0.72, yB, -0.15];
+    const brTrail: [number, number, number] = [s * 0.72, yB, 1.15];
+    const btLead: [number, number, number] = [s * 1.95, yB, 0.42];
+    const btTrail: [number, number, number] = [s * 1.95, yB, 0.90];
+
+    const pos: number[] = [];
+    function quad(
+        a: [number, number, number],
+        b: [number, number, number],
+        c: [number, number, number],
+        d: [number, number, number]
+    ) {
+        // Double-sided triangle pairs to guarantee rendering regardless of culling or reflection
+        pos.push(...a, ...b, ...c);
+        pos.push(...a, ...c, ...d);
+        pos.push(...a, ...c, ...b);
+        pos.push(...a, ...d, ...c);
+    }
+
+    // Top face
+    quad(rLead, tLead, tTrail, rTrail);
+    // Bottom face
+    quad(brTrail, btTrail, btLead, brLead);
+    // Leading edge face
+    quad(rLead, brLead, btLead, tLead);
+    // Trailing edge face
+    quad(tTrail, btTrail, brTrail, rTrail);
+    // Wingtip face
+    quad(tLead, btLead, btTrail, tTrail);
+    // Root face
+    quad(rTrail, brTrail, brLead, rLead);
+
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    return geo;
+}
+
+/**
+ * Builds the dark carbon leading-edge trim facet running along the swept wing leading edge.
+ */
+function buildWingTrimGeometry(isLeft: boolean): THREE.BufferGeometry {
+    const geo = new THREE.BufferGeometry();
+    const s = isLeft ? -1 : 1;
+    const yT = 0.054;
+    const yB = -0.054;
+    const insetZ = 0.16;
+
+    const rLead: [number, number, number] = [s * 0.72, yT, -0.15];
+    const rIn: [number, number, number] = [s * 0.72, yT, -0.15 + insetZ];
+    const tLead: [number, number, number] = [s * 1.95, yT, 0.42];
+    const tIn: [number, number, number] = [s * 1.95, yT, 0.42 + insetZ * 0.65];
+
+    const brLead: [number, number, number] = [s * 0.72, yB, -0.15];
+    const brIn: [number, number, number] = [s * 0.72, yB, -0.15 + insetZ];
+    const btLead: [number, number, number] = [s * 1.95, yB, 0.42];
+    const btIn: [number, number, number] = [s * 1.95, yB, 0.42 + insetZ * 0.65];
+
+    const pos: number[] = [];
+    function quad(
+        a: [number, number, number],
+        b: [number, number, number],
+        c: [number, number, number],
+        d: [number, number, number]
+    ) {
+        // Double-sided triangle pairs to guarantee rendering regardless of culling or reflection
+        pos.push(...a, ...b, ...c);
+        pos.push(...a, ...c, ...d);
+        pos.push(...a, ...c, ...b);
+        pos.push(...a, ...d, ...c);
+    }
+
+    quad(rLead, tLead, tIn, rIn);
+    quad(brIn, btIn, btLead, brLead);
+    quad(rLead, brLead, btLead, tLead);
+    quad(tLead, btLead, btIn, tIn);
+
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    return geo;
+}
+
+/**
+ * Constructs authentic sleek tapered canted dorsal fins matching the reference hero spacecraft.
+ * Compact trapezoidal profile: base chord 0.65, top chord 0.28, height 0.44.
+ */
+function buildTaperedFinGeometry(): THREE.BufferGeometry {
+    const geo = new THREE.BufferGeometry();
+    const w = 0.038; // half thickness
+
+    const yB = 0.0;
+    const yT = 0.46;
+
+    // Base chord along Z
+    const bLead: [number, number, number] = [0, yB, 0.55];
+    const bTrail: [number, number, number] = [0, yB, 1.35];
+
+    // Top chord along Z (swept back and narrower)
+    const tLead: [number, number, number] = [0, yT, 0.90];
+    const tTrail: [number, number, number] = [0, yT, 1.25];
+
+    const pos: number[] = [];
+    function quad(
+        p1: [number, number, number],
+        p2: [number, number, number],
+        p3: [number, number, number],
+        p4: [number, number, number]
+    ) {
+        pos.push(...p1, ...p2, ...p3);
+        pos.push(...p1, ...p3, ...p4);
+        pos.push(...p1, ...p3, ...p2);
+        pos.push(...p1, ...p4, ...p3);
+    }
+
+    const L_bLead: [number, number, number] = [-w, bLead[1], bLead[2]];
+    const L_bTrail: [number, number, number] = [-w, bTrail[1], bTrail[2]];
+    const L_tLead: [number, number, number] = [-w, tLead[1], tLead[2]];
+    const L_tTrail: [number, number, number] = [-w, tTrail[1], tTrail[2]];
+
+    const R_bLead: [number, number, number] = [w, bLead[1], bLead[2]];
+    const R_bTrail: [number, number, number] = [w, bTrail[1], bTrail[2]];
+    const R_tLead: [number, number, number] = [w, tLead[1], tLead[2]];
+    const R_tTrail: [number, number, number] = [w, tTrail[1], tTrail[2]];
+
+    // Left flank
+    quad(L_bLead, L_tLead, L_tTrail, L_bTrail);
+    // Right flank
+    quad(R_bLead, R_bTrail, R_tTrail, R_tLead);
+    // Leading edge
+    quad(L_bLead, R_bLead, R_tLead, L_tLead);
+    // Trailing edge
+    quad(L_bTrail, L_tTrail, R_tTrail, R_bTrail);
+    // Top crest
+    quad(L_tLead, R_tLead, R_tTrail, L_tTrail);
+    // Bottom root
+    quad(L_bLead, L_bTrail, R_bTrail, R_bLead);
+
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    return geo;
+}
+
+/**
+ * Builds the dark leading edge cap on the tapered dorsal fins.
+ */
+function buildTaperedFinTrimGeometry(): THREE.BufferGeometry {
+    const geo = new THREE.BufferGeometry();
+    const w = 0.042;
+    const yB = 0.0;
+    const yT = 0.47;
+    const inset = 0.12;
+
+    const bLead: [number, number, number] = [0, yB, 0.54];
+    const bBack: [number, number, number] = [0, yB, 0.54 + inset];
+    const tLead: [number, number, number] = [0, yT, 0.89];
+    const tBack: [number, number, number] = [0, yT, 0.89 + inset * 0.7];
+
+    const pos: number[] = [];
+    function quad(
+        p1: [number, number, number],
+        p2: [number, number, number],
+        p3: [number, number, number],
+        p4: [number, number, number]
+    ) {
+        pos.push(...p1, ...p2, ...p3);
+        pos.push(...p1, ...p3, ...p4);
+        pos.push(...p1, ...p3, ...p2);
+        pos.push(...p1, ...p4, ...p3);
+    }
+
+    const L_bLead: [number, number, number] = [-w, bLead[1], bLead[2]];
+    const L_bBack: [number, number, number] = [-w, bBack[1], bBack[2]];
+    const L_tLead: [number, number, number] = [-w, tLead[1], tLead[2]];
+    const L_tBack: [number, number, number] = [-w, tBack[1], tBack[2]];
+
+    const R_bLead: [number, number, number] = [w, bLead[1], bLead[2]];
+    const R_bBack: [number, number, number] = [w, bBack[1], bBack[2]];
+    const R_tLead: [number, number, number] = [w, tLead[1], tLead[2]];
+    const R_tBack: [number, number, number] = [w, tBack[1], tBack[2]];
+
+    quad(L_bLead, L_tLead, L_tBack, L_bBack);
+    quad(R_bLead, R_bBack, R_tBack, R_tLead);
+    quad(L_bLead, R_bLead, R_tLead, L_tLead);
+    quad(L_tLead, R_tLead, R_tBack, L_tBack);
+
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.computeVertexNormals();
+    return geo;
 }
 
 export class Spaceship3D {
@@ -70,7 +312,6 @@ export class Spaceship3D {
     private leftCanard!: THREE.Mesh;
     private rightCanard!: THREE.Mesh;
     private exhaustVents: THREE.Mesh[] = [];
-    private reactorCore!: THREE.Mesh;
     private leftNozzle!: THREE.Group;
     private rightNozzle!: THREE.Group;
     private centerNozzle!: THREE.Group;
@@ -82,7 +323,7 @@ export class Spaceship3D {
     public impactWobbleTimer = 0;
     public anticipationSquashTimer = 0;
 
-    // World-space anchors for wingtip ion ribbons & triple rear thruster nozzles
+    // World-space anchors for wingtip ion ribbons & twin rear thruster nozzles
     private wingtipL!: THREE.Object3D;
     private wingtipR!: THREE.Object3D;
     private nozzleTipL!: THREE.Object3D;
@@ -101,9 +342,9 @@ export class Spaceship3D {
     private plasmaJetMatCenter!: THREE.MeshBasicMaterial;
 
     // Spacecraft 6-DOF Flight, Cursor-Tracking Orientation & Speed-Burst Physics State
-    public pos = new THREE.Vector3(0, 1.25, 0);
+    public pos = new THREE.Vector3(0, 1.85, 0);
     public vel = new THREE.Vector3(0, 0, 0);
-    public targetPos = new THREE.Vector3(0, 1.25, 0);
+    public targetPos = new THREE.Vector3(0, 1.85, 0);
 
     // Interactive Cursor/Touch Tracking Vector (-1..+1)
     public cursorAim = new THREE.Vector2(0, 0);
@@ -150,16 +391,6 @@ export class Spaceship3D {
     private plasmaParticles: PlasmaParticleData[] = [];
     private plasmaSpawnCursor = 0;
 
-    // Classic Looney Tunes Expressive Dynamic Cartoon Eyes & Canopy Visor
-    private eyesCanvas!: HTMLCanvasElement;
-    private eyesCtx!: CanvasRenderingContext2D;
-    public eyesTex!: THREE.CanvasTexture;
-    private visorMesh!: THREE.Mesh;
-    private blinkTimer = 2.8;
-    private blinkProgress = 0; // 0 = open, 1 = fully shut
-    private currentLookX = 0;
-    private currentLookY = 0;
-
     private elapsed = 0;
 
     constructor(scene: THREE.Scene, textures: PBRTexturePack) {
@@ -169,7 +400,6 @@ export class Spaceship3D {
         scene.add(this.root);
 
         this.buildOverdriveSpacecraft(textures);
-        this.buildCartoonVisorAndEyes();
         this.buildLights(scene);
         this.buildWingtipIonRibbons(scene);
         this.buildPlasmaThrusterParticles(scene, textures.particleGlow);
@@ -187,227 +417,358 @@ export class Spaceship3D {
     }
 
     private buildOverdriveSpacecraft(textures: PBRTexturePack) {
-        // Metallic hull reflects ambient & directional light cleanly (zero self-emissive blowout)
-        const hullMat = new THREE.MeshStandardMaterial({
+        // 1. Satin Matte Ceramic White Hull Armor (Clean, non-glare, satin diffuse)
+        const ceramicHullMat = new THREE.MeshStandardMaterial({
             map: textures.hullColor,
             bumpMap: textures.hullBump,
-            bumpScale: 0.065,
+            bumpScale: 0.02,
             roughnessMap: textures.hullRoughness,
-            roughness: 0.28,
-            metalness: 0.82
+            roughness: 0.58,
+            metalness: 0.10
         });
 
+        // 2. Matte Dark Carbon / Gunmetal Armor (Surrounds canopy & dorsal deck)
         const darkArmorMat = new THREE.MeshStandardMaterial({
-            color: 0x0f172a,
-            roughness: 0.34,
-            metalness: 0.88
+            color: 0x141a24,
+            roughness: 0.65,
+            metalness: 0.38
         });
 
-        const mechanicalSteelMat = new THREE.MeshStandardMaterial({
-            color: 0x475569,
-            roughness: 0.25,
-            metalness: 0.92
+        // 3. Satin Titanium Mechanical Trim & Exhaust Flanges
+        const titaniumMat = new THREE.MeshStandardMaterial({
+            color: 0x334155,
+            roughness: 0.42,
+            metalness: 0.72
         });
 
-        const canopyGlassMat = new THREE.MeshPhysicalMaterial({
+        // 4. Faceted Cyan Crystal Canopy Glass (Crystalline holographic visor matching image)
+        const canopyGlassMat = new THREE.MeshStandardMaterial({
             map: textures.windshieldEyesTex,
-            color: 0x1e293b,
-            roughness: 0.08,
-            metalness: 0.3,
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.05
-        });
-
-        // Subtle hull trim material (non-blinding so mechanical hull details stay crisp)
-        this.accentMat = new THREE.MeshStandardMaterial({
-            color: 0x38bdf8,
-            emissive: 0x0284c7,
-            emissiveIntensity: 0.38,
+            color: 0x06283d,
+            emissive: 0x00d2ff,
+            emissiveIntensity: 0.65,
             roughness: 0.22,
-            metalness: 0.75
+            metalness: 0.25,
+            transparent: true,
+            opacity: 0.94,
+            side: THREE.DoubleSide
         });
 
-        // High-energy glow restricted strictly to Rear Thruster Nozzles & Exhaust
-        this.thrusterCoreMat = new THREE.MeshStandardMaterial({
-            color: 0x00f0ff,
-            emissive: 0x00f0ff,
-            emissiveIntensity: 2.1,
-            roughness: 0.12,
+        // Inner Crystalline Hologram Core (Volumetric cyan energy matrix inside visor)
+        const innerCoreMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.45,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide
+        });
+
+        // Pristine Satin Ceramic Wing Armor (Clean white, non-glare, matching reference image)
+        const wingCeramicMat = new THREE.MeshStandardMaterial({
+            color: 0xf8fafc,
+            roughness: 0.55,
+            metalness: 0.10,
+            side: THREE.DoubleSide
+        });
+
+        // 5. Crisp Cyan Energy Circuit Trim Lines (Subtle glow, non-glare)
+        this.accentMat = new THREE.MeshStandardMaterial({
+            color: 0x00d8f0,
+            emissive: 0x00d8f0,
+            emissiveIntensity: 0.60,
+            roughness: 0.25,
             metalness: 0.5
         });
 
-        // 1. Central Starfighter Armored Fuselage & Sculpted Chiseled Nose Cone
-        const coreHullGeo = new THREE.BoxGeometry(1.72, 0.74, 3.95);
-        const coreHull = new THREE.Mesh(coreHullGeo, hullMat);
-        coreHull.position.set(0, 0.26, 0.1);
-        coreHull.castShadow = true;
-        coreHull.receiveShadow = true;
-        this.chassis.add(coreHull);
+        // 6. Amber / Warm Gold Wingtip Navigation Indicators (Exact match to image)
+        const amberNavMat = new THREE.MeshStandardMaterial({
+            color: 0xffa000,
+            emissive: 0xff8c00,
+            emissiveIntensity: 1.4,
+            roughness: 0.20,
+            metalness: 0.3
+        });
 
-        // Dorsal Spine Mechanical Armor Ridge
-        const spineGeo = new THREE.BoxGeometry(0.58, 0.22, 2.85);
-        const spineMesh = new THREE.Mesh(spineGeo, darkArmorMat);
-        spineMesh.position.set(0, 0.66, 0.45);
-        spineMesh.castShadow = true;
-        this.chassis.add(spineMesh);
+        // 7. Controlled Rear Thruster Core Glow (Rich cyan, zero blinding glare)
+        this.thrusterCoreMat = new THREE.MeshStandardMaterial({
+            color: 0x00f0ff,
+            emissive: 0x00f0ff,
+            emissiveIntensity: 1.4,
+            roughness: 0.2,
+            metalness: 0.5
+        });
 
-        const noseConeGeo = new THREE.ConeGeometry(0.92, 2.45, 6);
-        noseConeGeo.rotateX(-Math.PI / 2);
-        noseConeGeo.scale(1.12, 0.5, 1.0);
-        const noseCone = new THREE.Mesh(noseConeGeo, hullMat);
-        noseCone.position.set(0, 0.21, -2.92);
-        noseCone.castShadow = true;
-        noseCone.receiveShadow = true;
-        this.chassis.add(noseCone);
+        // =========================================================================
+        // 1. SLEEK LOW-PROFILE CERAMIC WHITE RACER POD LIFTING BODY & NOSE INTAKE
+        // =========================================================================
+        // 1A. Central Aerodynamic Lifting-Body Hull (Low profile, thin aerodynamic blade)
+        const mainSlabGeo = new THREE.BoxGeometry(1.85, 0.28, 2.6);
+        const mainSlab = new THREE.Mesh(mainSlabGeo, ceramicHullMat);
+        mainSlab.position.set(0, 0.08, 0.30);
+        mainSlab.castShadow = true;
+        mainSlab.receiveShadow = true;
+        this.chassis.add(mainSlab);
 
-        // Forward Twin Canard Stabilizer Fins (Articulated with Cursor Pitch)
-        const canardGeo = new THREE.BoxGeometry(0.78, 0.08, 0.62);
-        this.leftCanard = new THREE.Mesh(canardGeo, hullMat);
-        this.leftCanard.position.set(-0.98, 0.22, -1.75);
-        this.leftCanard.rotation.y = 0.35;
+        // Forward Tapered Nose Hull
+        const noseSlabGeo = new THREE.BoxGeometry(1.25, 0.24, 1.85);
+        const noseSlab = new THREE.Mesh(noseSlabGeo, ceramicHullMat);
+        noseSlab.position.set(0, 0.06, -1.65);
+        noseSlab.castShadow = true;
+        this.chassis.add(noseSlab);
 
-        this.rightCanard = new THREE.Mesh(canardGeo, hullMat);
-        this.rightCanard.position.set(0.98, 0.22, -1.75);
-        this.rightCanard.rotation.y = -0.35;
+        // Aerodynamic Nose Wedge Bevel
+        const noseBevelGeo = new THREE.CylinderGeometry(0.24, 0.58, 0.85, 24);
+        noseBevelGeo.rotateX(-Math.PI / 2);
+        noseBevelGeo.scale(1.15, 0.48, 1.0);
+        const noseBevel = new THREE.Mesh(noseBevelGeo, ceramicHullMat);
+        noseBevel.position.set(0, 0.08, -2.45);
+        this.chassis.add(noseBevel);
+
+        // Recessed Dark Nose Intake Tunnel
+        const noseTunnelGeo = new THREE.CylinderGeometry(0.22, 0.26, 0.42, 24);
+        noseTunnelGeo.rotateX(-Math.PI / 2);
+        const noseTunnel = new THREE.Mesh(noseTunnelGeo, darkArmorMat);
+        noseTunnel.position.set(0, 0.08, -2.85);
+        this.chassis.add(noseTunnel);
+
+        // Glowing Quantum Cyan Inner Intake Ring
+        const noseRingGeo = new THREE.TorusGeometry(0.20, 0.025, 16, 28);
+        const noseRing = new THREE.Mesh(noseRingGeo, this.accentMat);
+        noseRing.position.set(0, 0.08, -2.95);
+        this.chassis.add(noseRing);
+
+        // Dark Chin Skid Plate underneath Nose
+        const chinGeo = new THREE.BoxGeometry(0.88, 0.08, 1.25);
+        const chinMesh = new THREE.Mesh(chinGeo, darkArmorMat);
+        chinMesh.position.set(0, -0.06, -2.10);
+        this.chassis.add(chinMesh);
+
+        // Under-cowl Amber Sensors
+        const chinSensorGeo = new THREE.BoxGeometry(0.06, 0.06, 0.12);
+        const chinSensorL = new THREE.Mesh(chinSensorGeo, amberNavMat);
+        chinSensorL.position.set(-0.26, -0.04, -2.68);
+        const chinSensorR = new THREE.Mesh(chinSensorGeo, amberNavMat);
+        chinSensorR.position.set(0.26, -0.04, -2.68);
+        this.chassis.add(chinSensorL, chinSensorR);
+
+        // Aerodynamic Ceramic White Cheek Fairings
+        const cheekGeo = new THREE.CylinderGeometry(0.20, 0.38, 2.0, 24);
+        cheekGeo.rotateX(-Math.PI / 2);
+        cheekGeo.scale(0.85, 0.48, 1.0);
+        const cheekL = new THREE.Mesh(cheekGeo, ceramicHullMat);
+        cheekL.position.set(-0.76, 0.08, -1.55);
+        const cheekR = new THREE.Mesh(cheekGeo, ceramicHullMat);
+        cheekR.position.set(0.76, 0.08, -1.55);
+        this.chassis.add(cheekL, cheekR);
+
+        // Lower Belly Side Fairing Chines
+        const chineGeo = new THREE.BoxGeometry(0.22, 0.16, 2.4);
+        const chineL = new THREE.Mesh(chineGeo, ceramicHullMat);
+        chineL.position.set(-0.95, -0.02, 0.30);
+        const chineR = new THREE.Mesh(chineGeo, ceramicHullMat);
+        chineR.position.set(0.95, -0.02, 0.30);
+        this.chassis.add(chineL, chineR);
+
+        // =========================================================================
+        // 2. DARK CARBON UPPER DECK & CYAN ACCENT CIRCUIT CONDUITS
+        // =========================================================================
+        const upperDeckGeo = new THREE.BoxGeometry(0.88, 0.08, 3.4);
+        const upperDeck = new THREE.Mesh(upperDeckGeo, darkArmorMat);
+        upperDeck.position.set(0, 0.24, -0.30);
+        upperDeck.castShadow = true;
+        this.chassis.add(upperDeck);
+
+        // Dark Carbon Nose Hood Plate
+        const hoodPlateGeo = new THREE.BoxGeometry(0.55, 0.06, 1.35);
+        const hoodPlate = new THREE.Mesh(hoodPlateGeo, darkArmorMat);
+        hoodPlate.position.set(0, 0.20, -1.85);
+        hoodPlate.rotation.x = -0.12;
+        this.chassis.add(hoodPlate);
+
+        // Sweeping Cyan Circuit Trim Lines along the dark deck border
+        const trimGeo = new THREE.BoxGeometry(0.04, 0.035, 2.8);
+        const trimL = new THREE.Mesh(trimGeo, this.accentMat);
+        trimL.position.set(-0.46, 0.28, -0.25);
+        const trimR = new THREE.Mesh(trimGeo, this.accentMat);
+        trimR.position.set(0.46, 0.28, -0.25);
+        this.chassis.add(trimL, trimR);
+
+        // Angled Circuit Traces stepping outward at 45 degrees
+        const branchGeo = new THREE.BoxGeometry(0.04, 0.035, 0.45);
+        const branchL = new THREE.Mesh(branchGeo, this.accentMat);
+        branchL.position.set(-0.58, 0.28, 0.75);
+        branchL.rotation.y = 0.78;
+        const branchR = new THREE.Mesh(branchGeo, this.accentMat);
+        branchR.position.set(0.58, 0.28, 0.75);
+        branchR.rotation.y = -0.78;
+        this.chassis.add(branchL, branchR);
+
+        // Forward Canard References (Non-protruding dummy meshes so update() remains robust)
+        this.leftCanard = new THREE.Mesh(new THREE.BufferGeometry());
+        this.rightCanard = new THREE.Mesh(new THREE.BufferGeometry());
         this.chassis.add(this.leftCanard, this.rightCanard);
 
-        // 2. Mechanical Articulated Thermal Exhaust Louver Vents (6 Dorsal Radiator Flaps)
-        const ventFlapGeo = new THREE.BoxGeometry(0.46, 0.06, 0.26);
-        for (let i = 0; i < 3; i++) {
-            const zPos = 0.25 + i * 0.46;
-            const ventL = new THREE.Mesh(ventFlapGeo, mechanicalSteelMat);
-            ventL.position.set(-0.58, 0.66, zPos);
-            const ventR = new THREE.Mesh(ventFlapGeo, mechanicalSteelMat);
-            ventR.position.set(0.58, 0.66, zPos);
-            this.chassis.add(ventL, ventR);
-            this.exhaustVents.push(ventL, ventR);
-        }
+        // Sleek aerodynamic upper deck without flapping louvers
+        this.exhaustVents = [];
 
-        // 3. Polarized Cockpit Canopy + Armored Frame
-        const canopyGeo = new THREE.BoxGeometry(1.12, 0.46, 1.85);
-        const canopy = new THREE.Mesh(canopyGeo, canopyGlassMat);
-        canopy.position.set(0, 0.68, -0.58);
-        canopy.rotation.x = -0.12;
-        this.chassis.add(canopy);
+        // =========================================================================
+        // 3. FACETED DIAMOND CRYSTAL COCKPIT CANOPY (PROMINENT ELEVATED VISOR)
+        // =========================================================================
+        // 100% clean crystal diamond visor: all black antenna rods, ribs, and spines removed!
+        const canopyGroup = new THREE.Group();
+        canopyGroup.position.set(0, 0.26, -0.55);
 
-        // 4. Dorsal Mechanical Power Core (Clean faceted crystal — NO cage rings!)
-        const reactorGeo = new THREE.OctahedronGeometry(0.28, 0);
-        this.reactorCore = new THREE.Mesh(reactorGeo, this.accentMat);
-        this.reactorCore.position.set(0, 0.76, 1.15);
-        this.chassis.add(this.reactorCore);
+        // 3A. Outer Faceted Diamond Visor with Sharp Planar Facets
+        const diamondGeo = buildFacetedDiamondCanopyGeometry(1.0);
+        const diamondMesh = new THREE.Mesh(diamondGeo, canopyGlassMat);
+        diamondMesh.castShadow = true;
+        canopyGroup.add(diamondMesh);
 
-        // 5. Swept Variable-Geometry Delta Wings + Mechanical Pods + Aileron Flaps
-        const wingShape = new THREE.BoxGeometry(1.92, 0.14, 2.45);
-        const leftWing = new THREE.Mesh(wingShape, hullMat);
-        leftWing.position.set(-1.62, 0.18, 0.35);
-        leftWing.rotation.y = 0.28;
-        leftWing.castShadow = true;
-        leftWing.receiveShadow = true;
+        // 3B. Inner Holographic Crystalline Core (Volumetric depth inside visor)
+        const innerDiamondGeo = buildFacetedDiamondCanopyGeometry(0.85);
+        const innerMesh = new THREE.Mesh(innerDiamondGeo, innerCoreMat);
+        innerMesh.position.y = 0.03;
+        canopyGroup.add(innerMesh);
 
-        const rightWing = new THREE.Mesh(wingShape, hullMat);
-        rightWing.position.set(1.62, 0.18, 0.35);
-        rightWing.rotation.y = -0.28;
-        rightWing.castShadow = true;
-        rightWing.receiveShadow = true;
-        this.chassis.add(leftWing, rightWing);
+        this.chassis.add(canopyGroup);
 
-        // Under-wing Weapon / Telemetry Pods
-        const podGeo = new THREE.CylinderGeometry(0.12, 0.16, 1.65, 10);
-        podGeo.rotateX(Math.PI / 2);
-        const podL = new THREE.Mesh(podGeo, darkArmorMat);
-        podL.position.set(-1.95, 0.06, 0.05);
-        const podR = new THREE.Mesh(podGeo, darkArmorMat);
-        podR.position.set(1.95, 0.06, 0.05);
-        this.chassis.add(podL, podR);
+        // =========================================================================
+        // 4. TWIN VERTICAL WHITE FINS & SWEPT RACING WINGS WITH SOLID AMBER LIGHTS
+        // =========================================================================
+        // Twin Upright Dorsal Fins (White Ceramic with Dark Leading Edge, Canted 20° outward)
+        // Authentic tapered profile mounted cleanly atop the twin rear nacelles matching the reference image!
+        const finGeo = buildTaperedFinGeometry();
+        const finTrimGeo = buildTaperedFinTrimGeometry();
 
-        // Subtle Wing Leading-Edge Trim
-        const edgeStripGeo = new THREE.BoxGeometry(1.65, 0.06, 0.1);
-        const edgeL = new THREE.Mesh(edgeStripGeo, this.accentMat);
-        edgeL.position.set(-1.62, 0.2, -0.82);
-        edgeL.rotation.y = 0.28;
-        const edgeR = new THREE.Mesh(edgeStripGeo, this.accentMat);
-        edgeR.position.set(1.62, 0.2, -0.82);
-        edgeR.rotation.y = -0.28;
-        this.chassis.add(edgeL, edgeR);
-
-        // Articulated Wing Flaps
-        this.leftWingFlap = new THREE.Group();
-        this.leftWingFlap.position.set(-2.45, 0.18, 0.68);
-        const flapGeo = new THREE.BoxGeometry(0.72, 0.1, 1.42);
-        const flapL = new THREE.Mesh(flapGeo, darkArmorMat);
-        this.leftWingFlap.add(flapL);
-
-        this.rightWingFlap = new THREE.Group();
-        this.rightWingFlap.position.set(2.45, 0.18, 0.68);
-        const flapR = new THREE.Mesh(flapGeo, darkArmorMat);
-        this.rightWingFlap.add(flapR);
-        this.chassis.add(this.leftWingFlap, this.rightWingFlap);
-
-        // Angled Twin Vertical Tail Stabilizers
-        const finGeo = new THREE.BoxGeometry(0.14, 0.98, 1.55);
-        const finL = new THREE.Mesh(finGeo, hullMat);
-        finL.position.set(-0.96, 0.76, 1.38);
-        finL.rotation.z = 0.32;
+        const finL = new THREE.Mesh(finGeo, wingCeramicMat);
+        finL.position.set(-0.64, 0.28, 0);
+        finL.rotation.z = 0.35;
         finL.castShadow = true;
 
-        const finR = new THREE.Mesh(finGeo, hullMat);
-        finR.position.set(0.96, 0.76, 1.38);
-        finR.rotation.z = -0.32;
-        finR.castShadow = true;
-        this.chassis.add(finL, finR);
+        const finTrimL = new THREE.Mesh(finTrimGeo, darkArmorMat);
+        finTrimL.position.set(-0.64, 0.28, 0);
+        finTrimL.rotation.z = 0.35;
 
-        // Wingtip Emitter Anchors
+        const finR = new THREE.Mesh(finGeo, wingCeramicMat);
+        finR.position.set(0.64, 0.28, 0);
+        finR.rotation.z = -0.35;
+        finR.castShadow = true;
+
+        const finTrimR = new THREE.Mesh(finTrimGeo, darkArmorMat);
+        finTrimR.position.set(0.64, 0.28, 0);
+        finTrimR.rotation.z = -0.35;
+
+        this.chassis.add(finL, finTrimL, finR, finTrimR);
+
+        // Swept Delta Racing Wings (White Ceramic Hull with Sleek Taper)
+        const wingLGeo = buildSweptWingGeometry(true);
+        const leftWing = new THREE.Mesh(wingLGeo, wingCeramicMat);
+        leftWing.position.set(0, 0.14, 0);
+        leftWing.castShadow = true;
+
+        const wingRGeo = buildSweptWingGeometry(false);
+        const rightWing = new THREE.Mesh(wingRGeo, wingCeramicMat);
+        rightWing.position.set(0, 0.14, 0);
+        rightWing.castShadow = true;
+        this.chassis.add(leftWing, rightWing);
+
+        // Dark Carbon Leading Edge Swept Wing Trim
+        const trimLGeo = buildWingTrimGeometry(true);
+        const wingTrimL = new THREE.Mesh(trimLGeo, darkArmorMat);
+        wingTrimL.position.set(0, 0.14, 0);
+
+        const trimRGeo = buildWingTrimGeometry(false);
+        const wingTrimR = new THREE.Mesh(trimRGeo, darkArmorMat);
+        wingTrimR.position.set(0, 0.14, 0);
+        this.chassis.add(wingTrimL, wingTrimR);
+
+        // Amber Wingtip Navigation Lights (Exact Match to Reference Image)
+        // Positioned firmly at each wingtip's outer forward corner with zero flickering or Z-fighting
+        const amberLightGeo = new THREE.BoxGeometry(0.12, 0.08, 0.26);
+        const amberBezelGeo = new THREE.BoxGeometry(0.15, 0.09, 0.30);
+
+        // Left Wingtip Light Assembly
+        const amberBezelL = new THREE.Mesh(amberBezelGeo, darkArmorMat);
+        amberBezelL.position.set(-1.94, 0.14, 0.50);
+        amberBezelL.rotation.y = 0.24;
+
+        const amberL = new THREE.Mesh(amberLightGeo, amberNavMat);
+        amberL.position.set(-1.96, 0.14, 0.50);
+        amberL.rotation.y = 0.24;
+
+        // Right Wingtip Light Assembly
+        const amberBezelR = new THREE.Mesh(amberBezelGeo, darkArmorMat);
+        amberBezelR.position.set(1.94, 0.14, 0.50);
+        amberBezelR.rotation.y = -0.24;
+
+        const amberR = new THREE.Mesh(amberLightGeo, amberNavMat);
+        amberR.position.set(1.96, 0.14, 0.50);
+        amberR.rotation.y = -0.24;
+
+        this.chassis.add(amberBezelL, amberL, amberBezelR, amberR);
+
+        // Flap groups kept empty so rotation updates run safely with zero geometry clipping or flicker
+        this.leftWingFlap = new THREE.Group();
+        this.rightWingFlap = new THREE.Group();
+        this.chassis.add(this.leftWingFlap, this.rightWingFlap);
+
+        // Wingtip Ion Ribbon Emitter Anchors (Trailing wingtip corners)
         this.wingtipL = new THREE.Object3D();
-        this.wingtipL.position.set(-2.68, 0.18, 1.28);
+        this.wingtipL.position.set(-1.95, 0.14, 0.90);
         this.chassis.add(this.wingtipL);
 
         this.wingtipR = new THREE.Object3D();
-        this.wingtipR.position.set(2.68, 0.18, 1.28);
+        this.wingtipR.position.set(1.95, 0.14, 0.90);
         this.chassis.add(this.wingtipR);
 
-        // 6. Triple Vector-Thrust Rear Plasma Engine Nacelles (z > 2.0)
-        //    Heavy glow restricted strictly here at the rear exhaust!
+        // =========================================================================
+        // 5. TWIN CYLINDRICAL REAR JET ENGINES (EXACT MATCH TO IMAGE - LOW-SLUNG NACELLES)
+        // =========================================================================
         this.leftNozzle = new THREE.Group();
-        this.leftNozzle.position.set(-0.66, 0.22, 2.1);
+        this.leftNozzle.position.set(-0.64, 0.10, 1.48);
         this.chassis.add(this.leftNozzle);
 
         this.rightNozzle = new THREE.Group();
-        this.rightNozzle.position.set(0.66, 0.22, 2.1);
+        this.rightNozzle.position.set(0.64, 0.10, 1.48);
         this.chassis.add(this.rightNozzle);
 
+        // Aerodynamic Center Tail Spine Fairing between the twin engines
         this.centerNozzle = new THREE.Group();
-        this.centerNozzle.position.set(0, 0.34, 2.16);
+        this.centerNozzle.position.set(0, 0.14, 1.48);
         this.chassis.add(this.centerNozzle);
 
-        const nacelleGeo = new THREE.CylinderGeometry(0.36, 0.45, 0.94, 16);
+        const centerSpineGeo = new THREE.BoxGeometry(0.32, 0.28, 1.15);
+        const centerSpineMesh = new THREE.Mesh(centerSpineGeo, darkArmorMat);
+        this.centerNozzle.add(centerSpineMesh);
+
+        // Cylindrical Thruster Nacelles with Ribbed Collars
+        const nacelleGeo = new THREE.CylinderGeometry(0.24, 0.28, 1.15, 24);
         nacelleGeo.rotateX(Math.PI / 2);
         const nacelleL = new THREE.Mesh(nacelleGeo, darkArmorMat);
         const nacelleR = new THREE.Mesh(nacelleGeo, darkArmorMat);
         this.leftNozzle.add(nacelleL);
         this.rightNozzle.add(nacelleR);
 
-        const centerNacelleGeo = new THREE.CylinderGeometry(0.28, 0.36, 0.85, 16);
-        centerNacelleGeo.rotateX(Math.PI / 2);
-        const nacelleC = new THREE.Mesh(centerNacelleGeo, darkArmorMat);
-        this.centerNozzle.add(nacelleC);
+        // Titanium Nozzle Exhaust Flange Rings
+        const collarGeo = new THREE.TorusGeometry(0.26, 0.035, 12, 24);
+        const collarL = new THREE.Mesh(collarGeo, titaniumMat);
+        collarL.position.z = 0.55;
+        const collarR = new THREE.Mesh(collarGeo, titaniumMat);
+        collarR.position.z = 0.55;
+        this.leftNozzle.add(collarL);
+        this.rightNozzle.add(collarR);
 
-        // Glowing Internal Rear Thruster Cores (strictly inside rear nozzles)
-        const coreDiscGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.08, 16);
+        // Glowing Internal Rear Thruster Cores
+        const coreDiscGeo = new THREE.CylinderGeometry(0.21, 0.21, 0.06, 20);
         coreDiscGeo.rotateX(Math.PI / 2);
         const coreL = new THREE.Mesh(coreDiscGeo, this.thrusterCoreMat);
-        coreL.position.z = 0.44;
+        coreL.position.z = 0.46;
         const coreR = new THREE.Mesh(coreDiscGeo, this.thrusterCoreMat);
-        coreR.position.z = 0.44;
+        coreR.position.z = 0.46;
         this.leftNozzle.add(coreL);
         this.rightNozzle.add(coreR);
 
-        const centerCoreGeo = new THREE.CylinderGeometry(0.23, 0.23, 0.08, 16);
-        centerCoreGeo.rotateX(Math.PI / 2);
-        const coreC = new THREE.Mesh(centerCoreGeo, this.thrusterCoreMat);
-        coreC.position.z = 0.42;
-        this.centerNozzle.add(coreC);
-
-        // Volumetric Rear Plasma Afterburner Plumes
+        // Volumetric Rear Plasma Afterburner Plumes (Twin powerful cyan jets)
         this.plasmaJetMatL = new THREE.MeshBasicMaterial({
             color: 0x00f0ff,
             transparent: true,
@@ -416,27 +777,26 @@ export class Spaceship3D {
             depthWrite: false
         });
         this.plasmaJetMatR = new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
+            color: 0x00f0ff,
             transparent: true,
             opacity: 0.85,
             blending: THREE.AdditiveBlending,
             depthWrite: false
         });
         this.plasmaJetMatCenter = new THREE.MeshBasicMaterial({
-            color: 0xfde047,
+            color: 0x38bdf8,
             transparent: true,
-            opacity: 0.88,
+            opacity: 0.0, // Silent center fairing
             blending: THREE.AdditiveBlending,
             depthWrite: false
         });
 
-        const jetGeo = new THREE.ConeGeometry(0.32, 2.55, 14);
+        const jetGeo = new THREE.ConeGeometry(0.20, 2.4, 20);
         jetGeo.rotateX(Math.PI / 2);
-        jetGeo.translate(0, 0, 1.45);
+        jetGeo.translate(0, 0, 1.35);
 
-        const centerJetGeo = new THREE.ConeGeometry(0.25, 2.95, 14);
+        const centerJetGeo = new THREE.ConeGeometry(0.05, 0.05, 4);
         centerJetGeo.rotateX(Math.PI / 2);
-        centerJetGeo.translate(0, 0, 1.62);
 
         this.leftPlasmaJet = new THREE.Mesh(jetGeo, this.plasmaJetMatL);
         this.rightPlasmaJet = new THREE.Mesh(jetGeo, this.plasmaJetMatR);
@@ -446,335 +806,30 @@ export class Spaceship3D {
         this.centerNozzle.add(this.centerPlasmaJet);
 
         this.nozzleTipL = new THREE.Object3D();
-        this.nozzleTipL.position.set(0, 0, 0.5);
+        this.nozzleTipL.position.set(0, 0, 0.58);
         this.leftNozzle.add(this.nozzleTipL);
 
         this.nozzleTipR = new THREE.Object3D();
-        this.nozzleTipR.position.set(0, 0, 0.5);
+        this.nozzleTipR.position.set(0, 0, 0.58);
         this.rightNozzle.add(this.nozzleTipR);
 
         this.nozzleTipCenter = new THREE.Object3D();
-        this.nozzleTipCenter.position.set(0, 0, 0.48);
+        this.nozzleTipCenter.position.set(0, 0, 0.5);
         this.centerNozzle.add(this.nozzleTipCenter);
-
-        // 7. Bold Classic Looney Tunes 3D Inverted Hull Black Ink Outlines
-        this.chassis.add(createInvertedHullOutline(coreHullGeo, 0.088, coreHull.position));
-        this.chassis.add(createInvertedHullOutline(spineGeo, 0.075, spineMesh.position));
-        this.chassis.add(createInvertedHullOutline(noseConeGeo, 0.095, noseCone.position));
-        this.chassis.add(createInvertedHullOutline(canopyGeo, 0.082, canopy.position, canopy.rotation));
-
-        this.leftCanard.add(createInvertedHullOutline(canardGeo, 0.075));
-        this.rightCanard.add(createInvertedHullOutline(canardGeo, 0.075));
-
-        this.chassis.add(createInvertedHullOutline(wingShape, 0.085, leftWing.position, leftWing.rotation));
-        this.chassis.add(createInvertedHullOutline(wingShape, 0.085, rightWing.position, rightWing.rotation));
-
-        this.leftWingFlap.add(createInvertedHullOutline(flapGeo, 0.075));
-        this.rightWingFlap.add(createInvertedHullOutline(flapGeo, 0.075));
-
-        this.chassis.add(createInvertedHullOutline(finGeo, 0.082, finL.position, finL.rotation));
-        this.chassis.add(createInvertedHullOutline(finGeo, 0.082, finR.position, finR.rotation));
-
-        this.leftNozzle.add(createInvertedHullOutline(nacelleGeo, 0.075));
-        this.rightNozzle.add(createInvertedHullOutline(nacelleGeo, 0.075));
-        this.centerNozzle.add(createInvertedHullOutline(centerNacelleGeo, 0.075));
     }
 
-    private buildCartoonVisorAndEyes() {
-        this.eyesCanvas = document.createElement('canvas');
-        this.eyesCanvas.width = 512;
-        this.eyesCanvas.height = 256;
-        this.eyesCtx = this.eyesCanvas.getContext('2d')!;
-        this.eyesTex = new THREE.CanvasTexture(this.eyesCanvas);
-        this.eyesTex.colorSpace = THREE.SRGBColorSpace;
 
-        // Visor plate angled back (~50°) directly facing the elevated 3D camera on the top of the canopy
-        const visorGeo = new THREE.PlaneGeometry(1.24, 0.98);
-        visorGeo.rotateX(-Math.PI * 0.28);
-        const visorMat = new THREE.MeshBasicMaterial({
-            map: this.eyesTex,
-            side: THREE.DoubleSide,
-            depthTest: true
-        });
-        this.visorMesh = new THREE.Mesh(visorGeo, visorMat);
-        this.visorMesh.position.set(0, 0.96, -0.50);
-        this.visorMesh.renderOrder = 10;
-        this.chassis.add(this.visorMesh);
-
-        this.drawCartoonEyes('idle', 0, 0, 0, 1.0);
-    }
 
     public drawCartoonEyes(
-        mood: 'idle' | 'jumping' | 'nervous' | 'panic' | 'crashed' | 'win',
-        lookX: number,
-        lookY: number,
-        blink: number,
+        _mood: string,
+        _lookX: number,
+        _lookY: number,
+        _blink: number,
         _multiplier: number
     ) {
-        const ctx = this.eyesCtx;
-        const w = 512;
-        const h = 256;
-
-        // 1. Deep Cel-Shaded Midnight Navy / Cyan Visor Background
-        const glassGrad = ctx.createLinearGradient(0, 0, w, h);
-        glassGrad.addColorStop(0, '#060a14');
-        glassGrad.addColorStop(0.5, '#0e1c32');
-        glassGrad.addColorStop(1, '#060a14');
-        ctx.fillStyle = glassGrad;
-        ctx.fillRect(0, 0, w, h);
-
-        // Bold Looney Tunes diagonal cartoon glass sheen streaks
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-        ctx.beginPath();
-        ctx.moveTo(80, 0);
-        ctx.lineTo(135, 0);
-        ctx.lineTo(35, h);
-        ctx.lineTo(-20, h);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(170, 0);
-        ctx.lineTo(195, 0);
-        ctx.lineTo(95, h);
-        ctx.lineTo(70, h);
-        ctx.closePath();
-        ctx.fill();
-
-        // Thick comic black ink border
-        ctx.strokeStyle = '#050508';
-        ctx.lineWidth = 14;
-        ctx.strokeRect(7, 7, w - 14, h - 14);
-
-        const eyeCenters = [
-            { x: 168, y: 130 },
-            { x: 344, y: 130 }
-        ];
-
-        // 2. Comedic Defeat / Crashed State (Classic Cartoon "X" Eyes!)
-        if (mood === 'crashed') {
-            for (const { x, y } of eyeCenters) {
-                // Sclera oval
-                ctx.fillStyle = '#e2e8f0';
-                ctx.beginPath();
-                ctx.ellipse(x, y, 56, 68, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Heavy black ink outline
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 10;
-                ctx.beginPath();
-                ctx.ellipse(x, y, 56, 68, 0, 0, Math.PI * 2);
-                ctx.stroke();
-
-                // Bold cartoon red X with black underlay
-                const s = 28;
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 14;
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-                ctx.moveTo(x - s, y - s);
-                ctx.lineTo(x + s, y + s);
-                ctx.moveTo(x + s, y - s);
-                ctx.lineTo(x - s, y + s);
-                ctx.stroke();
-
-                ctx.strokeStyle = '#ef4444';
-                ctx.lineWidth = 8;
-                ctx.beginPath();
-                ctx.moveTo(x - s, y - s);
-                ctx.lineTo(x + s, y + s);
-                ctx.moveTo(x + s, y - s);
-                ctx.lineTo(x - s, y + s);
-                ctx.stroke();
-            }
-            this.eyesTex.needsUpdate = true;
-            return;
-        }
-
-        // 3. Victory / Cashed Out State (Happy Crescent Eyes ^  ^ with Golden Sparkles!)
-        if (mood === 'win') {
-            for (const { x, y } of eyeCenters) {
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 18;
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-                ctx.arc(x, y + 16, 42, Math.PI * 1.15, Math.PI * 1.85, false);
-                ctx.stroke();
-
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 10;
-                ctx.stroke();
-
-                // Cartoon celebration sparkle star
-                ctx.fillStyle = '#fde047';
-                ctx.beginPath();
-                const starSize = 14;
-                ctx.moveTo(x, y - 40 - starSize);
-                ctx.lineTo(x + 4, y - 40);
-                ctx.lineTo(x + starSize, y - 40);
-                ctx.lineTo(x + 5, y - 40 + 5);
-                ctx.lineTo(x + 8, y - 40 + starSize);
-                ctx.lineTo(x, y - 40 + 8);
-                ctx.lineTo(x - 8, y - 40 + starSize);
-                ctx.lineTo(x - 5, y - 40 + 5);
-                ctx.lineTo(x - starSize, y - 40);
-                ctx.lineTo(x - 4, y - 40);
-                ctx.closePath();
-                ctx.fill();
-            }
-            this.eyesTex.needsUpdate = true;
-            return;
-        }
-
-        // 4. Dynamic Expressive Cartoon Eyes (Idle, Jumping, Nervous, Panic)
-        const isPanic = mood === 'panic';
-        const isNervous = mood === 'nervous';
-        const isJumping = mood === 'jumping';
-
-        for (let i = 0; i < 2; i++) {
-            const { x, y } = eyeCenters[i];
-            const eyeW = isJumping ? 54 : isPanic ? 62 : 56;
-            const eyeH = isJumping ? 76 : isPanic ? 72 : 68;
-
-            // Eye drop shadow
-            ctx.fillStyle = '#000000';
-            ctx.beginPath();
-            ctx.ellipse(x, y + 4, eyeW + 2, eyeH + 2, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Thick cartoon black ink outline
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 9;
-            ctx.beginPath();
-            ctx.ellipse(x, y, eyeW, eyeH, 0, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Sclera fill (pure glossy white)
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.ellipse(x, y, eyeW - 3, eyeH - 3, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Clip region so pupils never escape eyeball boundaries
-            ctx.save();
-            ctx.beginPath();
-            ctx.ellipse(x, y, eyeW - 4, eyeH - 4, 0, 0, Math.PI * 2);
-            ctx.clip();
-
-            let pOffsetX = lookX * 20;
-            let pOffsetY = lookY * 15;
-
-            // Panic high-multiplier jitter
-            if (isPanic) {
-                pOffsetX += Math.sin(this.elapsed * 48 + i) * 3.5;
-                pOffsetY += Math.cos(this.elapsed * 48 + i) * 3.5;
-            }
-
-            const pupilCenterX = x + pOffsetX;
-            const pupilCenterY = y + pOffsetY;
-
-            const irisRadius = isPanic ? 16 : isNervous ? 24 : 32;
-            const pupilRadius = isPanic ? 8 : isNervous ? 14 : 20;
-
-            // Electric Cyan / Blue cel iris
-            const irisGrad = ctx.createLinearGradient(
-                pupilCenterX - irisRadius,
-                pupilCenterY - irisRadius,
-                pupilCenterX + irisRadius,
-                pupilCenterY + irisRadius
-            );
-            irisGrad.addColorStop(0, '#38bdf8');
-            irisGrad.addColorStop(0.55, '#0284c7');
-            irisGrad.addColorStop(1, '#0369a1');
-            ctx.fillStyle = irisGrad;
-            ctx.beginPath();
-            ctx.ellipse(pupilCenterX, pupilCenterY, irisRadius, irisRadius * 1.15, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Solid black pupil
-            ctx.fillStyle = '#050508';
-            ctx.beginPath();
-            ctx.arc(pupilCenterX, pupilCenterY, pupilRadius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Double white specular highlights
-            ctx.fillStyle = '#ffffff';
-            ctx.beginPath();
-            ctx.arc(pupilCenterX - pupilRadius * 0.45, pupilCenterY - pupilRadius * 0.45, isPanic ? 3 : 7, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.beginPath();
-            ctx.arc(pupilCenterX + pupilRadius * 0.38, pupilCenterY + pupilRadius * 0.38, isPanic ? 1.5 : 3.5, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Blinking eyelid
-            if (blink > 0) {
-                const eyelidH = eyeH * 2 * blink;
-                ctx.fillStyle = '#0f172a';
-                ctx.beginPath();
-                ctx.rect(x - eyeW - 5, y - eyeH - 5, (eyeW + 5) * 2, eyelidH);
-                ctx.fill();
-
-                ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 7;
-                ctx.beginPath();
-                ctx.moveTo(x - eyeW, y - eyeH - 5 + eyelidH);
-                ctx.lineTo(x + eyeW, y - eyeH - 5 + eyelidH);
-                ctx.stroke();
-            }
-
-            ctx.restore();
-
-            // Eyebrows
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 7;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            if (isPanic) {
-                const browY = y - eyeH - 8 + Math.sin(this.elapsed * 40 + i) * 2;
-                const slant = i === 0 ? 12 : -12;
-                ctx.moveTo(x - 34, browY + slant);
-                ctx.quadraticCurveTo(x, browY - 14, x + 34, browY - slant);
-            } else if (isNervous) {
-                const browY = y - eyeH - 6;
-                const slant = i === 0 ? 9 : -9;
-                ctx.moveTo(x - 30, browY + slant);
-                ctx.lineTo(x + 30, browY - slant);
-            } else {
-                const browY = y - eyeH - 8;
-                ctx.moveTo(x - 28, browY + 6);
-                ctx.quadraticCurveTo(x, browY - 10, x + 28, browY + 4);
-            }
-            ctx.stroke();
-        }
-
-        // Animated Cartoon Sweat Droplets on temples in tension/panic
-        if (isPanic || isNervous) {
-            const sweatY = 55 + (this.elapsed * 55) % 80;
-            ctx.fillStyle = '#38bdf8';
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(435, sweatY);
-            ctx.quadraticCurveTo(442, sweatY + 12, 435, sweatY + 18);
-            ctx.quadraticCurveTo(428, sweatY + 12, 435, sweatY);
-            ctx.fill();
-            ctx.stroke();
-
-            if (isPanic) {
-                const sweat2Y = 68 + (this.elapsed * 65 + 40) % 75;
-                ctx.beginPath();
-                ctx.moveTo(75, sweat2Y);
-                ctx.quadraticCurveTo(82, sweat2Y + 10, 75, sweat2Y + 16);
-                ctx.quadraticCurveTo(68, sweat2Y + 10, 75, sweat2Y);
-                ctx.fill();
-                ctx.stroke();
-            }
-        }
-
-        this.eyesTex.needsUpdate = true;
+        return;
     }
+
 
     private buildLights(scene: THREE.Scene) {
         // Forward targeting spotlight illuminates the floating multiplier cards ahead without blinding the ship hull
@@ -957,46 +1012,10 @@ export class Spaceship3D {
         hoveredLaneX: number | null,
         _hasShield: boolean,
         isCrashed: boolean,
-        currentMultiplier = 1.0,
-        isCashedOut = false
+        _currentMultiplier = 1.0,
+        _isCashedOut = false
     ) {
         this.elapsed += dt;
-
-        // Dynamic Looney Tunes Cartoon Eyes: Blinking, Iris Aim & Tension Reactions
-        this.blinkTimer -= dt;
-        if (this.blinkTimer <= 0) {
-            this.blinkProgress += dt * 8.5;
-            if (this.blinkProgress >= 1.0) {
-                this.blinkProgress = 0;
-                this.blinkTimer = 2.2 + Math.random() * 3.0;
-            }
-        } else {
-            this.blinkProgress = 0;
-        }
-
-        const targetLookX =
-            hoveredLaneX !== null
-                ? THREE.MathUtils.clamp((hoveredLaneX - this.pos.x) / 4.8, -1, 1)
-                : this.smoothedCursorAim.x;
-        const targetLookY = isHitStop ? -0.4 : this.smoothedCursorAim.y * 0.45;
-
-        this.currentLookX = THREE.MathUtils.lerp(this.currentLookX, targetLookX, Math.min(1, dt * 12));
-        this.currentLookY = THREE.MathUtils.lerp(this.currentLookY, targetLookY, Math.min(1, dt * 12));
-
-        let mood: 'idle' | 'jumping' | 'nervous' | 'panic' | 'crashed' | 'win' = 'idle';
-        if (isCrashed) {
-            mood = 'crashed';
-        } else if (isCashedOut) {
-            mood = 'win';
-        } else if (isHitStop) {
-            mood = 'jumping';
-        } else if (currentMultiplier >= 3.8) {
-            mood = 'panic';
-        } else if (currentMultiplier >= 1.7) {
-            mood = 'nervous';
-        }
-
-        this.drawCartoonEyes(mood, this.currentLookX, this.currentLookY, this.blinkProgress, currentMultiplier);
 
         if (this.hydraulicPartyTimer > 0) {
             this.hydraulicPartyTimer = Math.max(0, this.hydraulicPartyTimer - dt);
@@ -1140,10 +1159,11 @@ export class Spaceship3D {
         this.rollVel += rollAcc * dt;
         this.roll += this.rollVel * dt;
 
+        const restingRake = -0.18;
         const desiredPitch = isCrashed
             ? this.pitch + this.pitchVel * dt
             : THREE.MathUtils.clamp(
-                  this.vel.y * 0.045 + (isHitStop ? 0.24 : 0) - this.vel.z * 0.009 + cursorPitchBias + hoverOscPitch,
+                  restingRake + this.vel.y * 0.045 + (isHitStop ? 0.24 : 0) - this.vel.z * 0.009 + cursorPitchBias + hoverOscPitch,
                   -0.45,
                   0.48
               );
@@ -1166,8 +1186,6 @@ export class Spaceship3D {
         this.chassis.rotation.y = this.yaw;
         this.chassis.rotation.x = this.pitch;
         this.chassis.rotation.z = this.roll;
-        this.chassis.rotation.x = this.pitch;
-        this.chassis.rotation.z = this.roll;
 
         // Articulated Aileron Flaps, Canards, Vector Nozzles & Mechanical Exhaust Vents
         this.leftWingFlap.rotation.z = THREE.MathUtils.clamp(-this.roll * 0.82, -0.58, 0.58);
@@ -1186,10 +1204,6 @@ export class Spaceship3D {
         for (let i = 0; i < this.exhaustVents.length; i++) {
             this.exhaustVents[i].rotation.x = ventOpenAngle;
         }
-
-        // Spinning Dorsal Reactor Crystal
-        this.reactorCore.rotation.y = this.elapsed * 4.5;
-        this.reactorCore.rotation.x = this.elapsed * 3.0;
 
         const speedNorm = Math.min(3.2, Math.hypot(this.vel.x, this.vel.z) / 12);
         const jetStretch =

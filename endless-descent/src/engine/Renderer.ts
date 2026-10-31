@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { GameState } from '../math/types';
 import { calculateNextStepMultiplier } from '../math/multipliers';
 import { GameStateController } from './GameState';
@@ -21,21 +22,33 @@ const RING_ASTEROIDS_PER_PLANET = 360; // 1,440 individual 3D asteroids across t
 const SHOOTING_STAR_COUNT = 18;
 const DISTANT_SUPERNOVA_COUNT = 4;
 const HOVER_DEBOUNCE_MS = 90;
+const SHIP_FLIGHT_Y = 2.1;
 
 interface FloatingMultiplierCard3D {
     group: THREE.Group;       // Stationary world-space anchor (NEVER moves vertically on hover!)
     visualGroup: THREE.Group; // Smoothly lifts on hover without moving hitboxMesh!
     hitboxMesh: THREE.Mesh;   // Oversized invisible stationary raycast target
 
-    cardFrameGroup: THREE.Group;
-    glassCardMesh: THREE.Mesh;
-    mechClampL: THREE.Mesh;
-    mechClampR: THREE.Mesh;
-    frameMat: THREE.MeshStandardMaterial;
-    glassCardMat: THREE.MeshPhysicalMaterial;
+    // 3D Cardboard Mystery Box Structure
+    mysteryBoxGroup: THREE.Group;
+    boxBody: THREE.Mesh;
+    boxBodyOutline: THREE.Mesh;
+    lidLeft: THREE.Group;
+    lidRight: THREE.Group;
+    lidFlapL: THREE.Mesh;
+    lidFlapR: THREE.Mesh;
+    lidOutlineL: THREE.Mesh;
+    lidOutlineR: THREE.Mesh;
 
-    gemGroup: THREE.Group;
-    gemMat: THREE.MeshStandardMaterial;
+    // Materials for the 3 types of boxes
+    boxMatNormal: THREE.MeshStandardMaterial;
+    boxMatOrange: THREE.MeshStandardMaterial;
+    boxMatAlien: THREE.MeshStandardMaterial;
+
+    // Contents inside the box
+    miniSunGroup: THREE.Group;
+    miniSunCore: THREE.Mesh;
+    miniSunCorona: THREE.Sprite;
     mineGroup: THREE.Group;
 
     badgeCanvas: HTMLCanvasElement;
@@ -44,6 +57,9 @@ interface FloatingMultiplierCard3D {
     badgeMat: THREE.SpriteMaterial;
     lastBadgeSignature: string;
 
+    boxType: 'normal' | 'orange' | 'alien';
+    lidOpenProgress: number; // 0 = closed, 1 = fully open
+    isShattered: boolean;
     assignedRow: number;
     lane: number;
 }
@@ -129,6 +145,11 @@ export class PixiRenderer {
     private asteroids: Asteroid3D[] = [];
     private nebulaClouds: NebulaCloud3D[] = [];
 
+    // 3D Alien UFO Abduction System
+    private alienUfoGroup!: THREE.Group;
+    private alienTractorBeam!: THREE.Mesh;
+    public isAbductionActive = false;
+
     private starfieldGeo!: THREE.BufferGeometry;
     private starfieldPositions!: Float32Array;
 
@@ -142,12 +163,10 @@ export class PixiRenderer {
     private cosmicDustGeo!: THREE.BufferGeometry;
     private cosmicDustPositions!: Float32Array;
 
-    // 3D Quantum Trajectory Arc & Target Reticle
+    // 3D Quantum Trajectory Arc
     private trajectoryLine!: THREE.Line;
     private trajectoryPositions!: Float32Array;
     private trajectoryMat!: THREE.LineBasicMaterial;
-    private targetReticle!: THREE.Group;
-    private reticleMat!: THREE.MeshBasicMaterial;
 
     // Raycasting & Debounced Anti-Flicker Card Hover State
     private raycaster = new THREE.Raycaster();
@@ -161,9 +180,9 @@ export class PixiRenderer {
     private lastHoveredLaneAudio: number | null = null;
 
     // Strictly Locked Orbital Tactical Camera Rig State
-    private camPos = new THREE.Vector3(0, 7.4, 11.2);
+    private camPos = new THREE.Vector3(0, 5.2, 7.8);
     private camVel = new THREE.Vector3(0, 0, 0);
-    private camLookAt = new THREE.Vector3(0, 0.55, -13.0);
+    private camLookAt = new THREE.Vector3(0, 1.45, -7.5);
     public mouseParallax = new THREE.Vector2(0, 0);
 
     // Reusable Scratch Vectors & Colors (Zero GC Allocations in 60/120 FPS Render Loop)
@@ -201,10 +220,11 @@ export class PixiRenderer {
         this.buildAsteroidField();
         this.buildFloatingMultiplierCardsPool();
         this.buildTrajectoryPredictor();
+        this.buildAlienUfoSaucer();
 
         // Build 3D AAA [SPACE-OVERDRIVE V4] Starfighter (Floats freely in the open cosmic void)
         this.ship = new Spaceship3D(this.scene, this.textures);
-        this.ship.snapTo(0, 1.25, 0);
+        this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
 
         // Initialize Space-Overdrive V4 Next-Gen Post-Processing & 420-Instance Refractive Glass-Shatter Pool
         this.vfx = new VFXManager(
@@ -915,7 +935,7 @@ export class PixiRenderer {
         const coords = [
             { x: -52, y: 26, z: -165, col: 0xfde047 },
             { x: 54, y: 24, z: -230, col: 0x00f0ff },
-            { x: -46, y: -18, z: -120, col: 0xa855f7 },
+            { x: -140, y: -45, z: -320, col: 0xa855f7 },
             { x: 48, y: 28, z: -290, col: 0xf97316 }
         ];
 
@@ -1140,7 +1160,7 @@ export class PixiRenderer {
     }
 
     /**
-     * Builds the 3D Cel-Shaded Floating Multiplier Platforms & Classic Looney Tunes Cartoon Naval Bombs
+     * Builds the 3D Cel-Shaded Floating Cardboard Mystery Boxes, Mini Sun, and ACME Cartoon Naval Bombs
      */
     private buildFloatingMultiplierCardsPool() {
         const hitboxGeo = new THREE.BoxGeometry(4.24, 3.95, 2.95);
@@ -1150,12 +1170,12 @@ export class PixiRenderer {
             depthWrite: false
         });
 
-        const sidePostGeo = new THREE.BoxGeometry(0.18, 2.24, 0.22);
-        const topBottomBarGeo = new THREE.BoxGeometry(3.26, 0.18, 0.24);
-        const clampArmGeo = new THREE.BoxGeometry(0.48, 0.22, 0.28);
+        // 3D Cardboard Mystery Box Geometries
+        const boxBodyGeo = new THREE.BoxGeometry(2.1, 1.8, 1.8);
+        const flapGeo = new THREE.BoxGeometry(1.06, 0.06, 1.82);
 
-        const glassCardGeo = new THREE.BoxGeometry(3.04, 1.98, 0.1);
-        const crystalGeo = new THREE.OctahedronGeometry(0.72, 0);
+        // 3D Mini Sun Geometries
+        const sunCoreGeo = new THREE.SphereGeometry(0.52, 16, 14);
 
         // Classic ACME Cartoon Naval Bomb Geometries
         const bombSphereGeo = new THREE.SphereGeometry(0.68, 24, 20);
@@ -1164,10 +1184,27 @@ export class PixiRenderer {
         const bombWickGeo = new THREE.TorusGeometry(0.18, 0.045, 8, 16, Math.PI * 0.95);
         const bombSparkGeo = new THREE.OctahedronGeometry(0.09, 0);
 
-        const darkBracketMat = new THREE.MeshStandardMaterial({
-            color: 0x1e293b,
-            roughness: 0.22,
-            metalness: 0.9
+        // Materials for the 3 types of mystery boxes
+        const boxMatNormal = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardBoxTex,
+            roughness: 0.88,
+            metalness: 0.05
+        });
+
+        const boxMatOrange = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardOrangeBoxTex,
+            emissive: 0xf59e0b,
+            emissiveIntensity: 0.38,
+            roughness: 0.75,
+            metalness: 0.08
+        });
+
+        const boxMatAlien = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardAlienBoxTex,
+            emissive: 0x8b5cf6,
+            emissiveIntensity: 0.42,
+            roughness: 0.75,
+            metalness: 0.08
         });
 
         // Classic Cartoon Bomb Materials
@@ -1215,85 +1252,52 @@ export class PixiRenderer {
                 group.add(hitboxMesh);
                 this.interactiveHitboxMeshes.push(hitboxMesh);
 
-                // 2. Floating Sci-Fi Multiplier Card Frame & Shatterable 3D Refractive Glass Card
-                const frameMat = new THREE.MeshStandardMaterial({
-                    color: 0x38bdf8,
-                    emissive: 0x0284c7,
-                    emissiveIntensity: 0.72,
-                    roughness: 0.18,
-                    metalness: 0.82
-                });
+                // 2. 3D Cardboard Mystery Box Structure
+                const mysteryBoxGroup = new THREE.Group();
+                const boxBody = new THREE.Mesh(boxBodyGeo, boxMatNormal);
+                boxBody.position.set(0, 0.95, 0);
+                const boxBodyOutline = this.createOutline(boxBodyGeo, 0.08, boxBody.position);
+                mysteryBoxGroup.add(boxBody, boxBodyOutline);
 
-                const cardFrameGroup = new THREE.Group();
-                const leftPost = new THREE.Mesh(sidePostGeo, darkBracketMat);
-                leftPost.position.set(-1.56, 1.12, 0);
+                // Upper Dual Flaps (Hinged to swing open upwards)
+                const lidLeft = new THREE.Group();
+                lidLeft.position.set(-1.05, 1.85, 0);
+                const lidFlapL = new THREE.Mesh(flapGeo, boxMatNormal);
+                lidFlapL.position.set(0.53, 0, 0);
+                const lidOutlineL = this.createOutline(flapGeo, 0.06, lidFlapL.position);
+                lidLeft.add(lidFlapL, lidOutlineL);
 
-                const rightPost = new THREE.Mesh(sidePostGeo, darkBracketMat);
-                rightPost.position.set(1.56, 1.12, 0);
+                const lidRight = new THREE.Group();
+                lidRight.position.set(1.05, 1.85, 0);
+                const lidFlapR = new THREE.Mesh(flapGeo, boxMatNormal);
+                lidFlapR.position.set(-0.53, 0, 0);
+                const lidOutlineR = this.createOutline(flapGeo, 0.06, lidFlapR.position);
+                lidRight.add(lidFlapR, lidOutlineR);
 
-                const topBar = new THREE.Mesh(topBottomBarGeo, frameMat);
-                topBar.position.set(0, 2.16, 0);
+                mysteryBoxGroup.add(lidLeft, lidRight);
+                visualGroup.add(mysteryBoxGroup);
 
-                const bottomBar = new THREE.Mesh(topBottomBarGeo, frameMat);
-                bottomBar.position.set(0, 0.08, 0);
+                // 3. Mini Sun (Revealed inside Orange Box)
+                const miniSunGroup = new THREE.Group();
+                miniSunGroup.position.set(0, 0.95, 0);
 
-                const mechClampL = new THREE.Mesh(clampArmGeo, frameMat);
-                mechClampL.position.set(-1.38, 1.12, 0.04);
-
-                const mechClampR = new THREE.Mesh(clampArmGeo, frameMat);
-                mechClampR.position.set(1.38, 1.12, 0.04);
-
-                const glassCardMat = new THREE.MeshPhysicalMaterial({
-                    map: this.textures.glassCardTex,
-                    color: 0xe0f2fe,
-                    emissive: 0x0284c7,
-                    emissiveIntensity: 0.28,
-                    roughness: 0.05,
-                    metalness: 0.22,
-                    ior: 1.52,
-                    reflectivity: 1.0,
-                    envMapIntensity: 1.8,
-                    clearcoat: 1.0,
-                    clearcoatRoughness: 0.04,
+                const miniSunMat = new THREE.MeshBasicMaterial({ color: 0xfff08a });
+                const miniSunCore = new THREE.Mesh(sunCoreGeo, miniSunMat);
+                const sunCoronaMat = new THREE.SpriteMaterial({
+                    map: this.textures.miniSunTex,
+                    blending: THREE.AdditiveBlending,
                     transparent: true,
-                    opacity: 0.88
+                    opacity: 0.9
                 });
-                const glassCardMesh = new THREE.Mesh(glassCardGeo, glassCardMat);
-                glassCardMesh.position.set(0, 1.12, 0);
-
-                cardFrameGroup.add(
-                    leftPost,
-                    rightPost,
-                    topBar,
-                    bottomBar,
-                    mechClampL,
-                    mechClampR,
-                    glassCardMesh,
-                    this.createOutline(sidePostGeo, 0.075, leftPost.position),
-                    this.createOutline(sidePostGeo, 0.075, rightPost.position),
-                    this.createOutline(topBottomBarGeo, 0.075, topBar.position),
-                    this.createOutline(topBottomBarGeo, 0.075, bottomBar.position)
-                );
-                visualGroup.add(cardFrameGroup);
-
-                // 3. Cleared Safe Platform Prop: Floating Cel-Shaded Quantum Energy Crystal
-                const gemGroup = new THREE.Group();
-                gemGroup.position.y = 1.18;
-                const gemMat = new THREE.MeshStandardMaterial({
-                    color: 0x10b981,
-                    emissive: 0x10b981,
-                    emissiveIntensity: 1.15,
-                    roughness: 0.12,
-                    metalness: 0.55
-                });
-                const crystalMesh = new THREE.Mesh(crystalGeo, gemMat);
-                gemGroup.add(crystalMesh, this.createOutline(crystalGeo, 0.075));
-                gemGroup.visible = false;
-                visualGroup.add(gemGroup);
+                const miniSunCorona = new THREE.Sprite(sunCoronaMat);
+                miniSunCorona.scale.set(2.4, 2.4, 1.0);
+                miniSunGroup.add(miniSunCore, miniSunCorona, this.createOutline(sunCoreGeo, 0.07));
+                miniSunGroup.visible = false;
+                visualGroup.add(miniSunGroup);
 
                 // 4. Hazard Prop: Classic 3D ACME Cartoon Naval Bomb with Inverted Hull Ink Outlines
                 const mineGroup = new THREE.Group();
-                mineGroup.position.y = 1.15;
+                mineGroup.position.set(0, 0.85, 0);
 
                 const bombBody = new THREE.Mesh(bombSphereGeo, cartoonBombMat);
                 const bombOutline = this.createOutline(bombSphereGeo, 0.08);
@@ -1334,7 +1338,7 @@ export class PixiRenderer {
                     depthTest: false
                 });
                 const badgeSprite = new THREE.Sprite(badgeMat);
-                badgeSprite.position.set(0, 3.05, 0);
+                badgeSprite.position.set(0, 2.85, 0);
                 badgeSprite.scale.set(3.25, 1.32, 1);
                 badgeSprite.visible = false;
                 visualGroup.add(badgeSprite);
@@ -1344,20 +1348,30 @@ export class PixiRenderer {
                     group,
                     visualGroup,
                     hitboxMesh,
-                    cardFrameGroup,
-                    glassCardMesh,
-                    mechClampL,
-                    mechClampR,
-                    frameMat,
-                    glassCardMat,
-                    gemGroup,
-                    gemMat,
+                    mysteryBoxGroup,
+                    boxBody,
+                    boxBodyOutline,
+                    lidLeft,
+                    lidRight,
+                    lidFlapL,
+                    lidFlapR,
+                    lidOutlineL,
+                    lidOutlineR,
+                    boxMatNormal,
+                    boxMatOrange,
+                    boxMatAlien,
+                    miniSunGroup,
+                    miniSunCore,
+                    miniSunCorona,
                     mineGroup,
                     badgeCanvas,
                     badgeTex,
                     badgeSprite,
                     badgeMat,
                     lastBadgeSignature: '',
+                    boxType: 'normal',
+                    lidOpenProgress: 0,
+                    isShattered: false,
                     assignedRow: s + 1,
                     lane
                 });
@@ -1381,18 +1395,158 @@ export class PixiRenderer {
         this.trajectoryLine.frustumCulled = false;
         this.trajectoryLine.visible = false;
         this.scene.add(this.trajectoryLine);
+    }
 
-        this.targetReticle = new THREE.Group();
-        this.reticleMat = new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
-            side: THREE.DoubleSide
+    /**
+     * Builds the 3D Looney Tunes Styled Alien UFO Saucer with Tractor Beam
+     */
+    private buildAlienUfoSaucer() {
+        this.alienUfoGroup = new THREE.Group();
+        this.alienUfoGroup.visible = false;
+        this.scene.add(this.alienUfoGroup);
+
+        const saucerBodyGeo = new THREE.CylinderGeometry(1.4, 2.5, 0.44, 24);
+        const saucerMat = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            roughness: 0.22,
+            metalness: 0.88
         });
-        const outerReticleGeo = new THREE.RingGeometry(1.15, 1.42, 4);
-        outerReticleGeo.rotateX(-Math.PI / 2);
-        const outerMesh = new THREE.Mesh(outerReticleGeo, this.reticleMat);
-        this.targetReticle.add(outerMesh);
-        this.targetReticle.visible = false;
-        this.scene.add(this.targetReticle);
+        const saucerMesh = new THREE.Mesh(saucerBodyGeo, saucerMat);
+        this.alienUfoGroup.add(saucerMesh, this.createOutline(saucerBodyGeo, 0.08));
+
+        // Glass Cockpit Dome with Cel-Shaded Cyan Tint
+        const domeGeo = new THREE.SphereGeometry(0.88, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const domeMat = new THREE.MeshPhysicalMaterial({
+            color: 0x00f0ff,
+            roughness: 0.05,
+            metalness: 0.3,
+            transmission: 0.85,
+            transparent: true,
+            opacity: 0.88
+        });
+        const domeMesh = new THREE.Mesh(domeGeo, domeMat);
+        domeMesh.position.y = 0.22;
+        this.alienUfoGroup.add(domeMesh, this.createOutline(domeGeo, 0.07, domeMesh.position));
+
+        // Perimeter glowing alien lights
+        for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI) / 4;
+            const lightGeo = new THREE.SphereGeometry(0.12, 12, 8);
+            const lightColor = i % 2 === 0 ? 0x00f0ff : 0xa855f7;
+            const lightMat = new THREE.MeshBasicMaterial({ color: lightColor });
+            const lightMesh = new THREE.Mesh(lightGeo, lightMat);
+            lightMesh.position.set(Math.cos(angle) * 2.3, 0, Math.sin(angle) * 2.3);
+            this.alienUfoGroup.add(lightMesh);
+        }
+
+        // Abduction Tractor Beam Cone
+        const beamGeo = new THREE.CylinderGeometry(0.35, 2.6, 9.5, 20, 1, true);
+        const beamMat = new THREE.MeshBasicMaterial({
+            color: 0x00f0ff,
+            transparent: true,
+            opacity: 0.55,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        this.alienTractorBeam = new THREE.Mesh(beamGeo, beamMat);
+        this.alienTractorBeam.position.y = -4.75;
+        this.alienUfoGroup.add(this.alienTractorBeam);
+    }
+
+    /**
+     * Executes the Cinematic 3D Alien UFO Abduction Sequence:
+     * 1. UFO swoops down from deep space with playful Looney Tunes elasticity.
+     * 2. Tractor beam activates, enveloping player ship and mystery box.
+     * 3. Abducts ship upwards into the beam.
+     * 4. Cosmic warp flash transports player forward +2 rows!
+     * 5. Ship descends bouncy back onto the track, and UFO vanishes into hyperspace.
+     */
+    public triggerAlienAbductionSequence(worldX: number, worldZ: number, _rowsSkipped: number) {
+        this.isAbductionActive = true;
+        this.alienUfoGroup.visible = true;
+        this.alienUfoGroup.position.set(worldX, 22, worldZ);
+        this.alienTractorBeam.scale.set(0.1, 1, 0.1);
+
+        const targetRow = this.gameState.engine.currentRow;
+        const targetZ = PixiRenderer.rowToWorldZ(targetRow);
+
+        audioController.playAlienLaser();
+
+        // Lift both ship and cardboard mystery box up into the tractor beam
+        const card = this.rowSlots
+            .flat()
+            .find(
+                (c) =>
+                    Math.abs(c.group.position.z - worldZ) < 1.2 &&
+                    Math.abs(c.group.position.x - worldX) < 1.2
+            );
+        if (card) {
+            gsap.killTweensOf(card.visualGroup.position);
+            gsap.to(card.visualGroup.position, {
+                y: 4.8,
+                duration: 0.45,
+                delay: 0.38,
+                ease: 'power2.inOut',
+                onComplete: () => {
+                    card.mysteryBoxGroup.visible = false;
+                    card.visualGroup.position.y = 0;
+                }
+            });
+        }
+
+        gsap.killTweensOf(this.alienUfoGroup.position);
+        gsap.killTweensOf(this.alienTractorBeam.scale);
+        gsap.killTweensOf(this.ship.pos);
+
+        // 1. UFO swoops down from space directly above box and ship
+        gsap.to(this.alienUfoGroup.position, {
+            y: 8.5,
+            duration: 0.38,
+            ease: 'back.out(1.4)',
+            onComplete: () => {
+                // 2. Tractor beam activates and expands
+                gsap.to(this.alienTractorBeam.scale, {
+                    x: 1.0,
+                    z: 1.0,
+                    duration: 0.22,
+                    ease: 'power2.out'
+                });
+
+                // 3. Ship and box lift upward into the beam
+                gsap.to(this.ship.pos, {
+                    y: 4.8,
+                    duration: 0.45,
+                    ease: 'power2.inOut',
+                    onComplete: () => {
+                        // 4. Cosmic warp jump! UFO and ship streak forward +2 rows!
+                        this.vfx.spawnSafeBurst3D(worldX, 4.8, worldZ, true);
+                        this.ship.pos.set(worldX, 4.8, targetZ);
+                        this.alienUfoGroup.position.set(worldX, 8.5, targetZ);
+                        this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, targetZ);
+
+                        // 5. Lower ship safely back to normal flight altitude
+                        gsap.to(this.ship.pos, {
+                            y: SHIP_FLIGHT_Y,
+                            duration: 0.35,
+                            ease: 'bounce.out',
+                            onComplete: () => {
+                                // 6. UFO ascends and vanishes into hyperspace
+                                gsap.to(this.alienUfoGroup.position, {
+                                    y: 28,
+                                    duration: 0.4,
+                                    ease: 'power2.in',
+                                    onComplete: () => {
+                                        this.alienUfoGroup.visible = false;
+                                        this.isAbductionActive = false;
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -1427,17 +1581,31 @@ export class PixiRenderer {
 
         engine.onStateChange((state) => {
             if (state === GameState.PLAYING && engine.currentRow === 1 && engine.currentPicks.length === 0) {
-                this.ship.snapTo(0, 1.25, 0);
+                this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
                 this.vfx.clearGraffitiTags();
             } else if (state === GameState.IDLE) {
                 this.vfx.clearGraffitiTags();
                 this.ship.vel.set(0, 0, 0);
                 this.camVel.set(0, 0, 0);
                 if (this.ship.pos.z < -14) {
-                    this.ship.pos.set(0, 1.25, -12);
+                    this.ship.pos.set(0, SHIP_FLIGHT_Y, -12);
                     this.camPos.set(0, 8.65, -0.8);
                 }
-                this.ship.setTargetPosition(0, 1.25, 0);
+                this.ship.setTargetPosition(0, SHIP_FLIGHT_Y, 0);
+            }
+        });
+
+        this.gameState.onHitStopStart((row, lane) => {
+            const worldX = PixiRenderer.laneToWorldX(lane);
+            const worldZ = PixiRenderer.rowToWorldZ(row);
+            const specials = engine.getSpecialsForRow(row);
+
+            if (lane === specials.alienLane) {
+                // Alien box: ship decelerates and pauses right before impact!
+                this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ + 2.4);
+            } else {
+                // Normal or Orange box: fly directly to box
+                this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ);
             }
         });
 
@@ -1446,22 +1614,47 @@ export class PixiRenderer {
             const worldZ = PixiRenderer.rowToWorldZ(pick.row);
 
             if (pick.isSafe) {
-                this.ship.triggerSpeedBurst(0.44);
-
-                this.vfx.spawnGraffitiMultiplierTag3D(
-                    worldX,
-                    0.8,
-                    worldZ,
-                    pick.stepMultiplierAfter,
-                    pick.row
-                );
-
-                this.vfx.spawnSafeBurst3D(worldX, 0.3, worldZ, false);
+                if (pick.specialType === 'NONE') {
+                    // 1. Normal Box: Smashes into volumetric cardboard pieces!
+                    this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'normal');
+                    this.ship.triggerSpeedBurst(0.44);
+                    this.vfx.spawnGraffitiMultiplierTag3D(
+                        worldX,
+                        0.8,
+                        worldZ,
+                        pick.stepMultiplierAfter,
+                        pick.row
+                    );
+                    this.vfx.spawnSafeBurst3D(worldX, 0.3, worldZ, false);
+                } else if (pick.specialType === 'GOLDEN') {
+                    // 2. Orange Box: Absorbs glowing Mini Sun with solar energy particles!
+                    this.vfx.spawnGpuParticleCloud(
+                        worldX,
+                        1.4,
+                        worldZ,
+                        140,
+                        [0xfde047, 0xf59e0b, 0xea580c, 0xffffff],
+                        10,
+                        24,
+                        0.55
+                    );
+                    this.ship.triggerSpeedBurst(0.65);
+                    this.vfx.spawnGraffitiMultiplierTag3D(
+                        worldX,
+                        1.4,
+                        worldZ,
+                        pick.stepMultiplierAfter,
+                        pick.row
+                    );
+                } else if (pick.specialType === 'ALIEN') {
+                    // 3. Purple Alien Box: UFO Abduction Warp Sequence!
+                    this.triggerAlienAbductionSequence(worldX, worldZ, pick.rowsSkipped);
+                }
 
                 // Cinematic Near-Miss Tension: check if an adjacent lane held a deadly mine
                 const rowHazards = engine.getHazardsForActionRow(pick.row);
                 const isNearMiss = rowHazards.some((h) => Math.abs(h - pick.lane) === 1);
-                if (isNearMiss) {
+                if (isNearMiss && pick.specialType !== 'ALIEN') {
                     this.vfx.triggerScreenShake(0.32, 0.22);
                     this.vfx.spawnGpuParticleCloud(
                         worldX,
@@ -1475,6 +1668,11 @@ export class PixiRenderer {
                     );
                 }
             } else {
+                // Fatal mine hit!
+                if (pick.specialType === 'NONE') {
+                    // Normal box breaks into cardboard chunks on bomb detonation
+                    this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'normal');
+                }
                 this.ship.crashExplosionTimer = 0.001;
                 this.vfx.spawnCrashExplosion3D(worldX, 0.3, worldZ);
             }
@@ -1725,7 +1923,7 @@ export class PixiRenderer {
 
         const targetShipX = PixiRenderer.laneToWorldX(shipLane);
         const targetShipZ = PixiRenderer.rowToWorldZ(shipRow);
-        this.ship.setTargetPosition(targetShipX, 1.25, targetShipZ);
+        this.ship.setTargetPosition(targetShipX, SHIP_FLIGHT_Y, targetShipZ);
 
         const hitStopX =
             isHitStop && this.gameState.hitStopLane !== null
@@ -1770,10 +1968,10 @@ export class PixiRenderer {
         const aspect = this.width / Math.max(1, this.height);
         const isPortrait916 = aspect < 1.0;
         const narrowFactor = isPortrait916 ? Math.max(0, (0.65 - aspect) * 9.5) : 0;
-        let offsetY = isPortrait916 ? 10.2 + narrowFactor * 0.55 : 7.4;
-        let offsetZ = isPortrait916 ? 15.2 + narrowFactor : 11.2;
-        const lookAheadZ = isPortrait916 ? -11.8 : -13.0;
-        let baseFov = isPortrait916 ? 66 : 54;
+        let offsetY = isPortrait916 ? 6.5 + narrowFactor * 0.55 : 4.4;
+        let offsetZ = isPortrait916 ? 10.5 + narrowFactor : 7.2;
+        const lookAheadZ = isPortrait916 ? -8.5 : -9.5;
+        let baseFov = isPortrait916 ? 64 : 54;
 
         const engine = this.gameState.engine;
         const isCrashed = engine.state === GameState.CRASHED;
@@ -1829,7 +2027,7 @@ export class PixiRenderer {
                   ? THREE.MathUtils.lerp(this.ship.pos.x, hoverX, isPortrait916 ? 0.10 : 0.25)
                   : this.ship.pos.x * lookScale + this.mouseParallax.x * (isPortrait916 ? 0.15 : 0.8);
 
-        const baseLookY = isPortrait916 ? -1.55 : -0.35;
+        const baseLookY = isPortrait916 ? 0.25 : 1.05;
         const desiredLook = this.scratchDesiredLook.set(
             focusLaneX,
             baseLookY - this.mouseParallax.y * (isPortrait916 ? 0.12 : 0.4),
@@ -1844,7 +2042,7 @@ export class PixiRenderer {
     /**
      * Updates the 5-Lane Floating Multiplier Cards in the Open Cosmic Void.
      */
-    private updateFloatingMultiplierCards(dt: number, primaryHex: number) {
+    private updateFloatingMultiplierCards(dt: number, _primaryHex: number) {
         const engine = this.gameState.engine;
         const isPlaying = engine.state === GameState.PLAYING;
         const activeRow = isPlaying ? engine.currentRow : Math.max(1, engine.currentRow);
@@ -1857,7 +2055,6 @@ export class PixiRenderer {
             const rowNumber = startRow + s;
             const rowZ = PixiRenderer.rowToWorldZ(rowNumber);
             const isCurrentRow = isPlaying && rowNumber === engine.currentRow;
-            const isFutureRow = rowNumber > engine.currentRow;
 
             const pickForRow = engine.currentPicks.find((p) => p.row === rowNumber);
             for (let lane = 0; lane < LANE_COUNT; lane++) {
@@ -1873,15 +2070,39 @@ export class PixiRenderer {
                     this.gameState.hitStopRow === rowNumber &&
                     this.gameState.hitStopLane === lane;
 
+                const rowSpecials = engine.getSpecialsForRow(rowNumber);
+                let boxType: 'normal' | 'orange' | 'alien' = 'normal';
+                if (lane === rowSpecials.alienLane) {
+                    boxType = 'alien';
+                } else if (lane === rowSpecials.goldenLane) {
+                    boxType = 'orange';
+                }
+                plat.boxType = boxType;
+
+                // Bind appropriate cartoon texture
+                const activeMat =
+                    boxType === 'orange'
+                        ? plat.boxMatOrange
+                        : boxType === 'alien'
+                          ? plat.boxMatAlien
+                          : plat.boxMatNormal;
+
+                if (plat.boxBody.material !== activeMat) {
+                    plat.boxBody.material = activeMat;
+                    plat.lidFlapL.material = activeMat;
+                    plat.lidFlapR.material = activeMat;
+                }
+
+                // Keep plat.group stationary at Y = 0 so hitboxMesh never oscillates on hover!
+                plat.group.position.set(laneX, 0, rowZ);
+                plat.group.scale.setScalar(this.cardLayoutScale);
+
                 const targetHoverLift = isHitStopTarget
-                    ? 0.42
+                    ? 0.45
                     : isHovered
                       ? 0.28
                       : Math.sin(this.elapsed * 3.2 + lane * 0.8 + rowNumber * 0.5) * 0.08;
 
-                // Keep `plat.group` stationary at Y = 0 so `hitboxMesh` never oscillates on hover!
-                plat.group.position.set(laneX, 0, rowZ);
-                plat.group.scale.setScalar(this.cardLayoutScale);
                 plat.visualGroup.position.y = THREE.MathUtils.lerp(
                     plat.visualGroup.position.y,
                     targetHoverLift,
@@ -1893,55 +2114,94 @@ export class PixiRenderer {
                     THREE.MathUtils.lerp(plat.visualGroup.scale.x, targetScale, Math.min(1, dt * 16))
                 );
 
-                const clampAngle = isHitStopTarget
-                    ? -0.45
-                    : isHovered
-                      ? 0.38
-                      : Math.sin(this.elapsed * 3 + lane) * 0.12;
-                plat.mechClampL.rotation.z = clampAngle;
-                plat.mechClampR.rotation.z = -clampAngle;
+                // Flap opening logic:
+                // Normal boxes stay shut until impacted/destroyed.
+                // Orange and Alien boxes open upward when hovered or selected!
+                let targetLidProgress = 0;
+                if (boxType !== 'normal') {
+                    if (isHitStopTarget) {
+                        targetLidProgress = 1.0;
+                    } else if (isHovered) {
+                        targetLidProgress = 0.42;
+                    }
+                }
+                plat.lidOpenProgress = THREE.MathUtils.lerp(
+                    plat.lidOpenProgress,
+                    targetLidProgress,
+                    Math.min(1, dt * 14)
+                );
 
-                plat.cardFrameGroup.visible = true;
-                plat.gemGroup.visible = false;
+                const flapAngle = plat.lidOpenProgress * (Math.PI * 0.65);
+                plat.lidLeft.rotation.z = flapAngle;
+                plat.lidRight.rotation.z = -flapAngle;
+
+                plat.mysteryBoxGroup.visible = true;
+                plat.miniSunGroup.visible = false;
                 plat.mineGroup.visible = false;
                 plat.badgeSprite.visible = false;
+
+                // Reveal interior content (Mini Sun or Bomb) while box flaps swing open
+                if (isHitStopTarget && boxType !== 'normal') {
+                    const rowHazards = engine.getHazardsForActionRow(rowNumber);
+                    const isHazard = rowHazards.includes(lane);
+                    if (isHazard) {
+                        plat.mineGroup.visible = plat.lidOpenProgress > 0.12;
+                        plat.mineGroup.position.y = 0.85 + plat.lidOpenProgress * 0.4;
+                        plat.mineGroup.rotation.y = this.elapsed * 2.8;
+                    } else if (boxType === 'orange') {
+                        plat.miniSunGroup.visible = plat.lidOpenProgress > 0.12;
+                        plat.miniSunGroup.position.y = 1.0 + plat.lidOpenProgress * 0.55 + Math.sin(this.elapsed * 4.0) * 0.08;
+                        plat.miniSunGroup.rotation.y = this.elapsed * 3.2;
+                    }
+                }
 
                 if (pickForRow) {
                     const isPicked = pickForRow.lane === lane;
                     const isMine = pickForRow.hazards.includes(lane);
 
-                    if (isPicked && pickForRow.isSafe) {
-                        plat.cardFrameGroup.visible = false;
-                        const col = 0x10b981;
-                        plat.frameMat.color.setHex(col);
-                        plat.frameMat.emissive.setHex(col);
-                        plat.frameMat.emissiveIntensity = 1.1;
-
-                        plat.gemGroup.visible = true;
-                        plat.gemMat.color.setHex(col);
-                        plat.gemMat.emissive.setHex(col);
-                        plat.gemGroup.rotation.y = this.elapsed * 3.4;
-                        plat.gemGroup.rotation.x = this.elapsed * 1.9;
-                    } else if (isMine) {
-                        plat.cardFrameGroup.visible = false;
-                        plat.frameMat.color.setHex(0xff1e42);
-                        plat.frameMat.emissive.setHex(0xff1e42);
-                        plat.frameMat.emissiveIntensity = isPicked ? 1.8 : 0.75;
-
+                    if (isPicked) {
+                        if (pickForRow.isSafe) {
+                            if (pickForRow.specialType === 'NONE') {
+                                // Normal box was destroyed on impact!
+                                plat.mysteryBoxGroup.visible = false;
+                            } else if (pickForRow.specialType === 'GOLDEN') {
+                                // Orange box open with Mini Sun floating
+                                plat.mysteryBoxGroup.visible = true;
+                                plat.lidOpenProgress = 1.0;
+                                plat.lidLeft.rotation.z = Math.PI * 0.65;
+                                plat.lidRight.rotation.z = -Math.PI * 0.65;
+                                plat.miniSunGroup.visible = true;
+                                plat.miniSunGroup.position.y = 1.6 + Math.sin(this.elapsed * 4.0) * 0.12;
+                                plat.miniSunGroup.rotation.y = this.elapsed * 3.0;
+                            } else if (pickForRow.specialType === 'ALIEN') {
+                                // Alien box open
+                                plat.mysteryBoxGroup.visible = true;
+                                plat.lidOpenProgress = 1.0;
+                                plat.lidLeft.rotation.z = Math.PI * 0.65;
+                                plat.lidRight.rotation.z = -Math.PI * 0.65;
+                            }
+                        } else {
+                            // Fatal mine crash
+                            if (pickForRow.specialType === 'NONE') {
+                                plat.mysteryBoxGroup.visible = false;
+                                plat.mineGroup.visible = true;
+                                plat.mineGroup.rotation.y = this.elapsed * 2.4;
+                            } else {
+                                plat.mysteryBoxGroup.visible = true;
+                                plat.lidOpenProgress = 1.0;
+                                plat.lidLeft.rotation.z = Math.PI * 0.65;
+                                plat.lidRight.rotation.z = -Math.PI * 0.65;
+                                plat.mineGroup.visible = true;
+                                plat.mineGroup.rotation.y = this.elapsed * 2.4;
+                            }
+                        }
+                    } else if (isMine && !isPlaying) {
+                        // Round finished: show hazard bombs in unpicked lanes
+                        plat.lidLeft.rotation.z = Math.PI * 0.65;
+                        plat.lidRight.rotation.z = -Math.PI * 0.65;
                         plat.mineGroup.visible = true;
-                        plat.mineGroup.rotation.y = this.elapsed * 2.4;
-                    } else {
-                        plat.cardFrameGroup.visible = false;
                     }
                 } else if (isCurrentRow) {
-                    const frameCol = isHitStopTarget || isHovered ? 0xfde047 : primaryHex;
-
-                    plat.frameMat.color.setHex(frameCol);
-                    plat.frameMat.emissive.setHex(frameCol);
-                    plat.frameMat.emissiveIntensity = isHitStopTarget ? 1.5 : isHovered ? 1.15 : 0.72;
-                    plat.glassCardMat.emissive.setHex(frameCol);
-                    plat.glassCardMat.emissiveIntensity = isHitStopTarget ? 0.65 : isHovered ? 0.48 : 0.24;
-
                     plat.badgeSprite.visible = true;
                     const isFirst = engine.currentRow === 1;
                     const nextM = calculateNextStepMultiplier(
@@ -1950,8 +2210,20 @@ export class PixiRenderer {
                         isFirst
                     );
 
-                    const subText = `${nextM.toFixed(2)}×`;
-                    const accentCss = isHovered ? '#fde047' : '#38bdf8';
+                    let subText = `${nextM.toFixed(2)}×`;
+                    let accentCss = isHovered ? '#fde047' : '#38bdf8';
+                    let isSpecial = false;
+
+                    if (boxType === 'orange') {
+                        const boostedM = Math.round(nextM * 1.5 * 100) / 100;
+                        subText = `SOLAR ${boostedM.toFixed(2)}×`;
+                        accentCss = '#f59e0b';
+                        isSpecial = true;
+                    } else if (boxType === 'alien') {
+                        subText = `UFO WARP +2F`;
+                        accentCss = '#c084fc';
+                        isSpecial = true;
+                    }
 
                     const sig = `${lane + 1}|${subText}|${accentCss}|${isHovered}`;
                     if (plat.lastBadgeSignature !== sig) {
@@ -1961,7 +2233,7 @@ export class PixiRenderer {
                             lane + 1,
                             subText,
                             accentCss,
-                            false,
+                            isSpecial,
                             isHovered
                         );
                         plat.badgeTex.needsUpdate = true;
@@ -1969,13 +2241,6 @@ export class PixiRenderer {
                     plat.badgeSprite.scale.setScalar(isHovered ? 1.14 : 1.0);
                     plat.badgeSprite.scale.x *= 3.25;
                     plat.badgeSprite.scale.y *= 1.32;
-                } else if (isFutureRow) {
-                    const col = 0x38bdf8;
-                    plat.frameMat.color.setHex(col);
-                    plat.frameMat.emissive.setHex(col);
-                    plat.frameMat.emissiveIntensity = 0.38;
-                    plat.glassCardMat.emissive.setHex(col);
-                    plat.glassCardMat.emissiveIntensity = 0.16;
                 }
             }
         }
@@ -2155,7 +2420,6 @@ export class PixiRenderer {
 
         if (!isPlaying || targetLane === null) {
             this.trajectoryLine.visible = false;
-            this.targetReticle.visible = false;
             return;
         }
 
@@ -2189,13 +2453,5 @@ export class PixiRenderer {
         (this.trajectoryLine.geometry.attributes.position as THREE.BufferAttribute).needsUpdate = true;
         this.trajectoryMat.color.setHex(isHitStop ? 0xfde047 : primaryHex);
         this.trajectoryLine.visible = true;
-
-        this.targetReticle.position.set(end.x, end.y, end.z + 0.2);
-        this.targetReticle.rotation.x = Math.PI / 2;
-        this.targetReticle.rotation.z = this.elapsed * 4.5;
-        const pulse = 1.0 + Math.sin(this.elapsed * 14) * 0.14;
-        this.targetReticle.scale.setScalar(pulse);
-        this.reticleMat.color.setHex(isHitStop ? 0xfde047 : 0x38bdf8);
-        this.targetReticle.visible = true;
     }
 }

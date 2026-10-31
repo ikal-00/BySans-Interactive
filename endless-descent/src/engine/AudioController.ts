@@ -29,7 +29,7 @@ export class AudioController {
     // Pre-baked Noise AudioBuffers (eliminates per-hit CPU buffer allocation & GC jitter)
     private snareNoiseBuffer: AudioBuffer | null = null;
     private hatNoiseBuffer: AudioBuffer | null = null;
-    private glassNoiseBuffer: AudioBuffer | null = null;
+    private cardboardNoiseBuffer: AudioBuffer | null = null;
     private crashNoiseBuffer: AudioBuffer | null = null;
 
     constructor() {
@@ -65,7 +65,7 @@ export class AudioController {
 
         this.snareNoiseBuffer = createExpNoise(0.11, 0.35);
         this.hatNoiseBuffer = createExpNoise(0.04, 0.3);
-        this.glassNoiseBuffer = createExpNoise(0.14, 0.35);
+        this.cardboardNoiseBuffer = createExpNoise(0.16, 0.38);
 
         const crashLen = Math.floor(sr * 0.55);
         this.crashNoiseBuffer = this.ctx.createBuffer(1, crashLen, sr);
@@ -479,8 +479,8 @@ export class AudioController {
     }
 
     /**
-     * 3D VOLUMETRIC GLASS GATE SHATTER + POST-HIT-STOP SPEED BURST:
-     * Crisp crystalline glass-shatter transients + Sonic boom punch + Harmonic win chord
+     * 3D VOLUMETRIC CARDBOARD MYSTERY BOX SHATTER + POST-HIT-STOP SPEED BURST:
+     * Crisp cardboard box smash transients + Sonic boom punch + Harmonic win chord
      */
     public playSafeStep(row: number) {
         if (this.muted) return;
@@ -493,37 +493,37 @@ export class AudioController {
             pentatonic[(row - 1) % pentatonic.length] *
             (1 + Math.floor((row - 1) / pentatonic.length) * 0.25);
 
-        // 1. Sudden Speed-Burst Sonic Punch
+        // 1. Sudden Speed-Burst Sonic Punch & Cardboard Thud
         const punchOsc = this.ctx.createOscillator();
         const punchGain = this.ctx.createGain();
-        punchOsc.type = 'sine';
-        punchOsc.frequency.setValueAtTime(155, now);
-        punchOsc.frequency.exponentialRampToValueAtTime(40, now + 0.16);
-        punchGain.gain.setValueAtTime(0.25, now);
+        punchOsc.type = 'triangle';
+        punchOsc.frequency.setValueAtTime(160, now);
+        punchOsc.frequency.exponentialRampToValueAtTime(38, now + 0.16);
+        punchGain.gain.setValueAtTime(0.28, now);
         punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
         punchOsc.connect(punchGain);
         punchGain.connect(this.ctx.destination);
         punchOsc.start(now);
         punchOsc.stop(now + 0.19);
 
-        // 2. High-Frequency Crisp Glass Shatter Noise Burst
-        if (this.glassNoiseBuffer) {
-            const glassNoise = this.ctx.createBufferSource();
-            glassNoise.buffer = this.glassNoiseBuffer;
+        // 2. Cardboard Box Tear & Crunch Noise Burst
+        if (this.cardboardNoiseBuffer) {
+            const paperNoise = this.ctx.createBufferSource();
+            paperNoise.buffer = this.cardboardNoiseBuffer;
 
-            const hpFilter = this.ctx.createBiquadFilter();
-            hpFilter.type = 'bandpass';
-            hpFilter.frequency.setValueAtTime(4200, now);
-            hpFilter.Q.setValueAtTime(2.4, now);
+            const bpFilter = this.ctx.createBiquadFilter();
+            bpFilter.type = 'bandpass';
+            bpFilter.frequency.setValueAtTime(1100, now);
+            bpFilter.Q.setValueAtTime(1.6, now);
 
-            const glassNoiseGain = this.ctx.createGain();
-            glassNoiseGain.gain.setValueAtTime(0.22, now);
-            glassNoiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+            const paperGain = this.ctx.createGain();
+            paperGain.gain.setValueAtTime(0.26, now);
+            paperGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
-            glassNoise.connect(hpFilter);
-            hpFilter.connect(glassNoiseGain);
-            glassNoiseGain.connect(this.ctx.destination);
-            glassNoise.start(now);
+            paperNoise.connect(bpFilter);
+            bpFilter.connect(paperGain);
+            paperGain.connect(this.ctx.destination);
+            paperNoise.start(now);
         }
 
         // 3. Individual Scattering 3D Glass Shard Clinks
