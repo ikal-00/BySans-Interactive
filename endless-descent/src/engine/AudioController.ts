@@ -493,76 +493,75 @@ export class AudioController {
             pentatonic[(row - 1) % pentatonic.length] *
             (1 + Math.floor((row - 1) / pentatonic.length) * 0.25);
 
-        // 1. Sudden Speed-Burst Sonic Punch & Cardboard Thud
+        // 1. Heavy Cardboard Box Hollow Thud
         const punchOsc = this.ctx.createOscillator();
         const punchGain = this.ctx.createGain();
         punchOsc.type = 'triangle';
-        punchOsc.frequency.setValueAtTime(160, now);
-        punchOsc.frequency.exponentialRampToValueAtTime(38, now + 0.16);
-        punchGain.gain.setValueAtTime(0.28, now);
-        punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        punchOsc.frequency.setValueAtTime(140, now);
+        punchOsc.frequency.exponentialRampToValueAtTime(32, now + 0.18);
+        punchGain.gain.setValueAtTime(0.38, now);
+        punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
         punchOsc.connect(punchGain);
         punchGain.connect(this.ctx.destination);
         punchOsc.start(now);
-        punchOsc.stop(now + 0.19);
+        punchOsc.stop(now + 0.21);
 
-        // 2. Cardboard Box Tear & Crunch Noise Burst
+        // 2. Corrugated Cardboard Rip, Crush & Crunch Noise
         if (this.cardboardNoiseBuffer) {
-            const paperNoise = this.ctx.createBufferSource();
-            paperNoise.buffer = this.cardboardNoiseBuffer;
+            // Low-mid box body crunch
+            const boxNoise = this.ctx.createBufferSource();
+            boxNoise.buffer = this.cardboardNoiseBuffer;
+            const lpFilter = this.ctx.createBiquadFilter();
+            lpFilter.type = 'bandpass';
+            lpFilter.frequency.setValueAtTime(750, now);
+            lpFilter.Q.setValueAtTime(1.8, now);
 
-            const bpFilter = this.ctx.createBiquadFilter();
-            bpFilter.type = 'bandpass';
-            bpFilter.frequency.setValueAtTime(1100, now);
-            bpFilter.Q.setValueAtTime(1.6, now);
+            const boxGain = this.ctx.createGain();
+            boxGain.gain.setValueAtTime(0.42, now);
+            boxGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
-            const paperGain = this.ctx.createGain();
-            paperGain.gain.setValueAtTime(0.26, now);
-            paperGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            boxNoise.connect(lpFilter);
+            lpFilter.connect(boxGain);
+            boxGain.connect(this.ctx.destination);
+            boxNoise.start(now);
 
-            paperNoise.connect(bpFilter);
-            bpFilter.connect(paperGain);
-            paperGain.connect(this.ctx.destination);
-            paperNoise.start(now);
+            // Paper tear & fiber rip friction
+            const tearNoise = this.ctx.createBufferSource();
+            tearNoise.buffer = this.cardboardNoiseBuffer;
+            const bpTear = this.ctx.createBiquadFilter();
+            bpTear.type = 'bandpass';
+            bpTear.frequency.setValueAtTime(1600, now);
+            bpTear.Q.setValueAtTime(2.4, now);
+
+            const tearGain = this.ctx.createGain();
+            tearGain.gain.setValueAtTime(0.24, now);
+            tearGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+            tearNoise.connect(bpTear);
+            bpTear.connect(tearGain);
+            tearGain.connect(this.ctx.destination);
+            tearNoise.start(now);
         }
 
-        // 3. Individual Scattering 3D Glass Shard Clinks
-        const shardFreqs = [2650, 3420, 4180, 4960, 5840, 6420];
-        shardFreqs.forEach((sf, sIdx) => {
-            if (!this.ctx) return;
-            const delay = sIdx * 0.018 + Math.random() * 0.012;
-            const sOsc = this.ctx.createOscillator();
-            const sGain = this.ctx.createGain();
-            sOsc.type = 'sine';
-            sOsc.frequency.setValueAtTime(sf, now + delay);
-            sOsc.frequency.exponentialRampToValueAtTime(sf * 0.86, now + delay + 0.065);
-            sGain.gain.setValueAtTime(0.055 / (1 + sIdx * 0.2), now + delay);
-            sGain.gain.exponentialRampToValueAtTime(0.0008, now + delay + 0.07);
-            sOsc.connect(sGain);
-            sGain.connect(this.ctx.destination);
-            sOsc.start(now + delay);
-            sOsc.stop(now + delay + 0.075);
-        });
-
-        // 4. Shimmering Crystalline Gate-Clear Chord
-        [1, 1.25, 1.5, 2.0].forEach((ratio, idx) => {
+        // 3. Harmonic Progression Reward Tone (Arcade Win Note)
+        [1, 1.5].forEach((ratio, idx) => {
             if (!this.ctx) return;
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
 
-            osc.type = idx % 2 === 0 ? 'triangle' : 'sine';
+            osc.type = 'sine';
             const f = rootFreq * ratio;
-            osc.frequency.setValueAtTime(f, now + idx * 0.024);
-            osc.frequency.exponentialRampToValueAtTime(f * 1.04, now + idx * 0.024 + 0.28);
+            osc.frequency.setValueAtTime(f, now + idx * 0.02);
+            osc.frequency.exponentialRampToValueAtTime(f * 1.02, now + idx * 0.02 + 0.22);
 
-            gain.gain.setValueAtTime(0.12 / (idx * 0.45 + 1), now + idx * 0.024);
-            gain.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.024 + 0.34);
+            gain.gain.setValueAtTime(0.08 / (idx * 0.4 + 1), now + idx * 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.02 + 0.25);
 
             osc.connect(gain);
             gain.connect(this.ctx.destination);
 
-            osc.start(now + idx * 0.024);
-            osc.stop(now + idx * 0.024 + 0.36);
+            osc.start(now + idx * 0.02);
+            osc.stop(now + idx * 0.02 + 0.26);
         });
     }
 

@@ -45,11 +45,9 @@ interface FloatingMultiplierCard3D {
     boxMatOrange: THREE.MeshStandardMaterial;
     boxMatAlien: THREE.MeshStandardMaterial;
 
-    // Subtle Neon Aura Effect (for Orange & Alien boxes)
-    neonAuraGroup: THREE.Group;
-    neonFloorRing: THREE.Mesh;
-    neonBoxGlow: THREE.Mesh;
-    neonAuraMat: THREE.MeshBasicMaterial;
+    // Soft Diffuse Background Atmospheric Glow (Integrated with cosmic space, NO separate floating aura or floor circle)
+    diffuseHazeSprite: THREE.Sprite;
+    diffuseHazeMat: THREE.SpriteMaterial;
 
     // Contents inside/underneath the box
     miniSunGroup: THREE.Group;
@@ -1248,36 +1246,21 @@ export class PixiRenderer {
             color: 0xfde047
         });
 
-        // Shared Geometries & Materials for Subtle Neon Aura Effect
-        const neonFloorRingGeo = new THREE.RingGeometry(0.75, 1.85, 32);
-        neonFloorRingGeo.rotateX(-Math.PI / 2);
-        const neonBoxGlowGeo = new THREE.BoxGeometry(2.28, 1.98, 1.98);
-
-        // Shared Geometries & Materials for Alien Portal / Power Core (Underneath Alien Box)
-        const alienRuneFloorGeo = new THREE.RingGeometry(0.25, 1.15, 24);
-        alienRuneFloorGeo.rotateX(-Math.PI / 2);
+        // Shared Geometries & Materials for Alien Core (Underneath Alien Box - NO ground circle)
         const alienCoreGeo = new THREE.OctahedronGeometry(0.5, 0);
         const alienRingGeo = new THREE.TorusGeometry(0.75, 0.04, 8, 24);
 
         const alienCoreMat = new THREE.MeshStandardMaterial({
             color: 0x06b6d4,
             emissive: 0xa855f7,
-            emissiveIntensity: 0.65,
+            emissiveIntensity: 0.75,
             roughness: 0.15,
             metalness: 0.85
-        });
-        const alienRuneFloorMat = new THREE.MeshBasicMaterial({
-            color: 0xa855f7,
-            transparent: true,
-            opacity: 0.55,
-            side: THREE.DoubleSide,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
         });
         const alienRingMat = new THREE.MeshBasicMaterial({
             color: 0x38bdf8,
             transparent: true,
-            opacity: 0.75,
+            opacity: 0.85,
             blending: THREE.AdditiveBlending
         });
 
@@ -1320,26 +1303,20 @@ export class PixiRenderer {
                 mysteryBoxGroup.add(lidLeft, lidRight);
                 visualGroup.add(mysteryBoxGroup);
 
-                // 3. Subtle Neon Aura Effect (for Orange & Alien mystery boxes)
-                const neonAuraMat = new THREE.MeshBasicMaterial({
+                // 3. Diffuse Atmospheric Background Glow (Integrated with cosmic space, NO separate floating aura or floor circle)
+                const diffuseHazeMat = new THREE.SpriteMaterial({
+                    map: this.textures.particleGlow,
                     color: 0xf59e0b,
                     transparent: true,
-                    opacity: 0.4,
-                    side: THREE.DoubleSide,
+                    opacity: 0.28,
                     blending: THREE.AdditiveBlending,
                     depthWrite: false
                 });
-                const neonFloorRing = new THREE.Mesh(neonFloorRingGeo, neonAuraMat);
-                neonFloorRing.position.set(0, 0.04, 0);
-
-                const neonBoxGlow = new THREE.Mesh(neonBoxGlowGeo, neonAuraMat);
-                neonBoxGlow.position.set(0, 0.95, 0);
-                mysteryBoxGroup.add(neonBoxGlow);
-
-                const neonAuraGroup = new THREE.Group();
-                neonAuraGroup.add(neonFloorRing);
-                neonAuraGroup.visible = false;
-                visualGroup.add(neonAuraGroup);
+                const diffuseHazeSprite = new THREE.Sprite(diffuseHazeMat);
+                diffuseHazeSprite.position.set(0, 1.35, -0.4);
+                diffuseHazeSprite.scale.set(5.5, 5.5, 1.0);
+                diffuseHazeSprite.visible = false;
+                visualGroup.add(diffuseHazeSprite);
 
                 // 4. Mini Sun (Revealed underneath Orange Box)
                 const miniSunGroup = new THREE.Group();
@@ -1359,12 +1336,9 @@ export class PixiRenderer {
                 miniSunGroup.visible = false;
                 visualGroup.add(miniSunGroup);
 
-                // 5. Alien Cosmic Portal / Core (Revealed underneath Alien Box)
+                // 5. Alien Cosmic Portal / Core (Revealed underneath Alien Box - clean, NO floor circle)
                 const alienPortalGroup = new THREE.Group();
                 alienPortalGroup.position.set(0, 0.95, 0);
-
-                const alienFloorMesh = new THREE.Mesh(alienRuneFloorGeo, alienRuneFloorMat);
-                alienFloorMesh.position.set(0, -0.9, 0);
 
                 const alienCoreMesh = new THREE.Mesh(alienCoreGeo, alienCoreMat);
                 const alienCoreOutline = this.createOutline(alienCoreGeo, 0.07);
@@ -1382,7 +1356,7 @@ export class PixiRenderer {
                 const alienGlowSprite = new THREE.Sprite(alienGlowMat);
                 alienGlowSprite.scale.set(2.4, 2.4, 1.0);
 
-                alienPortalGroup.add(alienFloorMesh, alienCoreMesh, alienCoreOutline, alienRingMesh, alienGlowSprite);
+                alienPortalGroup.add(alienCoreMesh, alienCoreOutline, alienRingMesh, alienGlowSprite);
                 alienPortalGroup.visible = false;
                 visualGroup.add(alienPortalGroup);
 
@@ -1451,10 +1425,8 @@ export class PixiRenderer {
                     boxMatNormal,
                     boxMatOrange,
                     boxMatAlien,
-                    neonAuraGroup,
-                    neonFloorRing,
-                    neonBoxGlow,
-                    neonAuraMat,
+                    diffuseHazeSprite,
+                    diffuseHazeMat,
                     miniSunGroup,
                     miniSunCore,
                     miniSunCorona,
@@ -1555,16 +1527,16 @@ export class PixiRenderer {
 
     /**
      * Executes the Cinematic 3D Alien UFO Abduction Sequence:
-     * 1. UFO swoops down from deep space with playful Looney Tunes elasticity.
-     * 2. Tractor beam activates, enveloping player ship and mystery box.
+     * 1. Alien box & core vanish immediately upon impact with cosmic particle burst.
+     * 2. In that exact instant, Alien UFO swoops down and activates tractor beam.
      * 3. Abducts ship upwards into the beam.
-     * 4. Cosmic warp flash transports player forward +2 rows!
-     * 5. Ship descends bouncy back onto the track, and UFO vanishes into hyperspace.
+     * 4. Cosmic warp flash transports player forward to the destination row.
+     * 5. Drops player on a completely clean row so visuals are pristine and next targets are clear!
      */
     public triggerAlienAbductionSequence(worldX: number, worldZ: number, _rowsSkipped: number) {
         this.isAbductionActive = true;
         this.alienUfoGroup.visible = true;
-        this.alienUfoGroup.position.set(worldX, 22, worldZ);
+        this.alienUfoGroup.position.set(worldX, 18, worldZ);
         this.alienTractorBeam.scale.set(0.1, 1, 0.1);
 
         const targetRow = this.gameState.engine.currentRow;
@@ -1572,7 +1544,7 @@ export class PixiRenderer {
 
         audioController.playAlienLaser();
 
-        // Lift both ship and cardboard mystery box up into the tractor beam
+        // 1. Immediately destroy/vanish the alien box, core, and all residual cell elements!
         const card = this.rowSlots
             .flat()
             .find(
@@ -1581,59 +1553,68 @@ export class PixiRenderer {
                     Math.abs(c.group.position.x - worldX) < 1.2
             );
         if (card) {
-            gsap.killTweensOf(card.visualGroup.position);
-            gsap.to(card.visualGroup.position, {
-                y: 4.8,
-                duration: 0.45,
-                delay: 0.38,
-                ease: 'power2.inOut',
-                onComplete: () => {
-                    card.mysteryBoxGroup.visible = false;
-                    card.visualGroup.position.y = 0;
-                }
-            });
+            card.mysteryBoxGroup.visible = false;
+            card.alienPortalGroup.visible = false;
+            card.miniSunGroup.visible = false;
+            card.diffuseHazeSprite.visible = false;
+            card.badgeSprite.visible = false;
+            card.visualGroup.position.y = 0;
+            card.boxLiftY = 0;
         }
+
+        // 2. Explode with vibrant purple cosmic particles of the alien box's color
+        this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'alien');
+        this.vfx.spawnGpuParticleCloud(
+            worldX,
+            1.0,
+            worldZ,
+            160,
+            [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
+            12,
+            28,
+            0.65
+        );
 
         gsap.killTweensOf(this.alienUfoGroup.position);
         gsap.killTweensOf(this.alienTractorBeam.scale);
         gsap.killTweensOf(this.ship.pos);
 
-        // 1. UFO swoops down from space directly above box and ship
+        // 3. UFO swoops down rapidly from deep space
         gsap.to(this.alienUfoGroup.position, {
-            y: 8.5,
-            duration: 0.38,
-            ease: 'back.out(1.4)',
+            y: 8.0,
+            duration: 0.22,
+            ease: 'back.out(1.5)',
             onComplete: () => {
-                // 2. Tractor beam activates and expands
+                // Tractor beam activates and expands
                 gsap.to(this.alienTractorBeam.scale, {
                     x: 1.0,
                     z: 1.0,
-                    duration: 0.22,
+                    duration: 0.14,
                     ease: 'power2.out'
                 });
 
-                // 3. Ship and box lift upward into the beam
+                // Ship lifts upward into the beam
                 gsap.to(this.ship.pos, {
                     y: 4.8,
-                    duration: 0.45,
+                    duration: 0.28,
                     ease: 'power2.inOut',
                     onComplete: () => {
-                        // 4. Cosmic warp jump! UFO and ship streak forward +2 rows!
+                        // Cosmic warp jump! UFO and ship streak forward to clean destination row!
                         this.vfx.spawnSafeBurst3D(worldX, 4.8, worldZ, true);
                         this.ship.pos.set(worldX, 4.8, targetZ);
-                        this.alienUfoGroup.position.set(worldX, 8.5, targetZ);
+                        this.alienUfoGroup.position.set(worldX, 8.0, targetZ);
                         this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, targetZ);
 
-                        // 5. Lower ship safely back to normal flight altitude
+                        // Lower ship safely onto the clean track
                         gsap.to(this.ship.pos, {
                             y: SHIP_FLIGHT_Y,
-                            duration: 0.35,
-                            ease: 'bounce.out',
+                            duration: 0.26,
+                            ease: 'back.out(1.2)',
                             onComplete: () => {
-                                // 6. UFO ascends and vanishes into hyperspace
+                                // UFO ascends and vanishes into hyperspace
                                 gsap.to(this.alienUfoGroup.position, {
-                                    y: 28,
-                                    duration: 0.4,
+                                    y: 30,
+                                    duration: 0.35,
                                     ease: 'power2.in',
                                     onComplete: () => {
                                         this.alienUfoGroup.visible = false;
@@ -1700,11 +1681,11 @@ export class PixiRenderer {
             const specials = engine.getSpecialsForRow(row);
 
             if (lane === specials.alienLane) {
-                // Alien box: ship decelerates and pauses right before impact!
-                this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ + 2.4);
+                // Alien box: ship flies directly toward item underneath, pausing right before impact
+                this.ship.setTargetPosition(worldX, 1.05, worldZ + 2.0);
             } else {
-                // Normal or Orange box: fly directly to box
-                this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ);
+                // Normal or Orange box: dive and impact directly onto what is underneath!
+                this.ship.setTargetPosition(worldX, 1.05, worldZ);
             }
         });
 
@@ -1712,10 +1693,37 @@ export class PixiRenderer {
             const worldX = PixiRenderer.laneToWorldX(pick.lane);
             const worldZ = PixiRenderer.rowToWorldZ(pick.row);
 
+            // Immediately destroy the entire cell and clear all residual elements!
+            const hitCard = this.rowSlots
+                .flat()
+                .find(
+                    (c) =>
+                        Math.abs(c.group.position.z - worldZ) < 1.2 &&
+                        Math.abs(c.group.position.x - worldX) < 1.2
+                );
+            if (hitCard) {
+                hitCard.mysteryBoxGroup.visible = false;
+                hitCard.miniSunGroup.visible = false;
+                hitCard.alienPortalGroup.visible = false;
+                hitCard.diffuseHazeSprite.visible = false;
+                hitCard.badgeSprite.visible = false;
+                hitCard.boxLiftY = 0;
+            }
+
             if (pick.isSafe) {
                 if (pick.specialType === 'NONE') {
-                    // 1. Normal Box: Smashes into volumetric cardboard pieces!
+                    // 1. Traditional Cardboard Box: explodes into chunky cardboard pieces & brown/tan fibers!
                     this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'normal');
+                    this.vfx.spawnGpuParticleCloud(
+                        worldX,
+                        1.0,
+                        worldZ,
+                        70,
+                        [0x8b5a2b, 0x5c3a1e, 0xb47b46, 0xc58b54, 0x3d2314],
+                        8,
+                        22,
+                        0.65
+                    );
                     this.ship.triggerSpeedBurst(0.44);
                     this.vfx.spawnGraffitiMultiplierTag3D(
                         worldX,
@@ -1725,17 +1733,19 @@ export class PixiRenderer {
                         pick.row
                     );
                     this.vfx.spawnSafeBurst3D(worldX, 0.3, worldZ, false);
+                    this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ);
                 } else if (pick.specialType === 'GOLDEN') {
-                    // 2. Orange Box: Absorbs glowing Mini Sun with solar energy particles!
+                    // 2. Solar/Orange Box: destroys entire cell cleanly, exploding with amber/golden particles!
+                    this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'orange');
                     this.vfx.spawnGpuParticleCloud(
                         worldX,
-                        1.4,
+                        1.0,
                         worldZ,
-                        140,
-                        [0xfde047, 0xf59e0b, 0xea580c, 0xffffff],
-                        10,
-                        24,
-                        0.55
+                        160,
+                        [0xf59e0b, 0xfbbf24, 0xfde047, 0xea580c, 0xffffff],
+                        12,
+                        26,
+                        0.65
                     );
                     this.ship.triggerSpeedBurst(0.65);
                     this.vfx.spawnGraffitiMultiplierTag3D(
@@ -1745,8 +1755,9 @@ export class PixiRenderer {
                         pick.stepMultiplierAfter,
                         pick.row
                     );
+                    this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ);
                 } else if (pick.specialType === 'ALIEN') {
-                    // 3. Purple Alien Box: UFO Abduction Warp Sequence!
+                    // 3. Purple Alien Box: disappears immediately, abducting ship to clean destination row!
                     this.triggerAlienAbductionSequence(worldX, worldZ, pick.rowsSkipped);
                 }
 
@@ -1769,7 +1780,6 @@ export class PixiRenderer {
             } else {
                 // Fatal mine hit!
                 if (pick.specialType === 'NONE') {
-                    // Normal box breaks into cardboard chunks on bomb detonation
                     this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'normal');
                 }
                 this.ship.crashExplosionTimer = 0.001;
@@ -2158,7 +2168,23 @@ export class PixiRenderer {
             const pickForRow = engine.currentPicks.find((p) => p.row === rowNumber);
             for (let lane = 0; lane < LANE_COUNT; lane++) {
                 const plat = this.rowSlots[s][lane];
-                plat.assignedRow = rowNumber;
+
+                // If slot was reassigned to a new row, completely reset state to fresh!
+                if (plat.assignedRow !== rowNumber) {
+                    plat.assignedRow = rowNumber;
+                    plat.boxLiftY = 0;
+                    plat.mysteryBoxGroup.position.y = 0;
+                    plat.lidOpenProgress = 0;
+                    plat.lidLeft.rotation.z = 0;
+                    plat.lidRight.rotation.z = 0;
+                    plat.visualGroup.position.y = 0;
+                    plat.mysteryBoxGroup.visible = true;
+                    plat.miniSunGroup.visible = false;
+                    plat.alienPortalGroup.visible = false;
+                    plat.mineGroup.visible = false;
+                    plat.diffuseHazeSprite.visible = false;
+                    plat.badgeSprite.visible = false;
+                }
                 plat.group.visible = true;
 
                 const laneX = PixiRenderer.laneToWorldX(lane);
@@ -2214,45 +2240,18 @@ export class PixiRenderer {
                 );
 
                 // Upward Box Lift & Flap Opening Animation
-                // Orange and Alien boxes lift smoothly upwards into the air when hovered or selected,
-                // leaving visible what was underneath them on the runway platform!
+                // Bonus boxes elevate sufficiently high (y ≈ 3.6 - 4.4) so the full contents
+                // underneath are 100% visible without the box overlapping or occluding anything!
                 let targetBoxLiftY = 0;
                 let targetLidProgress = 0;
 
                 if (boxType !== 'normal') {
                     if (isHitStopTarget) {
-                        targetBoxLiftY = 2.85;
+                        targetBoxLiftY = 4.4;
                         targetLidProgress = 1.0;
                     } else if (isHovered) {
-                        targetBoxLiftY = 0.75;
-                        targetLidProgress = 0.45;
-                    }
-                }
-
-                if (pickForRow) {
-                    const isPicked = pickForRow.lane === lane;
-                    const isMine = pickForRow.hazards.includes(lane);
-                    if (isPicked) {
-                        if (pickForRow.isSafe) {
-                            if (pickForRow.specialType === 'GOLDEN' || pickForRow.specialType === 'ALIEN') {
-                                targetBoxLiftY = 3.2;
-                                targetLidProgress = 1.0;
-                            } else {
-                                plat.mysteryBoxGroup.visible = false;
-                            }
-                        } else {
-                            if (pickForRow.specialType !== 'NONE') {
-                                targetBoxLiftY = 3.5;
-                                targetLidProgress = 1.0;
-                            } else {
-                                plat.mysteryBoxGroup.visible = false;
-                            }
-                        }
-                    } else if (isMine && !isPlaying) {
-                        if (boxType !== 'normal') {
-                            targetBoxLiftY = 2.5;
-                        }
-                        targetLidProgress = 1.0;
+                        targetBoxLiftY = 3.6;
+                        targetLidProgress = 0.65;
                     }
                 }
 
@@ -2269,36 +2268,30 @@ export class PixiRenderer {
                     Math.min(1, dt * 14)
                 );
 
-                const flapAngle = plat.lidOpenProgress * (Math.PI * 0.65);
+                const flapAngle = plat.lidOpenProgress * (Math.PI * 0.72);
                 plat.lidLeft.rotation.z = flapAngle;
                 plat.lidRight.rotation.z = -flapAngle;
 
-                // Subtle Neon Aura Effect:
-                // Orange Box: warm amber/solar neon aura
-                // Alien Box: neon purple/cosmic violet aura
-                // Normal Box: no aura
+                // Diffuse, background-integrated neon glow (Feathered atmospheric haze, NO floating aura or floor circle)
                 if (boxType === 'orange') {
-                    plat.neonAuraGroup.visible = true;
-                    plat.neonBoxGlow.visible = true;
-                    plat.neonAuraMat.color.setHex(0xf59e0b);
-                    const auraPulse = 0.38 + 0.12 * Math.sin(this.elapsed * 3.6 + lane * 0.9);
-                    plat.neonAuraMat.opacity = isHovered ? Math.min(0.65, auraPulse * 1.35) : auraPulse;
+                    plat.diffuseHazeSprite.visible = true;
+                    plat.diffuseHazeMat.color.setHex(0xf59e0b);
+                    const pulse = 0.24 + 0.08 * Math.sin(this.elapsed * 3.2 + lane * 0.9);
+                    plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
                 } else if (boxType === 'alien') {
-                    plat.neonAuraGroup.visible = true;
-                    plat.neonBoxGlow.visible = true;
-                    plat.neonAuraMat.color.setHex(0xa855f7);
-                    const auraPulse = 0.38 + 0.12 * Math.sin(this.elapsed * 3.6 + lane * 0.9 + 1.2);
-                    plat.neonAuraMat.opacity = isHovered ? Math.min(0.65, auraPulse * 1.35) : auraPulse;
+                    plat.diffuseHazeSprite.visible = true;
+                    plat.diffuseHazeMat.color.setHex(0x9333ea);
+                    const pulse = 0.24 + 0.08 * Math.sin(this.elapsed * 3.2 + lane * 0.9 + 1.2);
+                    plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
                 } else {
-                    plat.neonAuraGroup.visible = false;
-                    plat.neonBoxGlow.visible = false;
+                    plat.diffuseHazeSprite.visible = false;
                 }
 
                 // Underneath Content Reveal Logic:
-                // When box moves upward (boxLiftY > 0.18), what was resting underneath is exposed!
+                // Revealed only while the box is lifted up, before impact destroys the cell
                 const rowHazards = engine.getHazardsForActionRow(rowNumber);
                 const isHazard = rowHazards.includes(lane);
-                const isExposed = plat.boxLiftY > 0.18;
+                const isExposed = plat.boxLiftY > 0.4 && (!pickForRow || !pickForRow.isSafe);
 
                 plat.miniSunGroup.visible = false;
                 plat.alienPortalGroup.visible = false;
@@ -2312,50 +2305,58 @@ export class PixiRenderer {
                         plat.mineGroup.rotation.y = this.elapsed * 2.5;
                     } else if (boxType === 'orange') {
                         plat.miniSunGroup.visible = true;
-                        plat.miniSunGroup.position.y = 0.95 + Math.sin(this.elapsed * 4.0 + lane) * 0.08;
-                        plat.miniSunGroup.rotation.y = this.elapsed * 3.2;
+                        plat.miniSunGroup.position.y = 1.05 + Math.sin(this.elapsed * 3.6 + lane) * 0.08;
+                        plat.miniSunGroup.rotation.y = this.elapsed * 2.8;
                     } else if (boxType === 'alien') {
                         plat.alienPortalGroup.visible = true;
-                        plat.alienPortalGroup.position.y = 0.95;
+                        plat.alienPortalGroup.position.y = 1.0;
                         plat.alienPortalGroup.rotation.y = this.elapsed * 2.4;
-                        plat.alienRingMesh.rotation.x = this.elapsed * 3.0;
+                        plat.alienRingMesh.rotation.x = this.elapsed * 2.8;
                         plat.alienRingMesh.rotation.y = this.elapsed * 1.8;
                     }
                 }
 
+                // Evaluated Row Pick Resolution:
+                // When an impact occurs, DESTROY THE ENTIRE CELL COMPLETELY:
+                // No lingering box, no leftover sun, no residual clutter!
                 if (pickForRow) {
                     const isPicked = pickForRow.lane === lane;
                     const isMine = pickForRow.hazards.includes(lane);
 
                     if (isPicked) {
                         if (pickForRow.isSafe) {
-                            if (pickForRow.specialType === 'NONE') {
-                                plat.mysteryBoxGroup.visible = false;
-                            } else if (pickForRow.specialType === 'GOLDEN') {
-                                plat.mysteryBoxGroup.visible = true;
-                                plat.miniSunGroup.visible = true;
-                                plat.miniSunGroup.position.y = 0.95 + Math.sin(this.elapsed * 4.0 + lane) * 0.08;
-                                plat.miniSunGroup.rotation.y = this.elapsed * 3.2;
-                            } else if (pickForRow.specialType === 'ALIEN') {
-                                plat.mysteryBoxGroup.visible = true;
-                                plat.alienPortalGroup.visible = true;
-                                plat.alienPortalGroup.position.y = 0.95;
-                                plat.alienPortalGroup.rotation.y = this.elapsed * 2.4;
-                            }
+                            // SAFE IMPACT: Cell is completely destroyed, clean & empty!
+                            plat.mysteryBoxGroup.visible = false;
+                            plat.miniSunGroup.visible = false;
+                            plat.alienPortalGroup.visible = false;
+                            plat.mineGroup.visible = false;
+                            plat.diffuseHazeSprite.visible = false;
+                            plat.badgeSprite.visible = false;
                         } else {
-                            if (pickForRow.specialType === 'NONE') {
-                                plat.mysteryBoxGroup.visible = false;
-                            } else {
-                                plat.mysteryBoxGroup.visible = true;
-                            }
+                            // Fatal mine detonation
+                            plat.mysteryBoxGroup.visible = false;
+                            plat.miniSunGroup.visible = false;
+                            plat.alienPortalGroup.visible = false;
                             plat.mineGroup.visible = true;
+                            plat.diffuseHazeSprite.visible = false;
+                            plat.badgeSprite.visible = false;
                             plat.mineGroup.rotation.y = this.elapsed * 2.5;
                         }
                     } else if (isMine && !isPlaying) {
+                        // Round finished: show hazard bombs in unpicked lanes
+                        plat.mysteryBoxGroup.visible = false;
                         plat.mineGroup.visible = true;
                         plat.mineGroup.rotation.y = this.elapsed * 2.5;
+                    } else {
+                        // Unpicked safe lanes on already played rows stay clean or subtle
+                        plat.mysteryBoxGroup.visible = true;
                     }
-                } else if (isCurrentRow) {
+                } else {
+                    // Current and future unpicked rows: ALL BOXES ARE 100% VISIBLE!
+                    plat.mysteryBoxGroup.visible = true;
+                }
+
+                if (isCurrentRow) {
                     plat.badgeSprite.visible = true;
                     const isFirst = engine.currentRow === 1;
                     const nextM = calculateNextStepMultiplier(
