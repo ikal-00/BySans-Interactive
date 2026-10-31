@@ -1237,15 +1237,15 @@ export class PixiRenderer {
 
         const boxMatAlienSide = new THREE.MeshStandardMaterial({
             map: this.textures.cardboardAlienBoxTex,
-            emissive: 0x8b5cf6,
-            emissiveIntensity: 0.40,
+            emissive: 0x1e3a8a,
+            emissiveIntensity: 0.14,
             roughness: 0.78,
             metalness: 0.06
         });
         const boxMatAlienTop = new THREE.MeshStandardMaterial({
             map: this.textures.cardboardAlienBoxTopTex,
-            emissive: 0x8b5cf6,
-            emissiveIntensity: 0.40,
+            emissive: 0x1e3a8a,
+            emissiveIntensity: 0.14,
             roughness: 0.78,
             metalness: 0.06
         });
@@ -2371,7 +2371,7 @@ export class PixiRenderer {
                     plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
                 } else if (boxType === 'alien') {
                     plat.diffuseHazeSprite.visible = true;
-                    plat.diffuseHazeMat.color.setHex(0x9333ea);
+                    plat.diffuseHazeMat.color.setHex(0x2563eb);
                     const pulse = 0.24 + 0.08 * Math.sin(this.elapsed * 3.2 + lane * 0.9 + 1.2);
                     plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
                 } else {

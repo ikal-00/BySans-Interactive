@@ -534,10 +534,10 @@ export function createPBRTexturePack(): PBRTexturePack {
             inkC = '#18100c'; tapeC = '#fde047'; tapeHi = '#fef08a';
             haloC = '#fef08a'; qFill = '#18100c';
         } else if (type === 'alien') {
-            p1 = '#4c1d95'; p2 = '#6b21a8'; p3 = '#581c87'; p4 = '#3b0764';
-            frameC = '#9333ea'; frameHi = '#c084fc'; frameSh = '#4c1d95';
-            inkC = '#0e0a1a'; tapeC = '#38bdf8'; tapeHi = '#a5f3fc';
-            haloC = '#67e8f9'; qFill = '#0e0a1a';
+            p1 = '#2d248a'; p2 = '#372ea3'; p3 = '#251c78'; p4 = '#1f1666';
+            frameC = '#453bc2'; frameHi = '#5e54db'; frameSh = '#221969';
+            inkC = '#0a0818'; tapeC = '#4895ef'; tapeHi = '#72efdd';
+            haloC = '#0a0818'; qFill = '#38f6ff';
         } else {
             p1 = '#c58b53'; p2 = '#b87e49'; p3 = '#ab713e'; p4 = '#bc8350';
             frameC = '#d29a65'; frameHi = '#e5b382'; frameSh = '#9d6738';
@@ -678,7 +678,7 @@ export function createPBRTexturePack(): PBRTexturePack {
         ctx.stroke();
 
         // Corner peeled paper tabs
-        ctx.fillStyle = '#ece3ce';
+        ctx.fillStyle = type === 'alien' ? '#5ce1e6' : '#ece3ce';
         ctx.beginPath();
         ctx.moveTo(512 - fw - 25, fw + 10);
         ctx.lineTo(512 - fw + 8, fw - 6);
@@ -689,25 +689,53 @@ export function createPBRTexturePack(): PBRTexturePack {
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // 4. Iconic Cartoon Question Mark ("?") with Thick White Outline & Solid Black Interior
+        // 4. Iconic Cartoon Question Mark ("?")
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.font = '900 248px "Arial Black", Impact, sans-serif';
 
-        ctx.shadowColor = 'rgba(16, 12, 10, 0.45)';
-        ctx.shadowBlur = 12;
-        ctx.shadowOffsetY = 8;
+        if (type === 'alien') {
+            // Outer Neon Cyan Halo + Dark Comic Ink Contour + Glowing Cyan Fill + White Glints
+            ctx.shadowColor = 'rgba(56, 246, 255, 0.85)';
+            ctx.shadowBlur = 22;
+            ctx.strokeStyle = '#38f6ff';
+            ctx.lineWidth = 34;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.strokeText('?', 256, 276);
 
-        ctx.strokeStyle = haloC;
-        ctx.lineWidth = 28;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.strokeText('?', 256, 276);
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = '#0a0818';
+            ctx.lineWidth = 22;
+            ctx.strokeText('?', 256, 276);
 
-        ctx.shadowColor = 'transparent';
-        ctx.fillStyle = qFill;
-        ctx.fillText('?', 256, 276);
+            ctx.fillStyle = '#38f6ff';
+            ctx.fillText('?', 256, 276);
+
+            // Specular White Glints on top curve
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(228, 195, 16, 9, -Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(248, 184, 5, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.shadowColor = 'rgba(16, 12, 10, 0.45)';
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetY = 8;
+
+            ctx.strokeStyle = haloC;
+            ctx.lineWidth = 28;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.strokeText('?', 256, 276);
+
+            ctx.shadowColor = 'transparent';
+            ctx.fillStyle = qFill;
+            ctx.fillText('?', 256, 276);
+        }
         ctx.restore();
 
         return canvas;
@@ -728,9 +756,9 @@ export function createPBRTexturePack(): PBRTexturePack {
             frameC = '#f59e0b'; frameHi = '#fde047'; frameSh = '#b45309';
             inkC = '#18100c'; tapeC = '#fde047'; tapeHi = '#fef08a';
         } else if (type === 'alien') {
-            p1 = '#4c1d95'; p2 = '#6b21a8'; p3 = '#581c87'; p4 = '#3b0764';
-            frameC = '#9333ea'; frameHi = '#c084fc'; frameSh = '#4c1d95';
-            inkC = '#0e0a1a'; tapeC = '#38bdf8'; tapeHi = '#a5f3fc';
+            p1 = '#2d248a'; p2 = '#372ea3'; p3 = '#251c78'; p4 = '#1f1666';
+            frameC = '#453bc2'; frameHi = '#5e54db'; frameSh = '#221969';
+            inkC = '#0a0818'; tapeC = '#4895ef'; tapeHi = '#72efdd';
         } else {
             p1 = '#c58b53'; p2 = '#b87e49'; p3 = '#ab713e'; p4 = '#bc8350';
             frameC = '#d29a65'; frameHi = '#e5b382'; frameSh = '#9d6738';
