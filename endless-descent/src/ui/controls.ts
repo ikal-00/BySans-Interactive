@@ -10,6 +10,7 @@ import { PixiRenderer } from '../engine/Renderer';
 import { audioController } from '../engine/AudioController';
 import { stakeRGS } from '../engine/StakeRGSBridge';
 import { createRulesModal, openRulesModal, isRulesModalOpen } from './rulesModal';
+import { toggleDevModal } from './devModal';
 import { getTranslations } from '../i18n/translations';
 import gsap from 'gsap';
 
@@ -127,6 +128,15 @@ export function createControlsUI(
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
           </svg>
           <span id="audio-label">${lang === 'es' ? 'Sonido' : 'Sound'}</span>
+        </button>
+        <button class="dev-quick-btn" id="btn-dev-quick-add" type="button" title="Modo Dev: Recargar +$1,000">
+          +$1K
+        </button>
+        <button class="icon-btn dev-toggle-btn" id="btn-dev-modal-toggle" type="button" title="Panel Developer (Atajo: D)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          <span>DEV</span>
         </button>
         <div class="balance-pill" title="${t.balanceLabel}">
           <div>
@@ -349,6 +359,59 @@ export function createControlsUI(
             }
         });
     }
+
+    // Initialize Developer Tools & Instant Balance Suite
+    if (!stakeRGS.session.isLiveRGS) {
+        const savedDemoBal = localStorage.getItem('endless_descent_demo_balance');
+        if (savedDemoBal) {
+            const parsed = parseFloat(savedDemoBal);
+            if (!isNaN(parsed) && parsed > 0) {
+                engine.balance = parsed;
+            }
+        }
+    }
+
+    const btnDevQuickAdd = document.getElementById('btn-dev-quick-add');
+    if (btnDevQuickAdd) {
+        btnDevQuickAdd.addEventListener('click', () => {
+            engine.balance += 1000;
+            if (!stakeRGS.session.isLiveRGS) {
+                localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
+            }
+            audioController.playClick();
+            syncUI();
+            stakeRGS.showToast('💰 + $1,000.00 Saldo Developer añadido', 'success');
+        });
+    }
+
+    const btnDevModalToggle = document.getElementById('btn-dev-modal-toggle');
+    if (btnDevModalToggle) {
+        btnDevModalToggle.addEventListener('click', () => {
+            audioController.playClick();
+            toggleDevModal(engine, syncUI);
+        });
+    }
+
+    const balancePill = document.querySelector('.balance-pill');
+    if (balancePill) {
+        (balancePill as HTMLElement).style.cursor = 'pointer';
+        balancePill.addEventListener('click', () => {
+            if (!stakeRGS.session.isLiveRGS) {
+                engine.balance += 1000;
+                localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
+                audioController.playClick();
+                syncUI();
+                stakeRGS.showToast('💰 + $1,000.00 añadido al saldo', 'success');
+            }
+        });
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        if (e.key === 'd' || e.key === 'D') {
+            toggleDevModal(engine, syncUI);
+        }
+    });
 
     const tryAgainContent = document.getElementById('try-again-content')!;
     const tryAgainCanvas = document.getElementById(
@@ -804,8 +867,16 @@ export function createControlsUI(
 
             // [222] Client-side check preventing /wallet/play if balance < effVal
             if (engine.balance < effVal) {
-                stakeRGS.showToast(t.focalInsufficientFunds, 'error');
-                return;
+                if (!stakeRGS.session.isLiveRGS) {
+                    // Auto-recharge in demo/developer mode!
+                    engine.balance += Math.max(1000, effVal * 10);
+                    localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
+                    syncUI();
+                    stakeRGS.showToast('💰 Saldo Developer recargado automáticamente (+ $1,000.00)', 'success');
+                } else {
+                    stakeRGS.showToast(t.focalInsufficientFunds, 'error');
+                    return;
+                }
             }
 
             audioController.playClick();
@@ -943,6 +1014,9 @@ export function createControlsUI(
 
         if (balanceEl && !isReplay) {
             balanceEl.textContent = stakeRGS.formatCurrency(engine.balance);
+            if (!stakeRGS.session.isLiveRGS) {
+                localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
+            }
         }
 
         multHeroVal.textContent = `${currentMult.toFixed(2)}×`;

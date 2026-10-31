@@ -2702,3 +2702,285 @@ body.rules-modal-open #rules-modal-overlay {
   }
 }
 
+/* ==========================================================================
+   DEVELOPER TOOLS & QUICK RELOAD SUITE
+   ========================================================================== */
+
+.dev-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(5, 150, 105, 0.35));
+  border: 1px solid rgba(16, 185, 129, 0.55);
+  color: #34d399;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.18);
+}
+
+.dev-quick-btn:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.55));
+  border-color: #34d399;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.38);
+}
+
+.dev-quick-btn:active {
+  transform: translateY(1px);
+}
+
+.dev-toggle-btn {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  color: #f59e0b !important;
+}
+
+.dev-toggle-btn:hover {
+  background: rgba(245, 158, 11, 0.18) !important;
+  border-color: #fbbf24 !important;
+  color: #fde047 !important;
+}
+
+/* Modal Overlay & Dialog */
+.dev-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.dev-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dev-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 16, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dev-modal-window {
+  position: relative;
+  width: 90%;
+  max-width: 520px;
+  background: rgba(13, 20, 36, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), 0 0 35px rgba(245, 158, 11, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.96);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dev-modal-overlay.active .dev-modal-window {
+  transform: scale(1);
+}
+
+.dev-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.dev-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dev-badge-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 10px #f59e0b;
+  animation: devPulse 1.8s infinite;
+}
+
+@keyframes devPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
+}
+
+.dev-title-cluster h2 {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fde047;
+  margin: 0;
+}
+
+.dev-close-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.dev-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dev-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.dev-card-section {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.dev-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.dev-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+}
+
+.dev-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.dev-action-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.dev-action-pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.dev-action-pill.highlight {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.45);
+  color: #34d399;
+}
+
+.dev-action-pill.highlight:hover {
+  background: rgba(16, 185, 129, 0.32);
+  border-color: #34d399;
+  color: #ffffff;
+}
+
+.dev-action-pill.reset {
+  grid-column: span 2;
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+.dev-action-pill.reset:hover {
+  background: rgba(239, 68, 68, 0.28);
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.dev-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dev-toggle-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.dev-switch {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #94a3b8;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.dev-switch:hover {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.dev-switch.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.28), rgba(217, 119, 6, 0.45));
+  border-color: #f59e0b;
+  color: #fde047;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
+}
+
+.dev-toggle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dev-modal-footer {
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dev-tip {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+

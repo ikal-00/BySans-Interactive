@@ -229,11 +229,27 @@ export class GameEngine {
     }
 
     public getHazardsForActionRow(row: number): number[] {
-        return deriveHazards(this.serverSeed, this.clientSeed, this.nonce, row, this.minesCount);
+        const hazards = deriveHazards(this.serverSeed, this.clientSeed, this.nonce, row, this.minesCount);
+        if (typeof window !== 'undefined' && (window as any).__devGodMode) {
+            return [];
+        }
+        return hazards;
     }
 
     public getSpecialsForRow(row: number): RowSpecialConfig {
-        return deriveRowSpecials(this.serverSeed, this.clientSeed, this.nonce, row, this.luckyBoost);
+        const specials = deriveRowSpecials(this.serverSeed, this.clientSeed, this.nonce, row, this.luckyBoost);
+        if (typeof window !== 'undefined') {
+            if ((window as any).__devForceSolar) {
+                specials.goldenLane = 0;
+                specials.goldenBoost = 1.5;
+            }
+            if ((window as any).__devForceAlien) {
+                specials.alienLane = 2;
+                specials.alienBoost = 2.0;
+                specials.alienSkipRows = 2;
+            }
+        }
+        return specials;
     }
 
     public pickLane(laneIndex: number): RoundPick | null {
@@ -252,6 +268,22 @@ export class GameEngine {
             this.minesCount,
             false
         );
+
+        // Developer Mode Overrides
+        if (typeof window !== 'undefined') {
+            if ((window as any).__devGodMode && !outcome.isSafe) {
+                outcome.isSafe = true;
+                outcome.hazards = outcome.hazards.filter((h) => h !== laneIndex);
+            }
+            if ((window as any).__devForceSolar && laneIndex === 0) {
+                outcome.specialType = 'GOLDEN';
+                outcome.boostFactor = 1.5;
+            } else if ((window as any).__devForceAlien && laneIndex === 2) {
+                outcome.specialType = 'ALIEN';
+                outcome.boostFactor = 2.0;
+                outcome.rowsSkipped = 2;
+            }
+        }
 
         this.lastChosenLane = laneIndex;
 
