@@ -93,13 +93,13 @@ export function createControlsUI(
         return closest;
     }
 
-    // 1. PRODUCTION TOP SCI-FI COCKPIT HEADER (Open Frameless Layout)
+    // 1. PRODUCTION TOP COMIC-INKED STARFIGHTER HEADER (Hand-Drawn Cel-Shaded Steel Plaques)
     topHeader.innerHTML = `
       <div class="brand-telemetry-stack">
         <div class="brand-cluster">
           <div class="brand-emblem" title="Endless Descent">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff"/>
+              <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff" stroke="#080b11" stroke-width="1.5" stroke-linejoin="round"/>
             </svg>
           </div>
           <div class="brand-titles">
@@ -111,62 +111,19 @@ export function createControlsUI(
           </div>
         </div>
 
-        <div class="brand-horizon-track" aria-hidden="true">
-          <span class="brand-horizon-node"></span>
-          <span class="brand-horizon-line"></span>
-        </div>
-
-        <div class="brand-sub-telemetry-row">
-          <div class="brand-ruler-scale" id="brand-ruler-scale" aria-hidden="true">
-            <svg class="brand-ruler-svg" width="176" height="12" viewBox="0 0 176 12" fill="none">
-              <line x1="1" y1="1.5" x2="1" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
-              <line x1="6.5" y1="3.5" x2="6.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="11.5" y1="3.5" x2="11.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="16.5" y1="3.5" x2="16.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="21.5" y1="3.5" x2="21.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="26.5" y1="3.5" x2="26.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="32" y1="1.5" x2="32" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
-              <line x1="37.5" y1="3.5" x2="37.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="42.5" y1="3.5" x2="42.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="47.5" y1="3.5" x2="47.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="52.5" y1="3.5" x2="52.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="57.5" y1="3.5" x2="57.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="63" y1="1.5" x2="63" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
-              <line x1="68.5" y1="3.5" x2="68.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="73.5" y1="3.5" x2="73.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="78.5" y1="3.5" x2="78.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="83.5" y1="3.5" x2="83.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="88.5" y1="3.5" x2="88.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="94" y1="1.5" x2="94" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
-              <line x1="99.5" y1="3.5" x2="99.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="104.5" y1="3.5" x2="104.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="109.5" y1="3.5" x2="109.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="114.5" y1="3.5" x2="114.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="119.5" y1="3.5" x2="119.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
-              <line x1="125" y1="1.5" x2="125" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
-              <line x1="130.5" y1="3.5" x2="130.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
-              <line x1="135.5" y1="3.5" x2="135.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
-              <line x1="140.5" y1="3.5" x2="140.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
-              <line x1="145.5" y1="3.5" x2="145.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
-              <line x1="150.5" y1="3.5" x2="150.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
-              <line x1="156" y1="1.5" x2="156" y2="10.5" stroke="rgba(186,230,253,0.78)" stroke-width="1.35"/>
-            </svg>
-            <span class="brand-ruler-glyphs">⚡ $</span>
-          </div>
-          <div class="header-ticker-strip" id="history-ticker"></div>
-        </div>
+        <div class="header-ticker-strip" id="history-ticker"></div>
       </div>
 
       <div class="header-telemetry-cluster">
         <button class="icon-btn" id="btn-rules" type="button" title="${t.rulesToggleTitle}">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-            <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.2"/>
+            <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
           </svg>
           <span id="rules-label">${lang === 'es' ? 'Reglas' : 'Rules'}</span>
         </button>
         <button class="icon-btn active" id="btn-audio" type="button" title="${t.soundToggleTitle}">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
           </svg>
@@ -176,13 +133,13 @@ export function createControlsUI(
           +$1K
         </button>
         <button class="icon-btn dev-toggle-btn" id="btn-dev-modal-toggle" type="button" title="Panel Developer (Atajo: D)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
           </svg>
           <span>DEV</span>
         </button>
         <div class="balance-pill" title="${t.balanceLabel}">
-          <div>
+          <div class="balance-inner-readout">
             <div class="balance-label" id="balance-title-label">${isReplay ? t.replayBadge : t.balanceLabel}</div>
             <div class="balance-value" id="hud-balance">${stakeRGS.formatCurrency(isReplay && stakeRGS.session.replayParams ? stakeRGS.session.replayParams.amount : engine.balance)}</div>
           </div>
@@ -230,143 +187,112 @@ export function createControlsUI(
         const initialEffVal = initialDefLevel;
 
         leftDock.innerHTML = `
-          <!-- Heavy-Duty AAA Sci-Fi Armored Cockpit Console Bezel -->
-          <svg class="dock-armored-bezel-svg" viewBox="0 0 1280 142" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="dockArmorMetal" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#475569"/>
-                <stop offset="16%" stop-color="#334155"/>
-                <stop offset="52%" stop-color="#1e293b"/>
-                <stop offset="88%" stop-color="#0f172a"/>
-                <stop offset="100%" stop-color="#090d16"/>
-              </linearGradient>
-              <linearGradient id="dockArmorRimStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(148, 163, 184, 0.55)"/>
-                <stop offset="22%" stop-color="rgba(56, 189, 248, 0.85)"/>
-                <stop offset="50%" stop-color="rgba(148, 163, 184, 0.45)"/>
-                <stop offset="78%" stop-color="rgba(251, 191, 36, 0.65)"/>
-                <stop offset="100%" stop-color="rgba(148, 163, 184, 0.55)"/>
-              </linearGradient>
-              <linearGradient id="dockInnerScreenBg" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="rgba(8, 22, 38, 0.94)"/>
-                <stop offset="50%" stop-color="rgba(5, 14, 26, 0.96)"/>
-                <stop offset="100%" stop-color="rgba(3, 9, 18, 0.98)"/>
-              </linearGradient>
-              <radialGradient id="dockTopCyanCore" cx="25.5%" cy="12%" r="24%">
-                <stop offset="0%" stop-color="rgba(0, 240, 255, 0.42)"/>
-                <stop offset="45%" stop-color="rgba(56, 189, 248, 0.14)"/>
-                <stop offset="100%" stop-color="rgba(56, 189, 248, 0)"/>
-              </radialGradient>
-              <radialGradient id="dockRightEmeraldGlow" cx="84%" cy="58%" r="26%">
-                <stop offset="0%" stop-color="rgba(0, 230, 118, 0.22)"/>
-                <stop offset="60%" stop-color="rgba(16, 185, 129, 0.06)"/>
-                <stop offset="100%" stop-color="rgba(0, 230, 118, 0)"/>
-              </radialGradient>
-              <linearGradient id="dockNeonCyanTube" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#00f0ff"/>
-                <stop offset="26%" stop-color="#38bdf8"/>
-                <stop offset="68%" stop-color="#0ea5e9"/>
-                <stop offset="100%" stop-color="#10b981"/>
-              </linearGradient>
-              <filter id="dockNeonBloom" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2.5" result="blur"/>
-                <feMerge>
-                  <feMergeNode in="blur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
+          <!-- Hand-Drawn Cel-Shaded Comic Steel Cockpit Console (Matches Ship & Crates Art Style) -->
+          <svg class="dock-armored-bezel-svg" viewBox="0 0 1280 154" preserveAspectRatio="none" aria-hidden="true">
+            <!-- 1. TOP-LEFT PHYSICAL 3D COMIC PUSH-BUTTONS STICKING UP FROM THE RIM (Blue, Orange, Red) -->
+            <g stroke="#080b11" stroke-width="3" stroke-linejoin="round">
+              <!-- Blue Push-Button -->
+              <polygon points="104,19 110,5 142,5 148,19" fill="#2563eb" stroke="none"/>
+              <polygon points="110,5 142,5 145,11 107,11" fill="#93c5fd" stroke="none"/>
+              <polygon points="104,19 110,5 142,5 148,19" fill="none" stroke="#080b11" stroke-width="3"/>
+              <line x1="107" y1="11" x2="145" y2="11" stroke="#080b11" stroke-width="2.2"/>
+              <line x1="114" y1="5" x2="112" y2="11" stroke="#080b11" stroke-width="1.8"/>
+              <!-- Orange Push-Button -->
+              <polygon points="158,19 164,5 196,5 202,19" fill="#d97706" stroke="none"/>
+              <polygon points="164,5 196,5 199,11 161,11" fill="#fde68a" stroke="none"/>
+              <polygon points="158,19 164,5 196,5 202,19" fill="none" stroke="#080b11" stroke-width="3"/>
+              <line x1="161" y1="11" x2="199" y2="11" stroke="#080b11" stroke-width="2.2"/>
+              <line x1="168" y1="5" x2="166" y2="11" stroke="#080b11" stroke-width="1.8"/>
+              <!-- Red Push-Button -->
+              <polygon points="212,19 218,5 250,5 256,19" fill="#dc2626" stroke="none"/>
+              <polygon points="218,5 250,5 253,11 215,11" fill="#fca5a5" stroke="none"/>
+              <polygon points="212,19 218,5 250,5 256,19" fill="none" stroke="#080b11" stroke-width="3"/>
+              <line x1="215" y1="11" x2="253" y2="11" stroke="#080b11" stroke-width="2.2"/>
+              <line x1="222" y1="5" x2="220" y2="11" stroke="#080b11" stroke-width="1.8"/>
 
-            <!-- 1. Outer Heavy Sloped Gunmetal Titanium Chassis -->
-            <polygon
-              points="34,6 392,6 404,13 876,13 888,6 1246,6 1272,34 1258,126 1242,137 38,137 22,126 8,34"
-              fill="url(#dockArmorMetal)"
-              stroke="url(#dockArmorRimStroke)"
-              stroke-width="1.6"
-            />
-
-            <!-- Machined Bevel Highlight on Top Armored Shoulders -->
-            <polyline
-              points="36,8.5 390,8.5 402,15.5 878,15.5 890,8.5 1244,8.5"
-              fill="none"
-              stroke="rgba(226, 232, 240, 0.38)"
-              stroke-width="1.2"
-            />
-
-            <!-- Mechanical Panel Seam Lines on Outer Bezel -->
-            <line x1="168" y1="6" x2="160" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.6"/>
-            <line x1="1112" y1="6" x2="1120" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.6"/>
-            <line x1="490" y1="13" x2="490" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.5"/>
-            <line x1="790" y1="13" x2="790" y2="21" stroke="rgba(15, 23, 42, 0.85)" stroke-width="1.5"/>
-
-            <!-- 2. Recessed Inner Cockpit Screen Chamber -->
-            <polygon
-              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
-              fill="url(#dockInnerScreenBg)"
-            />
-            <polygon
-              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
-              fill="url(#dockTopCyanCore)"
-            />
-            <polygon
-              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
-              fill="url(#dockRightEmeraldGlow)"
-            />
-
-            <!-- Continuous Glowing Cyan/Teal Neon Inner Frame -->
-            <polygon
-              points="44,21 1236,21 1254,40 1243,118 1230,127 50,127 37,118 26,40"
-              fill="none"
-              stroke="url(#dockNeonCyanTube)"
-              stroke-width="1.85"
-              filter="url(#dockNeonBloom)"
-            />
-
-            <!-- Inner Hairline Tech Contour -->
-            <polygon
-              points="48,25 1232,25 1248,42 1238,114 1226,123 54,123 42,114 32,42"
-              fill="none"
-              stroke="rgba(125, 211, 252, 0.16)"
-              stroke-width="0.9"
-            />
-
-            <!-- 3. Left Shoulder Triple Orange Hazard Chevrons /// + Cyan Plasma Core -->
-            <g filter="url(#dockNeonBloom)">
-              <polygon points="256,16 265,9 273,9 264,16" fill="#fbbf24"/>
-              <polygon points="270,16 279,9 287,9 278,16" fill="#f59e0b"/>
-              <polygon points="284,16 293,9 301,9 292,16" fill="#fb923c"/>
-              <!-- Intense Cyan Plasma Node next to Left Chevrons -->
-              <ellipse cx="326" cy="13.5" rx="18" ry="3.5" fill="#00f0ff"/>
-              <ellipse cx="326" cy="13.5" rx="8" ry="2" fill="#ffffff"/>
+              <!-- 2. TOP-RIGHT RAISED STEEL BULKHEAD TAB -->
+              <polygon points="1012,19 1022,6 1152,6 1164,19" fill="#526273" stroke="none"/>
+              <polygon points="1022,6 1152,6 1156,11 1018,11" fill="#7c8ea0" stroke="none"/>
+              <!-- Rust Weathering Patch on Top-Right Tab -->
+              <polygon points="1122,7.5 1150,7.5 1158,17.5 1114,17.5" fill="#785235" stroke="none" opacity="0.72"/>
+              <polygon points="1012,19 1022,6 1152,6 1164,19" fill="none" stroke="#080b11" stroke-width="3.2"/>
+              <line x1="1048" y1="6" x2="1044" y2="19" stroke="#080b11" stroke-width="2.4"/>
             </g>
 
-            <!-- 4. Right Shoulder Triple Orange Hazard Chevrons /// -->
-            <g filter="url(#dockNeonBloom)">
-              <polygon points="966,16 975,9 983,9 974,16" fill="#fbbf24"/>
-              <polygon points="980,16 989,9 997,9 988,16" fill="#f59e0b"/>
-              <polygon points="994,16 1003,9 1011,9 1002,16" fill="#fb923c"/>
+            <!-- 3. LEFT & RIGHT SLOPED STRUCTURAL WING STRUTS (Bottom Flanks) -->
+            <g stroke="#080b11" stroke-width="3.2" stroke-linejoin="round">
+              <!-- Left Sloped Wing Strut -->
+              <polygon points="34,76 6,151 48,151 64,76" fill="#475666"/>
+              <polygon points="35,78 13,149 24,149 46,78" fill="#687a8c" stroke="none"/>
+              <line x1="25" y1="102" x2="54" y2="112" stroke="#080b11" stroke-width="2.4"/>
+              <line x1="18" y1="126" x2="48" y2="134" stroke="#080b11" stroke-width="2.2"/>
+              <!-- Right Sloped Wing Strut -->
+              <polygon points="1246,76 1274,151 1232,151 1216,76" fill="#475666"/>
+              <polygon points="1234,78 1256,149 1267,149 1245,78" fill="#334150" stroke="none"/>
+              <line x1="1255" y1="102" x2="1226" y2="112" stroke="#080b11" stroke-width="2.4"/>
+              <line x1="1262" y1="126" x2="1232" y2="134" stroke="#080b11" stroke-width="2.2"/>
             </g>
 
-            <!-- 5. Left & Right Sloped Flank Cyan Energy Light Bars -->
-            <line
-              x1="15" y1="50" x2="23" y2="108"
-              stroke="#00f0ff"
-              stroke-width="3.6"
-              stroke-linecap="round"
-              filter="url(#dockNeonBloom)"
-            />
-            <line
-              x1="1265" y1="50" x2="1257" y2="108"
-              stroke="#00f0ff"
-              stroke-width="3.6"
-              stroke-linecap="round"
-              filter="url(#dockNeonBloom)"
+            <!-- 4. MAIN SLOPED CEL-SHADED STEEL COCKPIT HOUSING -->
+            <polygon
+              points="56,19 1224,19 1242,36 1264,151 16,151 38,36"
+              fill="#4c5d6e"
+              stroke="#080b11"
+              stroke-width="3.5"
+              stroke-linejoin="round"
             />
 
-            <!-- Bottom Subtle Amber Telemetry Accents -->
-            <rect x="196" y="129.5" width="12" height="2.5" rx="1" fill="rgba(251, 191, 36, 0.55)"/>
-            <rect x="212" y="129.5" width="6" height="2.5" rx="1" fill="rgba(251, 191, 36, 0.35)"/>
-            <rect x="1062" y="129.5" width="12" height="2.5" rx="1" fill="rgba(16, 185, 129, 0.55)"/>
+            <!-- Top Light Steel Bevel Strip -->
+            <polygon
+              points="58,21 1222,21 1237,35 1226,35 1214,27 66,27 54,35 43,35"
+              fill="#7b8fa2"
+            />
+
+            <!-- Left & Right Inner Sloped Steel Bevels -->
+            <polygon points="40,36 54,36 36,149 20,149" fill="#687a8c"/>
+            <polygon points="1226,36 1240,36 1260,149 1244,149" fill="#323f4d"/>
+
+            <!-- Weathered Rust & Grime Patches on Outer Bezel (Matches Ship Wing Weathering) -->
+            <polygon points="145,20.5 235,20.5 224,31 132,31" fill="#7c5234" opacity="0.68"/>
+            <polygon points="1095,20.5 1218,20.5 1232,36 1175,34 1088,28" fill="#7c5234" opacity="0.72"/>
+            <polygon points="22,122 44,118 39,148 19,148" fill="#7c5234" opacity="0.58"/>
+
+            <!-- 5. INNER RECESSED DARK SLATE CONTROL DECK -->
+            <polygon
+              points="64,31 1216,31 1231,45 1248,145 32,145 49,45"
+              fill="#2c3947"
+              stroke="#080b11"
+              stroke-width="3"
+              stroke-linejoin="round"
+            />
+
+            <!-- Subtle Cel-Shaded Inner Deck Shadow & Rust Scuffs -->
+            <polygon points="66,33 1214,33 1226,45 54,45" fill="#232e3a"/>
+            <polygon points="245,126 365,128 352,143 228,143" fill="#6b4830" opacity="0.48"/>
+            <polygon points="48,118 86,124 78,143 36,143" fill="#1e2732" opacity="0.75"/>
+
+            <!-- 6. HAND-DRAWN COMIC INK SEAMS, RIVETS & CROSS-HATCHING LINES (////) -->
+            <g stroke="#080b11" stroke-linecap="round">
+              <!-- Outer Bezel Panel Seams -->
+              <line x1="92" y1="19" x2="86" y2="31" stroke-width="2.4"/>
+              <line x1="342" y1="19" x2="342" y2="31" stroke-width="2.4"/>
+              <line x1="686" y1="19" x2="686" y2="31" stroke-width="2.4"/>
+              <line x1="956" y1="19" x2="960" y2="31" stroke-width="2.4"/>
+              <!-- Top Bezel Ink Hatching Marks //// -->
+              <line x1="264" y1="22" x2="258" y2="29" stroke-width="1.6"/>
+              <line x1="270" y1="22" x2="264" y2="29" stroke-width="1.6"/>
+              <line x1="276" y1="22" x2="270" y2="29" stroke-width="1.6"/>
+              <line x1="876" y1="22" x2="870" y2="29" stroke-width="1.6"/>
+              <line x1="882" y1="22" x2="876" y2="29" stroke-width="1.6"/>
+              <line x1="888" y1="22" x2="882" y2="29" stroke-width="1.6"/>
+              <line x1="894" y1="22" x2="888" y2="29" stroke-width="1.6"/>
+              <!-- Left & Right Lower Corner Ink Cross-Hatching -->
+              <line x1="56" y1="122" x2="66" y2="142" stroke-width="1.8"/>
+              <line x1="62" y1="126" x2="71" y2="142" stroke-width="1.6"/>
+              <line x1="68" y1="130" x2="76" y2="142" stroke-width="1.5"/>
+              <line x1="1224" y1="122" x2="1214" y2="142" stroke-width="1.8"/>
+              <line x1="1218" y1="126" x2="1209" y2="142" stroke-width="1.6"/>
+            </g>
           </svg>
 
           <div class="betting-panel-main-row">
@@ -380,19 +306,19 @@ export function createControlsUI(
                 <span class="fintech-currency-sign" id="fintech-curr-sign">${currSym}</span>
                 <input type="number" inputmode="decimal" id="bet-input" value="${formatBetLevelVal(initialDefLevel)}" min="${stakeRGS.betConfig.minBet}" max="${stakeRGS.betConfig.maxBet}" step="${stakeRGS.betConfig.stepBet}" aria-label="${t.betAmountLabel}" />
                 <div class="fintech-quick-segments">
-                  <button class="fintech-quick-pill pill-edge-accent" id="btn-min" type="button">${t.quickMin}</button>
+                  <button class="fintech-quick-pill" id="btn-min" type="button">${t.quickMin}</button>
                   <button class="fintech-quick-pill" id="btn-half" type="button">${t.quickHalf}</button>
                   <button class="fintech-quick-pill" id="btn-double" type="button">${t.quickDouble}</button>
-                  <button class="fintech-quick-pill pill-edge-accent" id="btn-max" type="button">${t.quickMax}</button>
+                  <button class="fintech-quick-pill" id="btn-max" type="button">${t.quickMax}</button>
                 </div>
               </div>
             </div>
 
-            <!-- Column 2: Segmented Control for Mines / Hazards -->
+            <!-- Column 2: Chunky 3D Comic Push-Buttons for Mines / Hazards -->
             <div class="betting-field-group">
               <div class="betting-field-header">
                 <span class="betting-field-label" id="mines-field-label">${t.minesCountLabel}</span>
-                <span class="betting-field-meta" id="survival-odds-badge">80% ${t.minesProbLabel} | 1.20×</span>
+                <span class="betting-field-meta" id="survival-odds-badge">80% ${t.minesProbLabel} · 1.20×</span>
               </div>
               <div class="fintech-segmented-track" id="mine-selector" role="radiogroup" aria-label="${t.minesCountLabel}">
                 <button class="fintech-segment-btn active" data-mines="1" type="button">
@@ -414,29 +340,41 @@ export function createControlsUI(
               </div>
             </div>
 
-            <!-- Column 3: Primary Visual Focal Point — Armored Reactor Action Bay & Partial Cashout -->
+            <!-- Column 3: Comic-Inked Emerald Launch Button with Hand-Drawn Electric Sparks -->
             <div class="betting-field-group fintech-cta-wrap">
               <div class="betting-field-header cta-telemetry-header">
                 <span class="betting-field-label" id="focal-cta-header-label">${t.focalActionLabel}</span>
-                <span class="cta-micro-code" aria-hidden="true">· 14 · 88 · 02 ·</span>
                 <span class="betting-field-meta" id="focal-cta-header-shortcut">${t.shortcutSpace}</span>
               </div>
               <div class="focal-cta-actions-cluster">
+                <!-- Hand-Drawn Comic Cyan/Emerald Electric Sparks Around Button Corners -->
+                <svg class="comic-cta-sparks-svg" viewBox="0 0 380 84" preserveAspectRatio="none" aria-hidden="true">
+                  <!-- Top-Left Electric Arcs -->
+                  <polyline points="22,6 10,2 16,13 4,15 15,22" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="34,4 28,0 31,9" fill="none" stroke="#6ee7b7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <!-- Bottom-Left Electric Arcs -->
+                  <polyline points="20,78 8,82 15,70 3,66 14,59" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="35,80 28,84 32,75" fill="none" stroke="#6ee7b7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <!-- Top-Right Electric Arcs -->
+                  <polyline points="358,6 370,2 364,13 376,15 365,22" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="346,4 352,0 349,9" fill="none" stroke="#6ee7b7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  <!-- Bottom-Right Electric Arcs -->
+                  <polyline points="360,78 372,82 365,70 377,66 366,59" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="345,80 352,84 348,75" fill="none" stroke="#6ee7b7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+
                 <button class="btn-primary-focal" id="btn-primary-cta" type="button">
+                  <!-- Hand-Drawn Comic Ink Corner Hatching Inside the Green Button -->
+                  <svg class="focal-btn-ink-decor" viewBox="0 0 340 60" preserveAspectRatio="none" aria-hidden="true">
+                    <line x1="10" y1="42" x2="18" y2="54" stroke="#064e3b" stroke-width="1.8" stroke-linecap="round"/>
+                    <line x1="16" y1="44" x2="23" y2="54" stroke="#064e3b" stroke-width="1.8" stroke-linecap="round"/>
+                    <line x1="22" y1="46" x2="28" y2="54" stroke="#064e3b" stroke-width="1.8" stroke-linecap="round"/>
+                    <line x1="316" y1="6" x2="324" y2="16" stroke="#064e3b" stroke-width="1.6" stroke-linecap="round"/>
+                    <line x1="322" y1="6" x2="330" y2="16" stroke="#064e3b" stroke-width="1.6" stroke-linecap="round"/>
+                  </svg>
                   <span class="focal-btn-copy">
                     <span class="focal-btn-headline" id="focal-cta-title">${t.focalDropCapsule}</span>
                     <span class="focal-btn-sub" id="focal-cta-sub">(${t.shortcutSpace.toUpperCase()}) · ${stakeRGS.formatCurrency(initialEffVal)}</span>
-                  </span>
-                  <span class="focal-btn-turbine" aria-hidden="true">
-                    <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
-                      <circle cx="14" cy="14" r="10.5" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3.2 2.2"/>
-                      <circle cx="14" cy="14" r="6.8" stroke="currentColor" stroke-width="1.5"/>
-                      <circle cx="14" cy="14" r="2.6" fill="currentColor"/>
-                      <line x1="14" y1="1.5" x2="14" y2="5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <line x1="14" y1="22.8" x2="14" y2="26.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <line x1="1.5" y1="14" x2="5.2" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                      <line x1="22.8" y1="14" x2="26.5" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                    </svg>
                   </span>
                 </button>
                 <button class="btn-partial-focal" id="btn-partial-cta" type="button" style="display: none;">
@@ -452,98 +390,90 @@ export function createControlsUI(
         `;
     }
 
-    // 3. CENTER FLOATING SCI-FI HOLOGRAPHIC MULTIPLIER HUD & REWARD CALLOUT
+    // 3. CENTER FLOATING HAND-DRAWN COMIC OCTAGONAL BULKHEAD MULTIPLIER HUD
     const stageOverlay = document.createElement('div');
     stageOverlay.className = 'stage-hud-overlay';
     stageOverlay.innerHTML = `
       <div class="stage-top-hud-stack">
         <div class="multiplier-hero-banner" id="mult-hero-wrap">
-          <svg class="mult-holo-hud-svg" viewBox="0 0 460 112" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="hudChamberBg" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="rgba(18, 32, 54, 0.72)"/>
-                <stop offset="52%" stop-color="rgba(8, 16, 30, 0.78)"/>
-                <stop offset="100%" stop-color="rgba(6, 12, 24, 0.84)"/>
-              </linearGradient>
-              <linearGradient id="hudMainStroke" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="rgba(56, 189, 248, 0.75)"/>
-                <stop offset="25%" stop-color="rgba(168, 85, 247, 0.72)"/>
-                <stop offset="50%" stop-color="rgba(148, 163, 184, 0.48)"/>
-                <stop offset="75%" stop-color="rgba(236, 72, 153, 0.72)"/>
-                <stop offset="100%" stop-color="rgba(56, 189, 248, 0.75)"/>
-              </linearGradient>
-              <linearGradient id="hudLeftShoulderGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#38bdf8"/>
-                <stop offset="55%" stop-color="#c084fc"/>
-                <stop offset="100%" stop-color="#38bdf8"/>
-              </linearGradient>
-              <linearGradient id="hudRightShoulderGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#fb7185"/>
-                <stop offset="55%" stop-color="#ec4899"/>
-                <stop offset="100%" stop-color="#38bdf8"/>
-              </linearGradient>
-              <filter id="hudCyanGlow" x="-25%" y="-25%" width="150%" height="150%">
-                <feGaussianBlur stdDeviation="2.6" result="blur"/>
-                <feMerge>
-                  <feMergeNode in="blur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-            </defs>
-
-            <!-- Diagonal Sci-Fi Wing Flare Lines -->
-            <line x1="6" y1="6" x2="42" y2="32" stroke="rgba(125, 211, 252, 0.35)" stroke-width="1.1"/>
-            <line x1="454" y1="6" x2="418" y2="32" stroke="rgba(125, 211, 252, 0.35)" stroke-width="1.1"/>
-
-            <!-- Left Concentric Curved HUD Energy Brackets (( -->
-            <path d="M 33 20 A 68 68 0 0 0 33 92" fill="none" stroke="rgba(56, 189, 248, 0.32)" stroke-width="1.1" stroke-dasharray="14 5"/>
-            <path d="M 42 13 A 58 58 0 0 0 42 99" fill="none" stroke="rgba(125, 211, 252, 0.75)" stroke-width="1.6"/>
-            <path d="M 52 24 A 46 46 0 0 0 52 88" fill="none" stroke="#00f0ff" stroke-width="3.6" stroke-linecap="round" filter="url(#hudCyanGlow)"/>
-
-            <!-- Right Concentric Curved HUD Energy Brackets )) -->
-            <path d="M 427 20 A 68 68 0 0 1 427 92" fill="none" stroke="rgba(56, 189, 248, 0.32)" stroke-width="1.1" stroke-dasharray="14 5"/>
-            <path d="M 418 13 A 58 58 0 0 1 418 99" fill="none" stroke="rgba(125, 211, 252, 0.75)" stroke-width="1.6"/>
-            <path d="M 408 24 A 46 46 0 0 1 408 88" fill="none" stroke="#00f0ff" stroke-width="3.6" stroke-linecap="round" filter="url(#hudCyanGlow)"/>
-
-            <!-- Stepped Hexagonal Sci-Fi Main Chamber Body -->
+          <svg class="mult-holo-hud-svg" viewBox="0 0 436 116" preserveAspectRatio="none" aria-hidden="true">
+            <!-- 1. Outer Stepped Octagonal Gunmetal Steel Frame (Matches Ship Rear Bulkhead) -->
             <polygon
-              points="66,19 76,11 146,11 155,19 305,19 314,11 384,11 394,19 406,33 406,79 394,93 384,100 276,100 268,95 192,95 184,100 76,100 66,93 54,79 54,33"
-              fill="url(#hudChamberBg)"
-              stroke="url(#hudMainStroke)"
-              stroke-width="1.45"
+              points="34,12 108,12 118,20 318,20 328,12 402,12 426,36 426,80 402,104 328,104 318,96 118,96 108,104 34,104 10,80 10,36"
+              fill="#5a6b7c"
+              stroke="#080b11"
+              stroke-width="3.5"
+              stroke-linejoin="round"
             />
 
-            <!-- Inner Subtle Hairline Chamber Contour -->
+            <!-- Top Metallic Light Bevel Highlight -->
             <polygon
-              points="70,23 79,15.5 143,15.5 152,23 308,23 317,15.5 381,15.5 390,23 400,35 400,77 390,89 381,95.5 279,95.5 271,91 189,91 181,95.5 79,95.5 70,89 60,77 60,35"
-              fill="none"
-              stroke="rgba(186, 230, 253, 0.16)"
-              stroke-width="0.9"
+              points="36,14 106,14 116,22 320,22 330,14 400,14 422,36 414,36 396,19 332,19 322,26 114,26 104,19 40,19 22,36 14,36"
+              fill="#7c8fa3"
             />
 
-            <!-- Glowing Top Stepped Shoulder Accents (Violet-Cyan Left, Pink-Cyan Right) -->
-            <polyline
-              points="73,13 77,10.5 145,10.5 152,16.5"
-              fill="none"
-              stroke="url(#hudLeftShoulderGlow)"
-              stroke-width="2.4"
-              stroke-linecap="round"
-              filter="url(#hudCyanGlow)"
+            <!-- Bottom Metallic Shadow Bevel -->
+            <polygon
+              points="14,80 22,80 40,97 104,97 114,90 322,90 332,97 396,97 414,80 422,80 400,102 330,102 320,94 116,94 106,102 36,102"
+              fill="#394654"
             />
-            <polyline
-              points="308,16.5 315,10.5 383,10.5 387,13"
-              fill="none"
-              stroke="url(#hudRightShoulderGlow)"
-              stroke-width="2.4"
-              stroke-linecap="round"
-              filter="url(#hudCyanGlow)"
+
+            <!-- 2. Top-Center Orange & Cyan Indicator Strip (Matches Ship Bulkhead Top Bar) -->
+            <g stroke="#080b11" stroke-width="2.6" stroke-linejoin="round">
+              <polygon points="146,13 184,13 180,21 152,21" fill="#38bdf8"/>
+              <polygon points="184,11 252,11 248,21 188,21" fill="#f97316"/>
+              <polygon points="188,12.5 248,12.5 246,16 190,16" fill="#fdba74" stroke="none"/>
+              <polygon points="252,13 290,13 284,21 256,21" fill="#38bdf8"/>
+            </g>
+
+            <!-- 3. Inner Cyan Rim Strip Around Chamber -->
+            <polygon
+              points="44,24 392,24 410,42 410,74 392,92 44,92 26,74 26,42"
+              fill="#38bdf8"
+              stroke="#080b11"
+              stroke-width="3"
+              stroke-linejoin="round"
             />
+
+            <!-- 4. Recessed Dark Slate Steel Readout Screen -->
+            <polygon
+              points="48,28 388,28 404,44 404,72 388,88 48,88 32,72 32,44"
+              fill="#263442"
+              stroke="#080b11"
+              stroke-width="2.8"
+              stroke-linejoin="round"
+            />
+            <polygon
+              points="50,30 386,30 401,45 401,56 35,56 35,45"
+              fill="#2d3d4e"
+            />
+
+            <!-- 5. 4 Angled Corner Orange Warning Pads (Matches Reference Image & Ship Bulkhead) -->
+            <g stroke="#080b11" stroke-width="2.4" stroke-linejoin="round">
+              <!-- Top-Left Corner Orange Pad -->
+              <polygon points="19,35 33,21 39,27 25,41" fill="#f97316"/>
+              <!-- Bottom-Left Corner Orange Pad -->
+              <polygon points="25,75 39,89 33,95 19,81" fill="#f97316"/>
+              <!-- Top-Right Corner Orange Pad -->
+              <polygon points="403,21 417,35 411,41 397,27" fill="#f97316"/>
+              <!-- Bottom-Right Corner Orange Pad -->
+              <polygon points="397,89 411,75 417,81 403,95" fill="#f97316"/>
+            </g>
+
+            <!-- 6. Hand-Drawn Comic Ink Panel Seams & Hatching Ticks -->
+            <g stroke="#080b11" stroke-width="2.2" stroke-linecap="round">
+              <line x1="72" y1="12" x2="72" y2="24"/>
+              <line x1="364" y1="12" x2="364" y2="24"/>
+              <line x1="72" y1="92" x2="72" y2="104"/>
+              <line x1="364" y1="92" x2="364" y2="104"/>
+              <line x1="10" y1="58" x2="26" y2="58"/>
+              <line x1="410" y1="58" x2="426" y2="58"/>
+            </g>
           </svg>
 
           <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
           <div class="multiplier-sub-pill">
             <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
-            <span class="mult-sub-divider" aria-hidden="true">|</span>
             <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
           </div>
         </div>
