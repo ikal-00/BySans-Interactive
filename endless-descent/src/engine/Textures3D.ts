@@ -721,6 +721,31 @@ export function createPBRTexturePack(): PBRTexturePack {
             ctx.beginPath();
             ctx.arc(248, 184, 5, 0, Math.PI * 2);
             ctx.fill();
+        } else if (type === 'orange') {
+            // Warm Solar Halo + Dark Comic Ink Contour + Bright Yellow Fill + White Specular Glints
+            ctx.shadowColor = 'rgba(251, 146, 60, 0.85)';
+            ctx.shadowBlur = 22;
+            ctx.strokeStyle = '#fb923c';
+            ctx.lineWidth = 34;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.strokeText('?', 256, 276);
+
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = '#261408';
+            ctx.lineWidth = 24;
+            ctx.strokeText('?', 256, 276);
+
+            ctx.fillStyle = '#fde047';
+            ctx.fillText('?', 256, 276);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(228, 195, 16, 9, -Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(248, 184, 5, 0, Math.PI * 2);
+            ctx.fill();
         } else {
             ctx.shadowColor = 'rgba(16, 12, 10, 0.45)';
             ctx.shadowBlur = 12;

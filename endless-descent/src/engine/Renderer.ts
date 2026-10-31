@@ -1214,15 +1214,15 @@ export class PixiRenderer {
 
         const boxMatOrangeSide = new THREE.MeshStandardMaterial({
             map: this.textures.cardboardOrangeBoxTex,
-            emissive: 0xf59e0b,
-            emissiveIntensity: 0.35,
+            emissive: 0xc2410c,
+            emissiveIntensity: 0.14,
             roughness: 0.78,
             metalness: 0.06
         });
         const boxMatOrangeTop = new THREE.MeshStandardMaterial({
             map: this.textures.cardboardOrangeBoxTopTex,
-            emissive: 0xf59e0b,
-            emissiveIntensity: 0.35,
+            emissive: 0xc2410c,
+            emissiveIntensity: 0.14,
             roughness: 0.78,
             metalness: 0.06
         });
