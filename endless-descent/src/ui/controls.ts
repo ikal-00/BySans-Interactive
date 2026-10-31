@@ -93,25 +93,68 @@ export function createControlsUI(
         return closest;
     }
 
-    // 1. PRODUCTION TOP VIP HEADER BAR
+    // 1. PRODUCTION TOP SCI-FI COCKPIT HEADER (Open Frameless Layout)
     topHeader.innerHTML = `
-      <div class="brand-cluster">
-        <div class="brand-emblem" title="Endless Descent">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff"/>
-          </svg>
+      <div class="brand-telemetry-stack">
+        <div class="brand-cluster">
+          <div class="brand-emblem" title="Endless Descent">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff"/>
+            </svg>
+          </div>
+          <div class="brand-titles">
+            <span class="brand-name">${t.gameTitle}</span>
+            <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator">
+              <span class="${isReplay ? 'rgs-pulse-dot' : 'sandbox-dot'}"></span>
+              ${t.studioName} · ${isReplay ? t.replayBadge : t.sandboxDemo}
+            </span>
+          </div>
         </div>
-        <div class="brand-titles">
-          <span class="brand-name">${t.gameTitle}</span>
-          <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator">
-            <span class="${isReplay ? 'rgs-pulse-dot' : 'sandbox-dot'}"></span>
-            ${t.studioName} · ${isReplay ? t.replayBadge : t.sandboxDemo}
-          </span>
-        </div>
-      </div>
 
-      <div class="header-ticker-strip" id="history-ticker">
-        <span class="ticker-empty">${lang === 'es' ? 'Historial de multiplicadores' : 'Multiplier History'}</span>
+        <div class="brand-horizon-track" aria-hidden="true">
+          <span class="brand-horizon-node"></span>
+          <span class="brand-horizon-line"></span>
+        </div>
+
+        <div class="brand-sub-telemetry-row">
+          <div class="brand-ruler-scale" id="brand-ruler-scale" aria-hidden="true">
+            <svg class="brand-ruler-svg" width="176" height="12" viewBox="0 0 176 12" fill="none">
+              <line x1="1" y1="1.5" x2="1" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
+              <line x1="6.5" y1="3.5" x2="6.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="11.5" y1="3.5" x2="11.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="16.5" y1="3.5" x2="16.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="21.5" y1="3.5" x2="21.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="26.5" y1="3.5" x2="26.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="32" y1="1.5" x2="32" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
+              <line x1="37.5" y1="3.5" x2="37.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="42.5" y1="3.5" x2="42.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="47.5" y1="3.5" x2="47.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="52.5" y1="3.5" x2="52.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="57.5" y1="3.5" x2="57.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="63" y1="1.5" x2="63" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
+              <line x1="68.5" y1="3.5" x2="68.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="73.5" y1="3.5" x2="73.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="78.5" y1="3.5" x2="78.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="83.5" y1="3.5" x2="83.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="88.5" y1="3.5" x2="88.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="94" y1="1.5" x2="94" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
+              <line x1="99.5" y1="3.5" x2="99.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="104.5" y1="3.5" x2="104.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="109.5" y1="3.5" x2="109.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="114.5" y1="3.5" x2="114.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="119.5" y1="3.5" x2="119.5" y2="8.5" stroke="rgba(148,163,184,0.44)" stroke-width="1"/>
+              <line x1="125" y1="1.5" x2="125" y2="10.5" stroke="rgba(186,230,253,0.72)" stroke-width="1.35"/>
+              <line x1="130.5" y1="3.5" x2="130.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
+              <line x1="135.5" y1="3.5" x2="135.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
+              <line x1="140.5" y1="3.5" x2="140.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
+              <line x1="145.5" y1="3.5" x2="145.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
+              <line x1="150.5" y1="3.5" x2="150.5" y2="8.5" stroke="rgba(56,189,248,0.58)" stroke-width="1"/>
+              <line x1="156" y1="1.5" x2="156" y2="10.5" stroke="rgba(186,230,253,0.78)" stroke-width="1.35"/>
+            </svg>
+            <span class="brand-ruler-glyphs">⚡ $</span>
+          </div>
+          <div class="header-ticker-strip" id="history-ticker"></div>
+        </div>
       </div>
 
       <div class="header-telemetry-cluster">
@@ -256,15 +299,98 @@ export function createControlsUI(
         `;
     }
 
-    // 3. CENTER FLOATING MULTIPLIER DISPLAY & REWARD CALLOUT
+    // 3. CENTER FLOATING SCI-FI HOLOGRAPHIC MULTIPLIER HUD & REWARD CALLOUT
     const stageOverlay = document.createElement('div');
     stageOverlay.className = 'stage-hud-overlay';
     stageOverlay.innerHTML = `
       <div class="stage-top-hud-stack">
         <div class="multiplier-hero-banner" id="mult-hero-wrap">
+          <svg class="mult-holo-hud-svg" viewBox="0 0 460 112" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="hudChamberBg" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="rgba(18, 32, 54, 0.72)"/>
+                <stop offset="52%" stop-color="rgba(8, 16, 30, 0.78)"/>
+                <stop offset="100%" stop-color="rgba(6, 12, 24, 0.84)"/>
+              </linearGradient>
+              <linearGradient id="hudMainStroke" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="rgba(56, 189, 248, 0.75)"/>
+                <stop offset="25%" stop-color="rgba(168, 85, 247, 0.72)"/>
+                <stop offset="50%" stop-color="rgba(148, 163, 184, 0.48)"/>
+                <stop offset="75%" stop-color="rgba(236, 72, 153, 0.72)"/>
+                <stop offset="100%" stop-color="rgba(56, 189, 248, 0.75)"/>
+              </linearGradient>
+              <linearGradient id="hudLeftShoulderGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#38bdf8"/>
+                <stop offset="55%" stop-color="#c084fc"/>
+                <stop offset="100%" stop-color="#38bdf8"/>
+              </linearGradient>
+              <linearGradient id="hudRightShoulderGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#fb7185"/>
+                <stop offset="55%" stop-color="#ec4899"/>
+                <stop offset="100%" stop-color="#38bdf8"/>
+              </linearGradient>
+              <filter id="hudCyanGlow" x="-25%" y="-25%" width="150%" height="150%">
+                <feGaussianBlur stdDeviation="2.6" result="blur"/>
+                <feMerge>
+                  <feMergeNode in="blur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- Diagonal Sci-Fi Wing Flare Lines -->
+            <line x1="6" y1="6" x2="42" y2="32" stroke="rgba(125, 211, 252, 0.35)" stroke-width="1.1"/>
+            <line x1="454" y1="6" x2="418" y2="32" stroke="rgba(125, 211, 252, 0.35)" stroke-width="1.1"/>
+
+            <!-- Left Concentric Curved HUD Energy Brackets (( -->
+            <path d="M 33 20 A 68 68 0 0 0 33 92" fill="none" stroke="rgba(56, 189, 248, 0.32)" stroke-width="1.1" stroke-dasharray="14 5"/>
+            <path d="M 42 13 A 58 58 0 0 0 42 99" fill="none" stroke="rgba(125, 211, 252, 0.75)" stroke-width="1.6"/>
+            <path d="M 52 24 A 46 46 0 0 0 52 88" fill="none" stroke="#00f0ff" stroke-width="3.6" stroke-linecap="round" filter="url(#hudCyanGlow)"/>
+
+            <!-- Right Concentric Curved HUD Energy Brackets )) -->
+            <path d="M 427 20 A 68 68 0 0 1 427 92" fill="none" stroke="rgba(56, 189, 248, 0.32)" stroke-width="1.1" stroke-dasharray="14 5"/>
+            <path d="M 418 13 A 58 58 0 0 1 418 99" fill="none" stroke="rgba(125, 211, 252, 0.75)" stroke-width="1.6"/>
+            <path d="M 408 24 A 46 46 0 0 1 408 88" fill="none" stroke="#00f0ff" stroke-width="3.6" stroke-linecap="round" filter="url(#hudCyanGlow)"/>
+
+            <!-- Stepped Hexagonal Sci-Fi Main Chamber Body -->
+            <polygon
+              points="66,19 76,11 146,11 155,19 305,19 314,11 384,11 394,19 406,33 406,79 394,93 384,100 276,100 268,95 192,95 184,100 76,100 66,93 54,79 54,33"
+              fill="url(#hudChamberBg)"
+              stroke="url(#hudMainStroke)"
+              stroke-width="1.45"
+            />
+
+            <!-- Inner Subtle Hairline Chamber Contour -->
+            <polygon
+              points="70,23 79,15.5 143,15.5 152,23 308,23 317,15.5 381,15.5 390,23 400,35 400,77 390,89 381,95.5 279,95.5 271,91 189,91 181,95.5 79,95.5 70,89 60,77 60,35"
+              fill="none"
+              stroke="rgba(186, 230, 253, 0.16)"
+              stroke-width="0.9"
+            />
+
+            <!-- Glowing Top Stepped Shoulder Accents (Violet-Cyan Left, Pink-Cyan Right) -->
+            <polyline
+              points="73,13 77,10.5 145,10.5 152,16.5"
+              fill="none"
+              stroke="url(#hudLeftShoulderGlow)"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              filter="url(#hudCyanGlow)"
+            />
+            <polyline
+              points="308,16.5 315,10.5 383,10.5 387,13"
+              fill="none"
+              stroke="url(#hudRightShoulderGlow)"
+              stroke-width="2.4"
+              stroke-linecap="round"
+              filter="url(#hudCyanGlow)"
+            />
+          </svg>
+
           <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
           <div class="multiplier-sub-pill">
             <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
+            <span class="mult-sub-divider" aria-hidden="true">|</span>
             <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
           </div>
         </div>

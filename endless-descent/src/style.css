@@ -140,43 +140,50 @@ body {
 }
 
 /* ============================================================================
-   TOP PRODUCTION VIP HEADER BAR (Pure Frosted Glass)
+   TOP SCI-FI COCKPIT HEADER (Open Frameless Layout with Telemetry Ruler)
    ============================================================================ */
 .pc-top-header {
   position: absolute;
   top: 18px;
-  left: 24px;
-  right: 24px;
-  height: 54px;
+  left: 26px;
+  right: 26px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 0 20px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.06) 0%,
-    rgba(14, 18, 28, 0.32) 100%
-  );
-  backdrop-filter: blur(28px) saturate(165%);
-  -webkit-backdrop-filter: blur(28px) saturate(165%);
-  border: 1px solid var(--glass-border-hairline);
-  border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   z-index: 25;
+  pointer-events: none;
+}
+
+.brand-telemetry-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: auto;
 }
 
 .brand-cluster {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
 }
 
 .brand-emblem {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(12, 20, 36, 0.78);
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -185,27 +192,29 @@ body {
 .brand-titles {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
 
 .brand-name {
   font-family: var(--font-sans);
-  font-size: 0.94rem;
+  font-size: 1.02rem;
   font-weight: 700;
   letter-spacing: -0.015em;
-  color: var(--text-primary);
+  color: #ffffff;
   line-height: 1.1;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75);
 }
 
 .brand-tag {
   font-family: var(--font-sans);
-  font-size: 0.65rem;
+  font-size: 0.67rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: #94a3b8;
   letter-spacing: 0.02em;
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.75);
 }
 
 .brand-tag.live-rgs {
@@ -214,8 +223,62 @@ body {
 }
 
 .brand-tag.sandbox {
-  color: #38bdf8;
+  color: #7dd3fc;
   font-weight: 500;
+}
+
+.brand-horizon-track {
+  display: flex;
+  align-items: center;
+  width: 232px;
+  margin-top: 1px;
+}
+
+.brand-horizon-node {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  box-shadow: 0 0 7px #38bdf8;
+  flex-shrink: 0;
+}
+
+.brand-horizon-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(125, 211, 252, 0.72) 0%,
+    rgba(148, 163, 184, 0.36) 72%,
+    rgba(148, 163, 184, 0) 100%
+  );
+}
+
+.brand-sub-telemetry-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 16px;
+}
+
+.brand-ruler-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.92;
+}
+
+.brand-ruler-svg {
+  display: block;
+}
+
+.brand-ruler-glyphs {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(186, 230, 253, 0.72);
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.35);
 }
 
 .rgs-pulse-dot {
@@ -324,59 +387,60 @@ body {
   }
 }
 
-/* Live Round History Pills */
+/* Live Round History Pills (Sleek inline strip next to telemetry ruler) */
 .header-ticker-strip {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 10px;
-  border: 1px solid var(--glass-border-subtle);
-  max-width: 480px;
+  gap: 5px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  max-width: 340px;
   overflow: hidden;
 }
 
+.header-ticker-strip:empty {
+  display: none;
+}
+
 .ticker-empty {
-  font-family: var(--font-sans);
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  padding: 2px 6px;
+  display: none;
 }
 
 .ticker-badge {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 7px;
+  padding: 2px 8px;
+  border-radius: 6px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  backdrop-filter: blur(10px);
 }
 
 .ticker-badge.win {
-  background: rgba(0, 230, 118, 0.12);
-  border: 1px solid rgba(0, 230, 118, 0.28);
+  background: rgba(0, 230, 118, 0.14);
+  border: 1px solid rgba(0, 230, 118, 0.32);
   color: #34d399;
 }
 
 .ticker-badge.mega {
-  background: rgba(251, 191, 36, 0.14);
-  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.38);
   color: #fbbf24;
 }
 
 .ticker-badge.loss {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.45);
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: rgba(255, 255, 255, 0.55);
 }
 
 .header-telemetry-cluster {
   display: flex;
   align-items: center;
   gap: 10px;
+  pointer-events: auto;
 }
 
 .mode-selector-pill {
@@ -424,11 +488,16 @@ body {
 
 .icon-btn {
   height: 36px;
-  padding: 0 13px;
+  padding: 0 14px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid var(--glass-border-subtle);
-  color: var(--text-secondary);
+  background: rgba(14, 26, 46, 0.72);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -441,9 +510,9 @@ body {
 }
 
 .icon-btn:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: var(--text-primary);
+  background: rgba(22, 40, 68, 0.84);
+  border-color: rgba(56, 189, 248, 0.52);
+  color: #ffffff;
 }
 
 .icon-btn:active {
@@ -451,41 +520,46 @@ body {
 }
 
 .icon-btn.active {
-  background: rgba(255, 255, 255, 0.11);
-  border-color: rgba(255, 255, 255, 0.22);
-  color: var(--text-primary);
+  background: rgba(18, 36, 64, 0.82);
+  border-color: rgba(56, 189, 248, 0.42);
+  color: #ffffff;
 }
 
 .balance-pill {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 11px;
-  padding: 5px 15px;
+  background: rgba(12, 20, 36, 0.82);
+  backdrop-filter: blur(18px) saturate(165%);
+  -webkit-backdrop-filter: blur(18px) saturate(165%);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 5px 16px;
 }
 
 .balance-label {
   font-family: var(--font-sans);
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   font-weight: 600;
-  color: var(--text-muted);
+  color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .balance-value {
   font-family: var(--font-sans);
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 
 /* ============================================================================
-   CENTER STAGE FLOATING MULTIPLIER HUD (Spring-Physics Dopamine Readout)
+   CENTER STAGE HOLOGRAPHIC SCI-FI MULTIPLIER HUD (Curved Energy Brackets)
    ============================================================================ */
 .stage-hud-overlay {
   position: absolute;
@@ -494,8 +568,8 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 82px 24px 160px;
-  z-index: 10;
+  padding: 18px 24px 160px;
+  z-index: 15;
 }
 
 .stage-top-hud-stack {
@@ -508,42 +582,57 @@ body {
 }
 
 .multiplier-hero-banner {
+  position: relative;
   align-self: center;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 13px 32px 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.068) 0%,
-    rgba(14, 18, 28, 0.42) 100%
-  );
-  border: 1px solid var(--glass-border-hairline);
-  border-radius: 20px;
-  backdrop-filter: blur(26px) saturate(165%);
-  -webkit-backdrop-filter: blur(26px) saturate(165%);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  min-width: 410px;
+  padding: 18px 58px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
   will-change: transform;
-  overflow: hidden;
+  overflow: visible;
   max-width: calc(100vw - 24px);
 }
 
+.mult-holo-hud-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.55));
+}
+
 .multiplier-God-value {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-sans);
-  font-size: 2.75rem;
+  font-size: 2.55rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.06;
+  letter-spacing: -0.025em;
+  line-height: 1.04;
   padding: 2px 6px;
-  color: var(--text-primary);
+  color: #ffffff;
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.65),
+    0 0 22px rgba(56, 189, 248, 0.28);
   font-variant-numeric: tabular-nums;
   transform-origin: center center;
   will-change: transform, color;
 }
 
 .multiplier-sub-pill {
-  margin-top: 6px;
+  position: relative;
+  z-index: 1;
+  margin-top: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -555,23 +644,33 @@ body {
 }
 
 .mult-sub-status {
-  color: var(--text-secondary);
+  color: #e2e8f0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.75);
+}
+
+.mult-sub-divider {
+  color: rgba(148, 163, 184, 0.65);
+  font-weight: 500;
+  user-select: none;
 }
 
 .mult-next-tag {
-  color: var(--accent-emerald);
-  background: rgba(0, 230, 118, 0.12);
-  border: 1px solid rgba(0, 230, 118, 0.25);
-  padding: 2px 9px;
-  border-radius: 6px;
+  color: #34d399;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid rgba(16, 185, 129, 0.82);
+  padding: 0 2px 2px;
+  border-radius: 0;
   font-weight: 700;
-  font-size: 0.71rem;
+  font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   flex-shrink: 0;
+  text-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+  box-shadow: 0 5px 10px -4px rgba(16, 185, 129, 0.55);
 }
 
 .hitstop-callout-pill {
@@ -1433,11 +1532,8 @@ body {
   /* 1. Header Compactification (Safe-Area Aware) */
   .pc-top-header {
     top: max(8px, env(safe-area-inset-top, 8px));
-    left: 8px;
-    right: 8px;
-    height: 44px;
-    padding: 0 10px;
-    border-radius: 13px;
+    left: 10px;
+    right: 10px;
   }
 
   .brand-cluster {
@@ -1458,6 +1554,8 @@ body {
   }
 
   .brand-tag,
+  .brand-horizon-track,
+  .brand-sub-telemetry-row,
   .header-ticker-strip {
     display: none;
   }
@@ -1491,7 +1589,7 @@ body {
 
   /* 2. Floating Multiplier Banner (Compact & Never Overflows Viewport) */
   .stage-hud-overlay {
-    padding: calc(max(8px, env(safe-area-inset-top, 8px)) + 50px) 8px 142px;
+    padding: calc(max(8px, env(safe-area-inset-top, 8px)) + 44px) 8px 142px;
   }
 
   .stage-top-hud-stack {
@@ -1499,8 +1597,8 @@ body {
   }
 
   .multiplier-hero-banner {
-    padding: 8px 16px 9px;
-    border-radius: 14px;
+    min-width: 290px;
+    padding: 12px 38px 14px;
     max-width: calc(100vw - 16px);
   }
 
@@ -1750,9 +1848,6 @@ body {
     top: 6px;
     left: 10px;
     right: 10px;
-    height: 36px;
-    padding: 0 10px;
-    border-radius: 10px;
   }
 
   .brand-emblem {
@@ -1765,6 +1860,8 @@ body {
   }
 
   .brand-tag,
+  .brand-horizon-track,
+  .brand-sub-telemetry-row,
   .header-ticker-strip {
     display: none;
   }
@@ -1788,12 +1885,12 @@ body {
   }
 
   .stage-hud-overlay {
-    padding: 46px 12px 64px;
+    padding: 6px 12px 64px;
   }
 
   .multiplier-hero-banner {
-    padding: 4px 14px 5px;
-    border-radius: 11px;
+    min-width: 310px;
+    padding: 8px 34px 9px;
     flex-direction: row;
     gap: 10px;
     align-items: center;
