@@ -45,10 +45,19 @@ interface FloatingMultiplierCard3D {
     boxMatOrange: THREE.MeshStandardMaterial;
     boxMatAlien: THREE.MeshStandardMaterial;
 
-    // Contents inside the box
+    // Subtle Neon Aura Effect (for Orange & Alien boxes)
+    neonAuraGroup: THREE.Group;
+    neonFloorRing: THREE.Mesh;
+    neonBoxGlow: THREE.Mesh;
+    neonAuraMat: THREE.MeshBasicMaterial;
+
+    // Contents inside/underneath the box
     miniSunGroup: THREE.Group;
     miniSunCore: THREE.Mesh;
     miniSunCorona: THREE.Sprite;
+    alienPortalGroup: THREE.Group;
+    alienCoreMesh: THREE.Mesh;
+    alienRingMesh: THREE.Mesh;
     mineGroup: THREE.Group;
 
     badgeCanvas: HTMLCanvasElement;
@@ -59,6 +68,7 @@ interface FloatingMultiplierCard3D {
 
     boxType: 'normal' | 'orange' | 'alien';
     lidOpenProgress: number; // 0 = closed, 1 = fully open
+    boxLiftY: number;        // Smooth upward lift for revealing contents underneath
     isShattered: boolean;
     assignedRow: number;
     lane: number;
@@ -1238,6 +1248,39 @@ export class PixiRenderer {
             color: 0xfde047
         });
 
+        // Shared Geometries & Materials for Subtle Neon Aura Effect
+        const neonFloorRingGeo = new THREE.RingGeometry(0.75, 1.85, 32);
+        neonFloorRingGeo.rotateX(-Math.PI / 2);
+        const neonBoxGlowGeo = new THREE.BoxGeometry(2.28, 1.98, 1.98);
+
+        // Shared Geometries & Materials for Alien Portal / Power Core (Underneath Alien Box)
+        const alienRuneFloorGeo = new THREE.RingGeometry(0.25, 1.15, 24);
+        alienRuneFloorGeo.rotateX(-Math.PI / 2);
+        const alienCoreGeo = new THREE.OctahedronGeometry(0.5, 0);
+        const alienRingGeo = new THREE.TorusGeometry(0.75, 0.04, 8, 24);
+
+        const alienCoreMat = new THREE.MeshStandardMaterial({
+            color: 0x06b6d4,
+            emissive: 0xa855f7,
+            emissiveIntensity: 0.65,
+            roughness: 0.15,
+            metalness: 0.85
+        });
+        const alienRuneFloorMat = new THREE.MeshBasicMaterial({
+            color: 0xa855f7,
+            transparent: true,
+            opacity: 0.55,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const alienRingMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.75,
+            blending: THREE.AdditiveBlending
+        });
+
         for (let s = 0; s < VISIBLE_ROW_SLOTS; s++) {
             const slotRow: FloatingMultiplierCard3D[] = [];
             for (let lane = 0; lane < LANE_COUNT; lane++) {
@@ -1277,7 +1320,28 @@ export class PixiRenderer {
                 mysteryBoxGroup.add(lidLeft, lidRight);
                 visualGroup.add(mysteryBoxGroup);
 
-                // 3. Mini Sun (Revealed inside Orange Box)
+                // 3. Subtle Neon Aura Effect (for Orange & Alien mystery boxes)
+                const neonAuraMat = new THREE.MeshBasicMaterial({
+                    color: 0xf59e0b,
+                    transparent: true,
+                    opacity: 0.4,
+                    side: THREE.DoubleSide,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+                const neonFloorRing = new THREE.Mesh(neonFloorRingGeo, neonAuraMat);
+                neonFloorRing.position.set(0, 0.04, 0);
+
+                const neonBoxGlow = new THREE.Mesh(neonBoxGlowGeo, neonAuraMat);
+                neonBoxGlow.position.set(0, 0.95, 0);
+                mysteryBoxGroup.add(neonBoxGlow);
+
+                const neonAuraGroup = new THREE.Group();
+                neonAuraGroup.add(neonFloorRing);
+                neonAuraGroup.visible = false;
+                visualGroup.add(neonAuraGroup);
+
+                // 4. Mini Sun (Revealed underneath Orange Box)
                 const miniSunGroup = new THREE.Group();
                 miniSunGroup.position.set(0, 0.95, 0);
 
@@ -1295,7 +1359,34 @@ export class PixiRenderer {
                 miniSunGroup.visible = false;
                 visualGroup.add(miniSunGroup);
 
-                // 4. Hazard Prop: Classic 3D ACME Cartoon Naval Bomb with Inverted Hull Ink Outlines
+                // 5. Alien Cosmic Portal / Core (Revealed underneath Alien Box)
+                const alienPortalGroup = new THREE.Group();
+                alienPortalGroup.position.set(0, 0.95, 0);
+
+                const alienFloorMesh = new THREE.Mesh(alienRuneFloorGeo, alienRuneFloorMat);
+                alienFloorMesh.position.set(0, -0.9, 0);
+
+                const alienCoreMesh = new THREE.Mesh(alienCoreGeo, alienCoreMat);
+                const alienCoreOutline = this.createOutline(alienCoreGeo, 0.07);
+
+                const alienRingMesh = new THREE.Mesh(alienRingGeo, alienRingMat);
+                alienRingMesh.rotation.x = Math.PI * 0.25;
+
+                const alienGlowMat = new THREE.SpriteMaterial({
+                    map: this.textures.particleGlow,
+                    color: 0xa855f7,
+                    blending: THREE.AdditiveBlending,
+                    transparent: true,
+                    opacity: 0.75
+                });
+                const alienGlowSprite = new THREE.Sprite(alienGlowMat);
+                alienGlowSprite.scale.set(2.4, 2.4, 1.0);
+
+                alienPortalGroup.add(alienFloorMesh, alienCoreMesh, alienCoreOutline, alienRingMesh, alienGlowSprite);
+                alienPortalGroup.visible = false;
+                visualGroup.add(alienPortalGroup);
+
+                // 6. Hazard Prop: Classic 3D ACME Cartoon Naval Bomb with Inverted Hull Ink Outlines
                 const mineGroup = new THREE.Group();
                 mineGroup.position.set(0, 0.85, 0);
 
@@ -1326,7 +1417,7 @@ export class PixiRenderer {
                 mineGroup.visible = false;
                 visualGroup.add(mineGroup);
 
-                // 5. High-Contrast Cartoon Cel-Shaded Multiplier Badge
+                // 7. High-Contrast Cartoon Cel-Shaded Multiplier Badge
                 const badgeCanvas = document.createElement('canvas');
                 badgeCanvas.width = 256;
                 badgeCanvas.height = 104;
@@ -1360,9 +1451,16 @@ export class PixiRenderer {
                     boxMatNormal,
                     boxMatOrange,
                     boxMatAlien,
+                    neonAuraGroup,
+                    neonFloorRing,
+                    neonBoxGlow,
+                    neonAuraMat,
                     miniSunGroup,
                     miniSunCore,
                     miniSunCorona,
+                    alienPortalGroup,
+                    alienCoreMesh,
+                    alienRingMesh,
                     mineGroup,
                     badgeCanvas,
                     badgeTex,
@@ -1371,6 +1469,7 @@ export class PixiRenderer {
                     lastBadgeSignature: '',
                     boxType: 'normal',
                     lidOpenProgress: 0,
+                    boxLiftY: 0,
                     isShattered: false,
                     assignedRow: s + 1,
                     lane
@@ -2114,17 +2213,56 @@ export class PixiRenderer {
                     THREE.MathUtils.lerp(plat.visualGroup.scale.x, targetScale, Math.min(1, dt * 16))
                 );
 
-                // Flap opening logic:
-                // Normal boxes stay shut until impacted/destroyed.
-                // Orange and Alien boxes open upward when hovered or selected!
+                // Upward Box Lift & Flap Opening Animation
+                // Orange and Alien boxes lift smoothly upwards into the air when hovered or selected,
+                // leaving visible what was underneath them on the runway platform!
+                let targetBoxLiftY = 0;
                 let targetLidProgress = 0;
+
                 if (boxType !== 'normal') {
                     if (isHitStopTarget) {
+                        targetBoxLiftY = 2.85;
                         targetLidProgress = 1.0;
                     } else if (isHovered) {
-                        targetLidProgress = 0.42;
+                        targetBoxLiftY = 0.75;
+                        targetLidProgress = 0.45;
                     }
                 }
+
+                if (pickForRow) {
+                    const isPicked = pickForRow.lane === lane;
+                    const isMine = pickForRow.hazards.includes(lane);
+                    if (isPicked) {
+                        if (pickForRow.isSafe) {
+                            if (pickForRow.specialType === 'GOLDEN' || pickForRow.specialType === 'ALIEN') {
+                                targetBoxLiftY = 3.2;
+                                targetLidProgress = 1.0;
+                            } else {
+                                plat.mysteryBoxGroup.visible = false;
+                            }
+                        } else {
+                            if (pickForRow.specialType !== 'NONE') {
+                                targetBoxLiftY = 3.5;
+                                targetLidProgress = 1.0;
+                            } else {
+                                plat.mysteryBoxGroup.visible = false;
+                            }
+                        }
+                    } else if (isMine && !isPlaying) {
+                        if (boxType !== 'normal') {
+                            targetBoxLiftY = 2.5;
+                        }
+                        targetLidProgress = 1.0;
+                    }
+                }
+
+                plat.boxLiftY = THREE.MathUtils.lerp(
+                    plat.boxLiftY,
+                    targetBoxLiftY,
+                    Math.min(1, dt * 12)
+                );
+                plat.mysteryBoxGroup.position.y = plat.boxLiftY;
+
                 plat.lidOpenProgress = THREE.MathUtils.lerp(
                     plat.lidOpenProgress,
                     targetLidProgress,
@@ -2135,23 +2273,53 @@ export class PixiRenderer {
                 plat.lidLeft.rotation.z = flapAngle;
                 plat.lidRight.rotation.z = -flapAngle;
 
-                plat.mysteryBoxGroup.visible = true;
+                // Subtle Neon Aura Effect:
+                // Orange Box: warm amber/solar neon aura
+                // Alien Box: neon purple/cosmic violet aura
+                // Normal Box: no aura
+                if (boxType === 'orange') {
+                    plat.neonAuraGroup.visible = true;
+                    plat.neonBoxGlow.visible = true;
+                    plat.neonAuraMat.color.setHex(0xf59e0b);
+                    const auraPulse = 0.38 + 0.12 * Math.sin(this.elapsed * 3.6 + lane * 0.9);
+                    plat.neonAuraMat.opacity = isHovered ? Math.min(0.65, auraPulse * 1.35) : auraPulse;
+                } else if (boxType === 'alien') {
+                    plat.neonAuraGroup.visible = true;
+                    plat.neonBoxGlow.visible = true;
+                    plat.neonAuraMat.color.setHex(0xa855f7);
+                    const auraPulse = 0.38 + 0.12 * Math.sin(this.elapsed * 3.6 + lane * 0.9 + 1.2);
+                    plat.neonAuraMat.opacity = isHovered ? Math.min(0.65, auraPulse * 1.35) : auraPulse;
+                } else {
+                    plat.neonAuraGroup.visible = false;
+                    plat.neonBoxGlow.visible = false;
+                }
+
+                // Underneath Content Reveal Logic:
+                // When box moves upward (boxLiftY > 0.18), what was resting underneath is exposed!
+                const rowHazards = engine.getHazardsForActionRow(rowNumber);
+                const isHazard = rowHazards.includes(lane);
+                const isExposed = plat.boxLiftY > 0.18;
+
                 plat.miniSunGroup.visible = false;
+                plat.alienPortalGroup.visible = false;
                 plat.mineGroup.visible = false;
                 plat.badgeSprite.visible = false;
 
-                // Reveal interior content (Mini Sun or Bomb) while box flaps swing open
-                if (isHitStopTarget && boxType !== 'normal') {
-                    const rowHazards = engine.getHazardsForActionRow(rowNumber);
-                    const isHazard = rowHazards.includes(lane);
+                if (isExposed) {
                     if (isHazard) {
-                        plat.mineGroup.visible = plat.lidOpenProgress > 0.12;
-                        plat.mineGroup.position.y = 0.85 + plat.lidOpenProgress * 0.4;
-                        plat.mineGroup.rotation.y = this.elapsed * 2.8;
+                        plat.mineGroup.visible = true;
+                        plat.mineGroup.position.y = 0.85;
+                        plat.mineGroup.rotation.y = this.elapsed * 2.5;
                     } else if (boxType === 'orange') {
-                        plat.miniSunGroup.visible = plat.lidOpenProgress > 0.12;
-                        plat.miniSunGroup.position.y = 1.0 + plat.lidOpenProgress * 0.55 + Math.sin(this.elapsed * 4.0) * 0.08;
+                        plat.miniSunGroup.visible = true;
+                        plat.miniSunGroup.position.y = 0.95 + Math.sin(this.elapsed * 4.0 + lane) * 0.08;
                         plat.miniSunGroup.rotation.y = this.elapsed * 3.2;
+                    } else if (boxType === 'alien') {
+                        plat.alienPortalGroup.visible = true;
+                        plat.alienPortalGroup.position.y = 0.95;
+                        plat.alienPortalGroup.rotation.y = this.elapsed * 2.4;
+                        plat.alienRingMesh.rotation.x = this.elapsed * 3.0;
+                        plat.alienRingMesh.rotation.y = this.elapsed * 1.8;
                     }
                 }
 
@@ -2162,44 +2330,30 @@ export class PixiRenderer {
                     if (isPicked) {
                         if (pickForRow.isSafe) {
                             if (pickForRow.specialType === 'NONE') {
-                                // Normal box was destroyed on impact!
                                 plat.mysteryBoxGroup.visible = false;
                             } else if (pickForRow.specialType === 'GOLDEN') {
-                                // Orange box open with Mini Sun floating
                                 plat.mysteryBoxGroup.visible = true;
-                                plat.lidOpenProgress = 1.0;
-                                plat.lidLeft.rotation.z = Math.PI * 0.65;
-                                plat.lidRight.rotation.z = -Math.PI * 0.65;
                                 plat.miniSunGroup.visible = true;
-                                plat.miniSunGroup.position.y = 1.6 + Math.sin(this.elapsed * 4.0) * 0.12;
-                                plat.miniSunGroup.rotation.y = this.elapsed * 3.0;
+                                plat.miniSunGroup.position.y = 0.95 + Math.sin(this.elapsed * 4.0 + lane) * 0.08;
+                                plat.miniSunGroup.rotation.y = this.elapsed * 3.2;
                             } else if (pickForRow.specialType === 'ALIEN') {
-                                // Alien box open
                                 plat.mysteryBoxGroup.visible = true;
-                                plat.lidOpenProgress = 1.0;
-                                plat.lidLeft.rotation.z = Math.PI * 0.65;
-                                plat.lidRight.rotation.z = -Math.PI * 0.65;
+                                plat.alienPortalGroup.visible = true;
+                                plat.alienPortalGroup.position.y = 0.95;
+                                plat.alienPortalGroup.rotation.y = this.elapsed * 2.4;
                             }
                         } else {
-                            // Fatal mine crash
                             if (pickForRow.specialType === 'NONE') {
                                 plat.mysteryBoxGroup.visible = false;
-                                plat.mineGroup.visible = true;
-                                plat.mineGroup.rotation.y = this.elapsed * 2.4;
                             } else {
                                 plat.mysteryBoxGroup.visible = true;
-                                plat.lidOpenProgress = 1.0;
-                                plat.lidLeft.rotation.z = Math.PI * 0.65;
-                                plat.lidRight.rotation.z = -Math.PI * 0.65;
-                                plat.mineGroup.visible = true;
-                                plat.mineGroup.rotation.y = this.elapsed * 2.4;
                             }
+                            plat.mineGroup.visible = true;
+                            plat.mineGroup.rotation.y = this.elapsed * 2.5;
                         }
                     } else if (isMine && !isPlaying) {
-                        // Round finished: show hazard bombs in unpicked lanes
-                        plat.lidLeft.rotation.z = Math.PI * 0.65;
-                        plat.lidRight.rotation.z = -Math.PI * 0.65;
                         plat.mineGroup.visible = true;
+                        plat.mineGroup.rotation.y = this.elapsed * 2.5;
                     }
                 } else if (isCurrentRow) {
                     plat.badgeSprite.visible = true;

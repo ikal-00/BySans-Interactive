@@ -262,21 +262,24 @@ export class GameEngine {
                 this.minesCount,
                 isFirstStep
             );
+            if (outcome.boostFactor > 1.0) {
+                this.currentMultiplier = Math.round(this.currentMultiplier * outcome.boostFactor * 10000) / 10000;
+            }
 
             const pick: RoundPick = {
                 row: actingRow,
                 lane: laneIndex,
                 isSafe: true,
                 shieldSaved: false,
-                specialType: 'NONE',
-                boostApplied: 1.0,
-                rowsSkipped: 0,
+                specialType: outcome.specialType,
+                boostApplied: outcome.boostFactor,
+                rowsSkipped: outcome.rowsSkipped,
                 hazards: outcome.hazards,
                 stepMultiplierAfter: this.currentMultiplier
             };
             this.currentPicks.push(pick);
 
-            this.currentRow = actingRow + 1;
+            this.currentRow = actingRow + 1 + outcome.rowsSkipped;
 
             this.stepListeners.forEach((fn) => fn(pick, this));
             this.emitStateChange(GameState.PLAYING);
@@ -292,7 +295,7 @@ export class GameEngine {
             lane: laneIndex,
             isSafe: false,
             shieldSaved: false,
-            specialType: 'NONE',
+            specialType: outcome.specialType,
             boostApplied: 0,
             rowsSkipped: 0,
             hazards: outcome.hazards,

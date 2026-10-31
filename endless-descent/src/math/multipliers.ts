@@ -19,11 +19,11 @@ export function calculateMultiplier(row: number, mines: number): number {
 }
 
 /**
- * Computes the exact lane survival probability given mines count M.
- * Safe probability: p_win = (5 - M) / 5.
+ * Computes the exact lane survival probability given mines count M and optional boostFactor.
+ * Safe probability: p_win = ((5 - M) / 5) / boostFactor.
  */
-export function getLaneWinProbability(mines: number): number {
-    return (5 - mines) / 5;
+export function getLaneWinProbability(mines: number, boostFactor = 1.0): number {
+    return ((5 - mines) / 5) / (boostFactor || 1.0);
 }
 
 /**
