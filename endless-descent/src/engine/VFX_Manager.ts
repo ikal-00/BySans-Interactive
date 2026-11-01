@@ -28,10 +28,8 @@ const SpaceOverdrivePostShader = {
         uMotionBlur: { value: 0.0 },
         uHitStopFlash: { value: 0.0 },
         uSupernovaFlash: { value: 0.0 },
-        uHeatDistortion: { value: 0.0022 },
-        uLensDistortion: { value: 0.042 },
-        uDofStrength: { value: 0.24 },
-        uAoStrength: { value: 0.32 },
+        uLensDistortion: { value: 0.024 },
+        uDofStrength: { value: 0.18 },
         uGodRays: { value: 0.0 },
         uTime: { value: 0.0 }
     },
@@ -50,10 +48,8 @@ const SpaceOverdrivePostShader = {
         uniform float uMotionBlur;
         uniform float uHitStopFlash;
         uniform float uSupernovaFlash;
-        uniform float uHeatDistortion;
         uniform float uLensDistortion;
         uniform float uDofStrength;
-        uniform float uAoStrength;
         uniform float uGodRays;
         uniform float uTime;
         varying vec2 vUv;
@@ -64,23 +60,16 @@ const SpaceOverdrivePostShader = {
             float r2 = dot(centeredUv, centeredUv);
             float dist = sqrt(r2);
 
-            // 1. Subtle Anamorphic Barrel Lens Distortion
-            float barrel = 1.0 + r2 * (uLensDistortion + uWarpStrength * 0.28);
+            // 1. Clean Subtle Barrel Lens Curve
+            float barrel = 1.0 + r2 * (uLensDistortion + uWarpStrength * 0.18);
             vec2 lensUv = center + centeredUv * barrel;
             vec2 toCenter = center - lensUv;
 
-            // 2. Rear Thruster Heat Distortion Wave (localized to compact rear nozzle wake)
-            float thrusterMask = smoothstep(0.16, 0.0, length(lensUv - vec2(0.5, 0.23)));
-            vec2 heatWave = vec2(
-                sin(lensUv.y * 95.0 - uTime * 30.0),
-                cos(lensUv.x * 75.0 - uTime * 25.0)
-            ) * uHeatDistortion * thrusterMask;
+            // 2. Radial Hyperspace Warp during Hit-Stop & Speed Bursts (Zero jitter/flicker)
+            vec2 uv = clamp(lensUv + toCenter * uWarpStrength * dist * 0.45, 0.002, 0.998);
 
-            // 3. Radial Hyperspace Warp during 300ms Hit-Stop & Speed Bursts
-            vec2 uv = clamp(lensUv + heatWave + toCenter * uWarpStrength * dist * 0.55, 0.002, 0.998);
-
-            // 4. Chromatic Aberration Split + Conditional 5-Tap Radial Motion Blur
-            float chromaMag = uRgbSplit * (0.25 + dist * 1.55);
+            // 3. Chromatic Aberration Split + Conditional 5-Tap Radial Motion Blur
+            float chromaMag = uRgbSplit * (0.25 + dist * 1.35);
             vec2 dir = normalize(toCenter + vec2(0.0001));
             vec2 texel = 1.0 / max(uResolution, vec2(320.0));
 
@@ -111,42 +100,36 @@ const SpaceOverdrivePostShader = {
                 col = vec3(r, g, b);
             }
 
-            // 5. Fast Screen-Space Cavity Contrast
-            float lumaC = dot(col, vec3(0.299, 0.587, 0.114));
-            float lumaH = dot(texture2D(tDiffuse, clamp(uv + vec2(texel.x * 2.0, texel.y * 2.0), 0.002, 0.998)).rgb, vec3(0.299, 0.587, 0.114));
-            float cavity = clamp((lumaH - lumaC) * 2.8, 0.0, 1.0);
-            col *= (1.0 - cavity * uAoStrength);
-
-            // 6. Volumetric Crepuscular God Rays (Radial Light Shafts on Supernova & Hit-Stop)
+            // 4. Volumetric Light Shafts on Supernova & Hit-Stop
             if (uGodRays > 0.01) {
                 vec2 rayOrigin = vec2(0.5, 0.54);
                 vec2 rayDelta = (uv - rayOrigin) * 0.11;
                 vec2 marchUv = uv;
                 vec3 godRayAccum = vec3(0.0);
                 float decay = 1.0;
-                for (int s = 0; s < 6; s++) {
+                for (int s = 0; s < 4; s++) {
                     marchUv -= rayDelta;
                     vec3 sCol = texture2D(tDiffuse, clamp(marchUv, 0.002, 0.998)).rgb;
-                    float bright = smoothstep(0.52, 1.0, dot(sCol, vec3(0.333)));
+                    float bright = smoothstep(0.55, 1.0, dot(sCol, vec3(0.333)));
                     godRayAccum += sCol * bright * decay;
                     decay *= 0.82;
                 }
                 float angle = atan(centeredUv.y, centeredUv.x);
                 float rayBeam = 0.65 + 0.35 * sin(angle * 12.0 + uTime * 3.5);
-                col += godRayAccum * uGodRays * rayBeam * 0.26;
+                col += godRayAccum * uGodRays * rayBeam * 0.22;
             }
 
-            // 7. Clean Cinematic Edge Vignette (preserves center gameplay clarity)
+            // 5. Clean Cinematic Edge Vignette (preserves center gameplay clarity)
             float vig = smoothstep(0.95, 0.32, dist);
-            col *= mix(0.72, 1.02, vig);
+            col *= mix(0.78, 1.02, vig);
 
-            // 8. 300ms Hit-Stop Quantum Capacitor Freeze Edge Pulse
+            // 6. Hit-Stop Quantum Capacitor Freeze Edge Pulse
             if (uHitStopFlash > 0.01) {
                 float border = smoothstep(0.34, 0.58, dist);
                 col += vec3(0.0, 0.85, 1.0) * border * uHitStopFlash * 0.38;
             }
 
-            // 9. Mega Win "SUPERNOVA" Golden Light Flood, God-Ray Starburst & Anamorphic Lens Flare
+            // 7. Mega Win "SUPERNOVA" Golden Light Flood, God-Ray Starburst & Anamorphic Lens Flare
             if (uSupernovaFlash > 0.01) {
                 float radialGlow = exp(-dist * 2.6) * uSupernovaFlash;
                 float anamorphicStreak = exp(-abs(vUv.y - 0.52) * 26.0) * exp(-abs(vUv.x - 0.5) * 2.0) * uSupernovaFlash;
@@ -305,13 +288,15 @@ export class VFXManager {
         const renderPass = new RenderPass(scene, camera);
         this.composer.addPass(renderPass);
 
-        // Controlled Half-Resolution HDR Bloom: High threshold (0.85) & low initial strength (0.26)
-        // Cuts GPU bloom fill-rate by 75% while keeping floating multiplier cards 100% razor-sharp!
+        // Lightweight Optimized Bloom: high threshold (0.88), compact resolution buffer, 0.20 strength
+        // Prevents GPU fill-rate bottleneck while delivering clean holographic neon glow!
+        const bloomW = Math.min(480, Math.max(160, Math.floor(width * 0.35)));
+        const bloomH = Math.min(270, Math.max(160, Math.floor(height * 0.35)));
         this.bloomPass = new UnrealBloomPass(
-            new THREE.Vector2(Math.max(160, Math.floor(width * 0.5)), Math.max(160, Math.floor(height * 0.5))),
-            0.26,
-            0.38,
-            0.85
+            new THREE.Vector2(bloomW, bloomH),
+            0.20,
+            0.35,
+            0.88
         );
         this.composer.addPass(this.bloomPass);
 
@@ -322,10 +307,9 @@ export class VFXManager {
 
     public setSize(width: number, height: number) {
         this.composer.setSize(width, height);
-        this.bloomPass.resolution.set(
-            Math.max(160, Math.floor(width * 0.5)),
-            Math.max(160, Math.floor(height * 0.5))
-        );
+        const bloomW = Math.min(480, Math.max(160, Math.floor(width * 0.35)));
+        const bloomH = Math.min(270, Math.max(160, Math.floor(height * 0.35)));
+        this.bloomPass.resolution.set(bloomW, bloomH);
         this.warpPass.uniforms['uResolution'].value.set(width, height);
     }
 
@@ -1063,7 +1047,6 @@ export class VFXManager {
         this.warpPass.uniforms['uMotionBlur'].value = this.motionBlurIntensity;
         this.warpPass.uniforms['uSupernovaFlash'].value = this.supernovaFlashIntensity;
         this.warpPass.uniforms['uGodRays'].value = Math.max(this.godRaysIntensity, this.supernovaFlashIntensity);
-        this.warpPass.uniforms['uHeatDistortion'].value = isHitStop ? 0.0055 : 0.0022;
         this.warpPass.uniforms['uTime'].value = this.elapsed;
 
         if (this.coinFountainActive) {

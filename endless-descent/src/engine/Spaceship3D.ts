@@ -1128,8 +1128,9 @@ export class Spaceship3D {
             this.vel.set(0, 0, 0);
             this.targetPos.copy(this.pos);
         } else {
-            const stiffness = isHitStop ? 55 : isBursting ? 260 : 140;
-            const damping = isHitStop ? 11 : isBursting ? 19 : 16;
+            // Snappy high-response arcade physics: moves instantly with satisfying damp
+            const stiffness = isHitStop ? 85 : isBursting ? 320 : 200;
+            const damping = isHitStop ? 14 : isBursting ? 22 : 18;
 
             const forceX = (this.targetPos.x - this.pos.x) * stiffness;
             const forceY = (this.targetPos.y - this.pos.y) * stiffness;
@@ -1260,15 +1261,13 @@ export class Spaceship3D {
             this.updateCascadingFlameTonguesAndDroplets(dt, totalThrustBoost);
         }
 
-        const flicker =
-            0.94 +
-            0.08 * Math.sin(this.elapsed * 42.0) +
-            0.06 * Math.cos(this.elapsed * 68.0);
-        this.leftPlasmaJet.scale.set(0.95 + 0.12 * flicker, 0.95 + 0.14 * flicker, 1.0);
-        this.rightPlasmaJet.scale.set(0.95 + 0.12 * flicker, 0.95 + 0.14 * flicker, 1.0);
+        // Dynamic comic plumes deform smoothly without high-frequency scale strobing
+        this.leftPlasmaJet.scale.set(1.0, 1.0, 1.0);
+        this.rightPlasmaJet.scale.set(1.0, 1.0, 1.0);
 
+        // Calm, stable emissive glow (eliminates 22 rad/s emissive flickering on the ship)
         this.sculptedShipMat.emissiveIntensity =
-            0.34 + 0.10 * Math.sin(this.elapsed * 22.0) + burstBoost * 0.22 + multProgress * 0.10;
+            0.36 + burstBoost * 0.22 + multProgress * 0.10;
 
         this.engineLight.color.setHex(isCashedOut ? 0x34d399 : accentColorHex || 0x38bdf8);
         this.engineLight.intensity = isCrashed

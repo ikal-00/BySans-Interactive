@@ -96,7 +96,8 @@ export class GameStateController {
         const targetRow = this.engine.currentRow;
         const specials = this.engine.getSpecialsForRow(targetRow);
         const isSpecialBox = laneIndex === specials.alienLane || laneIndex === specials.goldenLane;
-        const baseDuration = isSpecialBox ? 360 : 150;
+        // Optimized snappy arcade pacing: 75ms standard, 160ms for specials
+        const baseDuration = isSpecialBox ? 160 : 75;
         const durationMs = this.turboMode
             ? Math.round(baseDuration * 0.45)
             : isAutoPlay

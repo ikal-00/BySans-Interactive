@@ -45,12 +45,20 @@ interface VictoryParticle {
     leafCount: number;
 }
 
-const VICTORY_HEADLINES = [
-    'WARP ESCAPE SECURED',
-    'HYPER-JUMP CLEARED',
-    'ATMOSPHERIC BREACH COMPLETE',
-    'MAXIMUM EXTRACTION',
-    'ORBITAL TRAJECTORY ACHIEVED'
+const VICTORY_HEADLINES_EN = [
+    'VICTORY!',
+    'BIG WIN!',
+    'WARP ESCAPE!',
+    'MEGA CASHOUT!',
+    'CLEARED!'
+];
+
+const VICTORY_HEADLINES_ES = [
+    '¡VICTORIA!',
+    '¡GRAN ESCAPE!',
+    '¡RETIRO ÉPICO!',
+    '¡MEGA PREMIO!',
+    '¡MISIÓN CUMPLIDA!'
 ];
 
 const VICTORY_EMITTERS: VictoryEmitterType[] = [
@@ -1580,12 +1588,13 @@ export function createControlsUI(
         let headlineIdx = 0;
         let emitterIdx = 0;
 
+        const headlines = lang === 'es' ? VICTORY_HEADLINES_ES : VICTORY_HEADLINES_EN;
         if (victoryCallCount === 0 || victoryCallCount % 4 === 0) {
             headlineIdx = 0;
             emitterIdx = 0;
         } else {
             do {
-                headlineIdx = Math.floor(Math.random() * VICTORY_HEADLINES.length);
+                headlineIdx = Math.floor(Math.random() * headlines.length);
             } while (headlineIdx === lastHeadlineIdx);
 
             do {
@@ -1597,11 +1606,11 @@ export function createControlsUI(
         lastHeadlineIdx = headlineIdx;
         lastEmitterIdx = emitterIdx;
 
-        const chosenHeadline = VICTORY_HEADLINES[headlineIdx];
+        const chosenHeadline = headlines[headlineIdx];
         const chosenEmitter = VICTORY_EMITTERS[emitterIdx];
 
         megaWinTitle.textContent = chosenHeadline;
-        megaWinMult.textContent = `${mult.toFixed(2)}× ${lang === 'es' ? 'MULTIPLICADOR' : 'MULTIPLIER'}`;
+        megaWinMult.textContent = `${mult.toFixed(2)}×`;
 
         if (chosenEmitter === 'ION_PLASMA') {
             megaWinTitle.style.background =
@@ -1765,7 +1774,7 @@ export function createControlsUI(
                     }
                 }
             });
-        }, 1320);
+        }, 980);
     }
 
     window.addEventListener('resize', () => {
