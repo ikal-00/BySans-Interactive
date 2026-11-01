@@ -23,6 +23,7 @@ export interface PBRTexturePack {
     cardboardAlienBoxTex: THREE.Texture;
     cardboardAlienBoxTopTex: THREE.Texture;
     miniSunTex: THREE.CanvasTexture;
+    alienSymbolTex: THREE.CanvasTexture;
     dollarBillTex: THREE.CanvasTexture;
     particleGlow: THREE.CanvasTexture;
     asteroidColor: THREE.CanvasTexture;
@@ -358,8 +359,8 @@ export function createPBRTexturePack(): PBRTexturePack {
     aCtx.fillRect(0, 0, 128, 128);
 
     // =========================================================================
-    // 4. PHOTOREALISTIC CRATERED ASTEROID & REGOLITH PBR MAPS (512x512 ImageData)
-    //    Multi-scale Worley impact craters with raised ejecta rims + 6-octave fBm rock grain!
+    // 4. HAND-DRAWN CEL-SHADED COMIC METEORITE TEXTURE (Matches Reference Image 4)
+    //    Chiseled slate-blue facets, heavy black comic shadows, ink hatching (///) & rust spots!
     // =========================================================================
     const astW = 512;
     const astH = 512;
@@ -367,98 +368,107 @@ export function createPBRTexturePack(): PBRTexturePack {
     astColorCanvas.width = astW;
     astColorCanvas.height = astH;
     const acCtx = astColorCanvas.getContext('2d')!;
-    const acImg = acCtx.createImageData(astW, astH);
 
     const astBumpCanvas = document.createElement('canvas');
     astBumpCanvas.width = astW;
     astBumpCanvas.height = astH;
     const abmCtx = astBumpCanvas.getContext('2d')!;
-    const abImg = abmCtx.createImageData(astW, astH);
 
     const astRoughCanvas = document.createElement('canvas');
     astRoughCanvas.width = astW;
     astRoughCanvas.height = astH;
     const arCtx = astRoughCanvas.getContext('2d')!;
-    const arImg = arCtx.createImageData(astW, astH);
 
-    // Pre-generate 85 realistic impact craters (X, Y, Radius, Depth)
-    const craters: Array<{ x: number; y: number; r: number; depth: number }> = [];
-    for (let i = 0; i < 85; i++) {
-        craters.push({
-            x: (i * 197 + 43) % astW,
-            y: (i * 131 + 79) % astH,
-            r: i < 14 ? 34 + (i % 5) * 9 : 9 + (i % 7) * 4,
-            depth: 0.45 + (i % 4) * 0.14
+    // Base cel-shaded slate-blue rock fill
+    acCtx.fillStyle = '#4a5d73';
+    acCtx.fillRect(0, 0, astW, astH);
+
+    // Chiseled angular polygon facets (Lit Slate, Mid Steel, Deep Shadow, Pure Black Comic Shadow)
+    const comicFacets: Array<{ pts: [number, number][]; fill: string; hatch?: boolean }> = [
+        { pts: [[0, 0], [180, 0], [140, 130], [0, 110]], fill: '#657e99' },
+        { pts: [[180, 0], [360, 0], [310, 150], [140, 130]], fill: '#3d4f63', hatch: true },
+        { pts: [[360, 0], [512, 0], [512, 140], [310, 150]], fill: '#080b11' },
+        { pts: [[0, 110], [140, 130], [190, 270], [40, 290], [0, 240]], fill: '#576f88' },
+        { pts: [[140, 130], [310, 150], [270, 290], [190, 270]], fill: '#070a10', hatch: true },
+        { pts: [[310, 150], [512, 140], [512, 310], [390, 320], [270, 290]], fill: '#475a70', hatch: true },
+        { pts: [[0, 240], [40, 290], [190, 270], [150, 410], [0, 390]], fill: '#080b11', hatch: true },
+        { pts: [[190, 270], [270, 290], [340, 420], [150, 410]], fill: '#627b96' },
+        { pts: [[270, 290], [390, 320], [512, 310], [512, 440], [340, 420]], fill: '#283545', hatch: true },
+        { pts: [[0, 390], [150, 410], [170, 512], [0, 512]], fill: '#4c6078' },
+        { pts: [[150, 410], [340, 420], [350, 512], [170, 512]], fill: '#070a10', hatch: true },
+        { pts: [[340, 420], [512, 440], [512, 512], [350, 512]], fill: '#5b738c' }
+    ];
+
+    for (const f of comicFacets) {
+        acCtx.beginPath();
+        f.pts.forEach(([px, py], idx) => {
+            if (idx === 0) acCtx.moveTo(px, py);
+            else acCtx.lineTo(px, py);
         });
-    }
+        acCtx.closePath();
+        acCtx.fillStyle = f.fill;
+        acCtx.fill();
 
-    for (let y = 0; y < astH; y++) {
-        const ny = (y / astH) * 8.0;
-        for (let x = 0; x < astW; x++) {
-            const nx = (x / astW) * 8.0;
-
-            // Multi-octave rocky regolith base + ridged fracture seams
-            const baseRock = fbm2D(nx, ny, 6, 2.0, 0.52, 8, 8);
-            const fractures = ridgedFbm2D(nx * 1.5 + 3.1, ny * 1.5 + 1.7, 4, 12, 12);
-
-            // Accumulate realistic impact crater bowls + raised ejecta rims
-            let craterHeight = 0;
-            for (let c = 0; c < craters.length; c++) {
-                const cr = craters[c];
-                // Seamless toroidal distance
-                let dx = Math.abs(x - cr.x);
-                let dy = Math.abs(y - cr.y);
-                if (dx > astW * 0.5) dx = astW - dx;
-                if (dy > astH * 0.5) dy = astH - dy;
-                const d = Math.sqrt(dx * dx + dy * dy) / cr.r;
-                if (d < 1.35) {
-                    if (d < 0.82) {
-                        // Parabolic crater bowl
-                        const bowl = (d / 0.82) * (d / 0.82) - 1.0;
-                        craterHeight += bowl * cr.depth * 0.55;
-                    } else {
-                        // Raised ejecta rim decaying outward
-                        const rimT = (d - 0.82) / 0.53;
-                        const rim = Math.sin(rimT * Math.PI) * 0.28 * cr.depth;
-                        craterHeight += rim;
-                    }
-                }
+        // Diagonal comic ink hatching strokes (///) inside shaded facets
+        if (f.hatch) {
+            acCtx.save();
+            acCtx.clip();
+            acCtx.strokeStyle = '#06080e';
+            acCtx.lineWidth = 2.6;
+            for (let d = -512; d < 1024; d += 11) {
+                acCtx.beginPath();
+                acCtx.moveTo(d, 0);
+                acCtx.lineTo(d + 220, 512);
+                acCtx.stroke();
             }
-
-            const heightVal = THREE.MathUtils.clamp(
-                baseRock * 0.62 + (1.0 - fractures) * 0.18 + craterHeight + 0.15,
-                0,
-                1
-            );
-
-            // Chondrite / Basaltic Stony-Iron Asteroid Albedo Palette
-            const darkSilicate = 26 + heightVal * 58;
-            const warmIron = 28 + heightVal * 54 + (fractures > 0.82 ? 18 : 0);
-            const coolGrey = 32 + heightVal * 60;
-
-            const idx = (y * astW + x) * 4;
-            acImg.data[idx] = THREE.MathUtils.clamp(warmIron, 10, 210);
-            acImg.data[idx + 1] = THREE.MathUtils.clamp(darkSilicate, 10, 210);
-            acImg.data[idx + 2] = THREE.MathUtils.clamp(coolGrey, 12, 220);
-            acImg.data[idx + 3] = 255;
-
-            const bumpByte = Math.round(heightVal * 255);
-            abImg.data[idx] = bumpByte;
-            abImg.data[idx + 1] = bumpByte;
-            abImg.data[idx + 2] = bumpByte;
-            abImg.data[idx + 3] = 255;
-
-            // Roughness: crater interiors are dusty (rough), exposed ridges are metallic (smoother)
-            const roughByte = Math.round(THREE.MathUtils.clamp((1.0 - heightVal * 0.55) * 235, 65, 245));
-            arImg.data[idx] = roughByte;
-            arImg.data[idx + 1] = roughByte;
-            arImg.data[idx + 2] = roughByte;
-            arImg.data[idx + 3] = 255;
+            acCtx.restore();
         }
     }
-    acCtx.putImageData(acImg, 0, 0);
-    abmCtx.putImageData(abImg, 0, 0);
-    arCtx.putImageData(arImg, 0, 0);
+
+    // Subtle rusty-ochre weathering patches near lit ridges (exactly like Image 4)
+    const rustSpots: Array<[number, number, number, number]> = [
+        [85, 62, 26, 14],
+        [112, 84, 18, 11],
+        [68, 185, 32, 16],
+        [235, 345, 28, 15],
+        [425, 215, 24, 12],
+        [448, 468, 22, 13]
+    ];
+    for (const [rx, ry, rw, rh] of rustSpots) {
+        acCtx.save();
+        acCtx.translate(rx, ry);
+        acCtx.rotate(0.42);
+        acCtx.fillStyle = 'rgba(148, 78, 44, 0.72)';
+        acCtx.beginPath();
+        acCtx.ellipse(0, 0, rw, rh, 0, 0, Math.PI * 2);
+        acCtx.fill();
+        acCtx.fillStyle = 'rgba(176, 98, 54, 0.55)';
+        acCtx.beginPath();
+        acCtx.ellipse(rw * 0.25, -rh * 0.2, rw * 0.45, rh * 0.45, 0, 0, Math.PI * 2);
+        acCtx.fill();
+        acCtx.restore();
+    }
+
+    // Bold hand-drawn black comic ink ridge lines between facets
+    acCtx.strokeStyle = '#05070c';
+    acCtx.lineWidth = 5.5;
+    acCtx.lineJoin = 'bevel';
+    acCtx.lineCap = 'round';
+    for (const f of comicFacets) {
+        acCtx.beginPath();
+        f.pts.forEach(([px, py], idx) => {
+            if (idx === 0) acCtx.moveTo(px, py);
+            else acCtx.lineTo(px, py);
+        });
+        acCtx.closePath();
+        acCtx.stroke();
+    }
+
+    // Neutral flat bump and matte comic roughness maps
+    abmCtx.fillStyle = '#808080';
+    abmCtx.fillRect(0, 0, astW, astH);
+    arCtx.fillStyle = '#dcdcdc';
+    arCtx.fillRect(0, 0, astW, astH);
 
     // =========================================================================
     // 5. FLOATING CRYSTALLINE SCI-FI GLASS MULTIPLIER CARD TEXTURE (512x340)
@@ -864,38 +874,94 @@ export function createPBRTexturePack(): PBRTexturePack {
         return canvas;
     }
 
-    function createMiniSunCanvas(): HTMLCanvasElement {
+    function createComicOrbCanvas(theme: 'orange' | 'blue'): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
+        canvas.width = 512;
+        canvas.height = 512;
         const ctx = canvas.getContext('2d')!;
+        const cx = 256;
+        const cy = 256;
+        const r = 240;
 
-        const sunGrad = ctx.createRadialGradient(128, 128, 12, 128, 128, 120);
-        sunGrad.addColorStop(0, '#ffffff');
-        sunGrad.addColorStop(0.25, '#fef08a');
-        sunGrad.addColorStop(0.55, '#f59e0b');
-        sunGrad.addColorStop(0.85, '#ea580c');
-        sunGrad.addColorStop(1, 'rgba(194, 65, 12, 0)');
+        // 1. Circular Comic Body Gradient
+        const grad = ctx.createRadialGradient(cx - 24, cy - 24, 18, cx, cy, r);
+        if (theme === 'orange') {
+            grad.addColorStop(0, '#fde047');
+            grad.addColorStop(0.45, '#f97316');
+            grad.addColorStop(0.85, '#ea580c');
+            grad.addColorStop(1, '#9a3412');
+        } else {
+            grad.addColorStop(0, '#67e8f9');
+            grad.addColorStop(0.45, '#06b6d4');
+            grad.addColorStop(0.85, '#0284c7');
+            grad.addColorStop(1, '#1e3a8a');
+        }
 
-        ctx.fillStyle = sunGrad;
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(128, 128, 120, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
 
-        ctx.fillStyle = 'rgba(254, 240, 138, 0.85)';
-        for (let i = 0; i < 12; i++) {
-            const angle = (i * Math.PI) / 6;
-            ctx.save();
-            ctx.translate(128, 128);
-            ctx.rotate(angle);
+        // 2. Comic Crosshatching (###) Around Lower & Side Rim
+        ctx.strokeStyle = theme === 'orange' ? '#290f04' : '#06152d';
+        ctx.lineWidth = 2.4;
+        for (let a = 0.2; a < Math.PI - 0.1; a += 0.08) {
+            const rx = cx + Math.cos(a) * (r - 28);
+            const ry = cy + Math.sin(a) * (r - 28);
             ctx.beginPath();
-            ctx.moveTo(-10, 80);
-            ctx.lineTo(0, 124);
-            ctx.lineTo(10, 80);
-            ctx.closePath();
+            ctx.moveTo(rx - 22, ry - 14);
+            ctx.lineTo(rx + 22, ry + 14);
+            ctx.moveTo(rx + 18, ry - 18);
+            ctx.lineTo(rx - 18, ry + 18);
+            ctx.stroke();
+        }
+
+        // 3. Hand-Drawn Comic Ink Craters & Swirling Plasma Lines
+        ctx.lineCap = 'round';
+        for (const [crx, cry, crr, ang] of [
+            [162, 168, 32, -0.5],
+            [196, 206, 22, -0.4],
+            [348, 250, 14, 0.3]
+        ] as const) {
+            ctx.save();
+            ctx.translate(crx, cry);
+            ctx.rotate(ang);
+            ctx.fillStyle = theme === 'orange' ? '#9a3412' : '#0c4a6e';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, crr, crr * 0.62, 0, 0, Math.PI * 2);
             ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#080b11';
+            ctx.stroke();
             ctx.restore();
         }
+
+        // 4. Licking Comic Flame / Plasma Flares with Bright Glowing Cores
+        for (const [fx, fy, sc] of [
+            [335, 168, 1.1],
+            [305, 205, 0.78],
+            [168, 338, 0.95],
+            [332, 342, 0.85]
+        ] as const) {
+            const flGrad = ctx.createRadialGradient(fx, fy, 2, fx, fy, 42 * sc);
+            flGrad.addColorStop(0, '#ffffff');
+            flGrad.addColorStop(0.4, theme === 'orange' ? '#fef08a' : '#a5f3fc');
+            flGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = flGrad;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 42 * sc, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // 5. Bold Dark Comic Outer Circular Ink Border
+        ctx.strokeStyle = theme === 'orange' ? '#431407' : '#082f49';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r - 5, 0, Math.PI * 2);
+        ctx.stroke();
 
         return canvas;
     }
@@ -1053,7 +1119,52 @@ export function createPBRTexturePack(): PBRTexturePack {
     clightCtx.putImageData(clImg, 0, 0);
     pclCtx.putImageData(pclImg, 0, 0);
 
-    // 6F. Photorealistic High-Density Planetary Ring System (512x512 with hundreds of fine ringlets)
+    // Overlay Hand-Drawn Comic Ink Contours, Hatching & Magma Cracks on Background Planets (Matches Image 4)
+    const applyComicPlanetInk = (ctx: CanvasRenderingContext2D, accentColor: string) => {
+        ctx.save();
+        ctx.strokeStyle = '#05070c';
+        ctx.lineWidth = 3.2;
+        ctx.lineCap = 'round';
+        // Equatorial & tropical comic ink contour lines + crosshatching
+        for (let by = 36; by < ph - 28; by += 44) {
+            ctx.beginPath();
+            for (let bx = 0; bx <= pw; bx += 16) {
+                const wy = by + Math.sin((bx / pw) * Math.PI * 4 + by) * 6;
+                if (bx === 0) ctx.moveTo(bx, wy);
+                else ctx.lineTo(bx, wy);
+            }
+            ctx.stroke();
+
+            // Comic diagonal hatching ticks along band shadow edge
+            ctx.lineWidth = 1.8;
+            for (let hx = 12; hx < pw; hx += 22) {
+                const wy = by + Math.sin((hx / pw) * Math.PI * 4 + by) * 6;
+                ctx.beginPath();
+                ctx.moveTo(hx, wy);
+                ctx.lineTo(hx - 8, wy + 10);
+                ctx.stroke();
+            }
+            ctx.lineWidth = 3.2;
+        }
+        // Glowing comic fissure cracks (like the orange/violet background planet in Image 4)
+        ctx.strokeStyle = accentColor;
+        ctx.lineWidth = 2.6;
+        for (let i = 0; i < 14; i++) {
+            const sx = (i * 73 + 29) % (pw - 60) + 30;
+            const sy = (i * 47 + 41) % (ph - 60) + 30;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + 14, sy + 8);
+            ctx.lineTo(sx + 8, sy + 20);
+            ctx.stroke();
+        }
+        ctx.restore();
+    };
+    applyComicPlanetInk(ggCtx, '#f97316');
+    applyComicPlanetInk(ipCtx, '#38bdf8');
+    applyComicPlanetInk(lpCtx, '#fde047');
+
+    // 6F. Hand-Drawn Cel-Shaded Comic Planetary Ring System (512x512 with ink bands & black rock silhouettes like Image 4)
     const ringCanvas = document.createElement('canvas');
     ringCanvas.width = 512;
     ringCanvas.height = 512;
@@ -1071,36 +1182,60 @@ export function createPBRTexturePack(): PBRTexturePack {
                 continue;
             }
             const normR = (r - 112) / (250 - 112);
-            // Cassini Division (0.54..0.61) & Encke Gap (0.86..0.885)
             const cassiniMask =
                 normR > 0.54 && normR < 0.61
-                    ? 0.06
+                    ? 0.04
                     : normR > 0.86 && normR < 0.885
-                      ? 0.08
+                      ? 0.06
                       : 1.0;
 
-            // High-frequency concentric ringlet optical depth modulation
-            const ringletNoise =
-                0.55 +
-                0.25 * Math.sin(normR * 185.0) +
-                0.15 * Math.cos(normR * 420.0) +
-                0.12 * Math.sin(normR * 890.0);
+            // Posterized cel-shaded ring bands + black comic ink divider rings
+            const isInkLine =
+                Math.abs(normR - 0.02) < 0.018 ||
+                Math.abs(normR - 0.53) < 0.015 ||
+                Math.abs(normR - 0.62) < 0.015 ||
+                Math.abs(normR - 0.98) < 0.018;
+
+            if (isInkLine) {
+                rgImg.data[idx] = 8;
+                rgImg.data[idx + 1] = 11;
+                rgImg.data[idx + 2] = 18;
+                rgImg.data[idx + 3] = 240;
+                continue;
+            }
+
+            const bandStep = Math.floor(normR * 8) / 8;
             const radialEnvelope = Math.sin(normR * Math.PI);
             const alpha = THREE.MathUtils.clamp(
-                radialEnvelope * ringletNoise * cassiniMask * 0.92,
+                radialEnvelope * cassiniMask * 0.88,
                 0,
                 1
             );
 
-            // Warm icy silicate & champagne dust tones (Saturn A/B/C ring colors)
-            const colorShift = 0.5 + 0.5 * Math.sin(normR * 45.0);
-            rgImg.data[idx] = Math.round(lerp(185, 245, colorShift));
-            rgImg.data[idx + 1] = Math.round(lerp(198, 232, colorShift));
-            rgImg.data[idx + 2] = Math.round(lerp(215, 210, colorShift));
+            rgImg.data[idx] = Math.round(lerp(148, 224, bandStep));
+            rgImg.data[idx + 1] = Math.round(lerp(182, 238, bandStep));
+            rgImg.data[idx + 2] = Math.round(lerp(225, 255, bandStep));
             rgImg.data[idx + 3] = Math.round(alpha * 255);
         }
     }
     rgCtx.putImageData(rgImg, 0, 0);
+
+    // Scatter comic black ink rock silhouettes along the planetary rings (matching Image 4 background)
+    rgCtx.fillStyle = '#06080f';
+    for (let i = 0; i < 64; i++) {
+        const ang = (i / 64) * Math.PI * 2 + (i % 3) * 0.17;
+        const rad = 128 + ((i * 29) % 108);
+        const rx = 256 + Math.cos(ang) * rad;
+        const ry = 256 + Math.sin(ang) * rad;
+        const sz = 2.5 + (i % 4) * 1.4;
+        rgCtx.beginPath();
+        rgCtx.moveTo(rx - sz, ry);
+        rgCtx.lineTo(rx, ry - sz * 0.8);
+        rgCtx.lineTo(rx + sz, ry + sz * 0.3);
+        rgCtx.lineTo(rx - sz * 0.4, ry + sz);
+        rgCtx.closePath();
+        rgCtx.fill();
+    }
 
     // =========================================================================
     // 7. THREE PHOTOREALISTIC JWST / HUBBLE VOLUMETRIC NEBULA TEXTURES (384x384 ImageData)
@@ -1330,15 +1465,24 @@ export function createPBRTexturePack(): PBRTexturePack {
     const cardboardAlienBoxTopTex = new THREE.CanvasTexture(alienTopCanvas);
     cardboardAlienBoxTopTex.colorSpace = THREE.SRGBColorSpace;
 
+    const miniSunCanvas = createComicOrbCanvas('orange');
+    const miniSunTex = new THREE.CanvasTexture(miniSunCanvas);
+    miniSunTex.colorSpace = THREE.SRGBColorSpace;
+
+    const alienSymbolCanvas = createComicOrbCanvas('blue');
+    const alienSymbolTex = new THREE.CanvasTexture(alienSymbolCanvas);
+    alienSymbolTex.colorSpace = THREE.SRGBColorSpace;
+
     // Upgrade synchronously-initialized canvas textures with the extracted reference PNG assets
     if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
         const texLoader = new THREE.TextureLoader();
-        const upgradeCanvas = (canvas: HTMLCanvasElement, tex: THREE.CanvasTexture, url: string) => {
+        const upgradeCanvas = (canvas: HTMLCanvasElement, tex: THREE.CanvasTexture, url: string, clearFirst = false) => {
             texLoader.load(url, (t) => {
                 if (t.image) {
                     const ctx = canvas.getContext('2d');
                     if (ctx) {
-                        ctx.drawImage(t.image, 0, 0, 512, 512);
+                        if (clearFirst) ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(t.image, 0, 0, canvas.width, canvas.height);
                         tex.needsUpdate = true;
                     }
                 }
@@ -1350,10 +1494,9 @@ export function createPBRTexturePack(): PBRTexturePack {
         upgradeCanvas(orangeTopCanvas, cardboardOrangeBoxTopTex, '/assets/crate_top_orange.png');
         upgradeCanvas(alienSideCanvas, cardboardAlienBoxTex, '/assets/crate_side_alien.png');
         upgradeCanvas(alienTopCanvas, cardboardAlienBoxTopTex, '/assets/crate_top_alien.png');
+        upgradeCanvas(miniSunCanvas, miniSunTex, '/assets/bonus_sun_comic.png', true);
+        upgradeCanvas(alienSymbolCanvas, alienSymbolTex, '/assets/bonus_blue_comic.png', true);
     }
-
-    const miniSunTex = new THREE.CanvasTexture(createMiniSunCanvas());
-    miniSunTex.colorSpace = THREE.SRGBColorSpace;
 
     const dollarBillTex = new THREE.CanvasTexture(billCanvas);
     const particleGlow = new THREE.CanvasTexture(glowCanvas);
@@ -1423,6 +1566,7 @@ export function createPBRTexturePack(): PBRTexturePack {
         cardboardAlienBoxTex,
         cardboardAlienBoxTopTex,
         miniSunTex,
+        alienSymbolTex,
         dollarBillTex,
         particleGlow,
         asteroidColor,

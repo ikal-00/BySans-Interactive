@@ -69,7 +69,7 @@ canvas.addEventListener('pointermove', (e) => {
     if (e.pointerType === 'touch') return;
     if (engine.state === GameState.PLAYING && !gameState.isHitStopActive) {
         renderer.updateHover(e.clientX, e.clientY, engine.currentRow);
-    } else {
+    } else if (renderer.hoveredLane !== null) {
         renderer.clearHover();
     }
 });

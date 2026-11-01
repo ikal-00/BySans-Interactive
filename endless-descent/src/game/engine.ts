@@ -8,7 +8,8 @@ import {
 import {
     calculateEffectiveBet,
     calculateNextStepMultiplier,
-    calculatePayout
+    calculatePayout,
+    calculateShieldSaveMultiplier
 } from '../math/multipliers';
 import { GameState } from '../math/types';
 import type { RoundPick, RoundSummary, RowSpecialConfig } from '../math/types';
@@ -177,14 +178,14 @@ export class GameEngine {
     }
 
     public getEffectiveBet(baseBet = this.betAmount): number {
-        return calculateEffectiveBet(baseBet);
+        return calculateEffectiveBet(baseBet, this.luckyBoost, this.shieldPurchased, this.gameMode);
     }
 
     public startBet(
         betAmount: number,
         minesCount: number,
-        _luckyBoost = false,
-        _shieldPurchased = false,
+        luckyBoost = false,
+        shieldPurchased = this.shieldPurchased,
         _gameMode = 'base'
     ): boolean {
         if (this.state === GameState.PLAYING) return false;
@@ -192,7 +193,7 @@ export class GameEngine {
         if (!Number.isInteger(minesCount) || minesCount < 1 || minesCount > 4) return false;
 
         const sanitizedBet = Math.min(1000000, Math.round(betAmount * 100) / 100);
-        const effectiveBet = sanitizedBet;
+        const effectiveBet = calculateEffectiveBet(sanitizedBet, luckyBoost, shieldPurchased);
 
         // In Live RGS mode, verify real balance sufficiency; in Sandbox demo, auto top-up
         if (!stakeRGS.session.isLiveRGS && this.balance < effectiveBet) {
@@ -204,10 +205,12 @@ export class GameEngine {
         }
 
         this.betAmount = sanitizedBet;
-        this.activeBetAmount = effectiveBet;
+        this.activeBetAmount = sanitizedBet;
         this.initialEffectiveBet = effectiveBet;
         this.minesCount = minesCount;
-        this.hasActiveShield = false;
+        this.luckyBoost = luckyBoost;
+        this.shieldPurchased = shieldPurchased;
+        this.hasActiveShield = shieldPurchased;
         this.shieldUsedInRound = false;
         this.partialPayoutBanked = 0;
         this.partialCashoutUsedOnRow = 0;
@@ -318,7 +321,33 @@ export class GameEngine {
             return pick;
         }
 
-        // CASE 2: FATAL CRASH
+        // CASE 2: SHIELD ABSORPTION (Deflects 1 fatal mine hit and retains 50% multiplier!)
+        if (this.hasActiveShield) {
+            this.hasActiveShield = false;
+            this.shieldUsedInRound = true;
+            this.currentMultiplier = calculateShieldSaveMultiplier(this.currentMultiplier);
+
+            const pick: RoundPick = {
+                row: actingRow,
+                lane: laneIndex,
+                isSafe: false,
+                shieldSaved: true,
+                specialType: outcome.specialType,
+                boostApplied: 1.0,
+                rowsSkipped: 0,
+                hazards: outcome.hazards,
+                stepMultiplierAfter: this.currentMultiplier
+            };
+            this.currentPicks.push(pick);
+
+            this.currentRow = actingRow + 1;
+
+            this.stepListeners.forEach((fn) => fn(pick, this));
+            this.emitStateChange(GameState.PLAYING);
+            return pick;
+        }
+
+        // CASE 3: FATAL CRASH
         this.lastCrashedRow = actingRow;
         this.lastCrashedLane = laneIndex;
 

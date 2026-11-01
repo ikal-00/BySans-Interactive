@@ -170,10 +170,12 @@ body {
 }
 
 .brand-cluster {
-  display: flex;
+  height: 44px;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 5px 14px 5px 7px;
+  padding: 0 16px 0 8px;
   border-radius: 9px;
   background: #2b3847;
   border: 2.5px solid #080b11;
@@ -186,8 +188,8 @@ body {
 }
 
 .brand-emblem {
-  width: 31px;
-  height: 31px;
+  width: 30px;
+  height: 30px;
   border-radius: 6px;
   background: #1a232e;
   border: 2px solid #080b11;
@@ -197,34 +199,31 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .brand-titles {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
 }
 
 .brand-name {
   font-family: var(--font-sans);
-  font-size: 0.96rem;
+  font-size: 0.98rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: #ffffff;
-  line-height: 1.1;
+  line-height: 1;
+  margin: 0;
+  display: flex;
+  align-items: center;
   text-shadow: 0 2px 0 #080b11;
 }
 
 .brand-tag {
-  font-family: var(--font-sans);
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #cbd5e1;
-  letter-spacing: 0.015em;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  text-shadow: 0 1.5px 0 #080b11;
+  display: none !important;
 }
 
 .brand-tag.live-rgs {
@@ -536,10 +535,10 @@ body {
 }
 
 .balance-pill {
-  height: 38px;
-  display: flex;
+  min-height: 44px;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
   background: #2b3847;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -551,25 +550,41 @@ body {
     0 0 0 5px #080b11,
     0 6px 14px rgba(0, 0, 0, 0.55);
   border-radius: 9px;
-  padding: 0 16px;
+  padding: 5px 18px 4px;
+}
+
+.balance-inner-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  line-height: 1;
 }
 
 .balance-label {
   font-family: var(--font-sans);
   font-size: 0.62rem;
-  font-weight: 700;
-  color: #94a3b8;
+  font-weight: 800;
+  color: #cbd5e1;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  margin: 0;
+  text-align: center;
   text-shadow: 0 1.5px 0 #080b11;
 }
 
 .balance-value {
   font-family: var(--font-sans);
-  font-size: 1.04rem;
+  font-size: 1.02rem;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: -0.01em;
+  line-height: 1.05;
+  margin: 0;
+  text-align: center;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 2px 0 #080b11;
 }
@@ -604,8 +619,10 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   min-width: 446px;
-  padding: 25px 52px 26px;
+  height: 112px;
+  padding: 0 54px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -631,11 +648,12 @@ body {
   position: relative;
   z-index: 1;
   font-family: var(--font-sans);
-  font-size: 2.34rem;
+  font-size: 2.18rem;
   font-weight: 900;
   letter-spacing: -0.025em;
   line-height: 1.0;
-  padding: 1px 6px;
+  margin: 0;
+  padding: 0 6px;
   color: #ffffff;
   text-shadow:
     0 3px 0 #080b11,
@@ -648,13 +666,14 @@ body {
 .multiplier-sub-pill {
   position: relative;
   z-index: 1;
-  margin-top: 6px;
+  margin-top: 0;
+  line-height: 1.15;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   font-family: var(--font-sans);
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 700;
   max-width: 100%;
 }
@@ -762,14 +781,14 @@ body {
   animation: dockReadyHighlight 0.85s ease-out;
 }
 
-/* 3-Column Comic Cockpit Layout:
-   [1: Bet Amount] [2: Mines Selector] [3: Comic Emerald Launch Button] */
+/* 4-Column Comic Cockpit Layout:
+   [1: Bet Amount] [2: Mines Selector] [3: Shield Purchase] [4: Comic Emerald Launch Button] */
 .betting-panel-main-row {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(290px, 1.32fr) minmax(240px, 1.02fr) minmax(290px, 1.24fr);
-  gap: 24px;
+  grid-template-columns: minmax(250px, 1.24fr) minmax(205px, 0.96fr) minmax(146px, 0.68fr) minmax(250px, 1.16fr);
+  gap: 18px;
   align-items: end;
 }
 
@@ -785,7 +804,7 @@ body {
 .betting-panel-main-row > .betting-field-group:first-child::after {
   content: "";
   position: absolute;
-  right: -13px;
+  right: -10px;
   top: 2px;
   bottom: 2px;
   width: 2.5px;
@@ -793,6 +812,104 @@ body {
   box-shadow: 1.5px 0 0 rgba(123, 143, 162, 0.32);
   border-radius: 2px;
   pointer-events: none;
+}
+
+/* Comic-Inked Quantum Shield Purchase Button */
+.comic-shield-toggle-btn {
+  height: 56px;
+  width: 100%;
+  border: 2.5px solid #080b11;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #2d3a49 0%, #202a36 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.35),
+    0 5px 0 #080b11;
+  color: #cbd5e1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 12px;
+  transition: transform 0.08s ease, background 0.14s ease, box-shadow 0.12s ease, color 0.14s ease;
+}
+
+.comic-shield-toggle-btn:hover:not(:disabled):not(.active) {
+  background: linear-gradient(180deg, #38485a 0%, #283442 100%);
+  color: #ffffff;
+}
+
+.comic-shield-toggle-btn.active {
+  background: linear-gradient(180deg, #0ea5e9 0%, #0284c7 100%);
+  border-color: #080b11;
+  color: #ffffff;
+  box-shadow:
+    inset 0 2px 0 #7dd3fc,
+    inset 0 -2px 0 #0369a1,
+    0 5px 0 #080b11,
+    0 0 16px rgba(56, 189, 248, 0.45);
+}
+
+.comic-shield-toggle-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    0 2px 0 #080b11;
+}
+
+.comic-shield-toggle-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.shield-icon-wrap {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: rgba(8, 11, 17, 0.45);
+  border: 2px solid #080b11;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.comic-shield-toggle-btn.active .shield-icon-wrap {
+  background: #082f49;
+  color: #7dd3fc;
+}
+
+.shield-btn-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  line-height: 1.1;
+  min-width: 0;
+}
+
+.shield-btn-title {
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  color: #ffffff;
+  text-shadow: 0 2px 0 #080b11;
+}
+
+.shield-btn-state {
+  font-family: var(--font-sans);
+  font-size: 0.64rem;
+  font-weight: 800;
+  color: #94a3b8;
+  white-space: nowrap;
+  text-shadow: 0 1.5px 0 #080b11;
+}
+
+.comic-shield-toggle-btn.active .shield-btn-state {
+  color: #e0f2fe;
 }
 
 .betting-field-header {
@@ -1814,10 +1931,30 @@ body {
   }
 
   .fintech-cta-wrap {
-    grid-column: span 2;
+    grid-column: span 1;
     padding-left: 0;
     margin-left: 0;
     border-left: none;
+  }
+
+  .comic-shield-toggle-btn {
+    height: 42px;
+    padding: 0 8px;
+    border-radius: 10px;
+    gap: 6px;
+  }
+
+  .shield-icon-wrap {
+    width: 24px;
+    height: 24px;
+  }
+
+  .shield-btn-title {
+    font-size: 0.74rem;
+  }
+
+  .shield-btn-state {
+    font-size: 0.56rem;
   }
 
   .betting-field-group {

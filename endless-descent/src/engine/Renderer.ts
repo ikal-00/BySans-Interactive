@@ -176,6 +176,7 @@ export class PixiRenderer {
     private camVel = new THREE.Vector3(0, 0, 0);
     private camLookAt = new THREE.Vector3(0, 1.45, -7.5);
     public mouseParallax = new THREE.Vector2(0, 0);
+    private targetMouseParallax = new THREE.Vector2(0, 0);
 
     // Reusable Scratch Vectors & Colors (Zero GC Allocations in 60/120 FPS Render Loop)
     private readonly scratchSkyColor = new THREE.Color();
@@ -468,14 +469,11 @@ export class PixiRenderer {
             });
             const sprite = new THREE.Sprite(nebulaMat);
             const side = i % 2 === 0 ? -1 : 1;
-            const baseX =
-                i % 5 === 0
-                    ? (Math.random() - 0.5) * 48
-                    : side * (16 + Math.random() * 38);
-            const baseY = i % 5 === 0 ? -16 - Math.random() * 14 : -12 + Math.random() * 34;
-            const offsetZ = -Math.random() * 250;
+            const baseX = side * (26 + Math.random() * 36);
+            const baseY = -12 + Math.random() * 32;
+            const offsetZ = -20 - Math.random() * 240;
             sprite.position.set(baseX, baseY, offsetZ);
-            const scale = 24 + Math.random() * 28;
+            const scale = 22 + Math.random() * 24;
             sprite.scale.set(scale, scale * 0.82, 1);
             this.scene.add(sprite);
 
@@ -666,15 +664,16 @@ export class PixiRenderer {
                     float cloudAlpha = texture2D(tClouds, cloudUv).a * uCloudOpacity;
                     float cloudShadow = texture2D(tClouds, shadowUv).a * uCloudOpacity * 0.55;
 
-                    // 3. Day-Side Diffuse + Specular Ocean/Ice Solar Highlight
-                    float diffuse = smoothstep(-0.08, 0.85, ndotl);
+                    // 3. Cel-Shaded Comic Planet Lighting (Quantized Comic Bands + Bold Comic Rim)
+                    float rawDiffuse = smoothstep(-0.12, 0.85, ndotl);
+                    float diffuse = floor(rawDiffuse * 4.0 + 0.35) / 4.0;
                     vec3 H = normalize(uSunDir + V);
                     float oceanMask = smoothstep(0.32, 0.65, dayAlbedo.b - dayAlbedo.r * 0.6);
-                    float spec = pow(max(0.0, dot(N, H)), 38.0) * oceanMask * diffuse * 0.78;
+                    float spec = step(0.82, pow(max(0.0, dot(N, H)), 24.0)) * oceanMask * diffuse * 0.65;
 
                     // Apply cloud shadows onto the surface below, then composite sunlit clouds on top
                     vec3 shadowedSurface = dayAlbedo * (1.0 - cloudShadow);
-                    vec3 litSurface = shadowedSurface * (0.04 + diffuse * 1.18) + vec3(1.0, 0.96, 0.88) * spec;
+                    vec3 litSurface = shadowedSurface * (0.18 + diffuse * 1.12) + vec3(1.0, 0.96, 0.88) * spec;
 
                     // 4. Warm Rayleigh Terminator Sunset Scattering (Amber-Crimson belt along day/night boundary!)
                     float terminatorBand = exp(-pow((rawNdotL - 0.02) * 5.2, 2.0));
@@ -767,60 +766,60 @@ export class PixiRenderer {
             {
                 tex: this.textures.planetGasGiantTex,
                 hasRing: true,
-                radius: 14.0,
-                baseX: -43,
+                radius: 13.5,
+                baseX: -52,
                 baseY: 16,
-                startZ: -82,
+                startZ: -95,
                 atmoColor: 0x38bdf8,
                 cloudOpacity: 0.32
             },
             {
                 tex: this.textures.planetIceWorldTex,
                 hasRing: true,
-                radius: 10.6,
-                baseX: 39,
+                radius: 10.4,
+                baseX: 48,
                 baseY: 11,
-                startZ: -142,
+                startZ: -150,
                 atmoColor: 0x00f0ff,
-                cloudOpacity: 0.68
+                cloudOpacity: 0.55
             },
             {
                 tex: this.textures.planetLavaWorldTex,
                 hasRing: false,
                 radius: 8.6,
-                baseX: -32,
-                baseY: -13,
-                startZ: -195,
+                baseX: -42,
+                baseY: -12,
+                startZ: -205,
                 atmoColor: 0xf97316,
                 cloudOpacity: 0.22
             },
             {
                 tex: this.textures.planetGasGiantTex,
                 hasRing: true,
-                radius: 15.5,
-                baseX: 46,
+                radius: 14.5,
+                baseX: 56,
                 baseY: -9,
-                startZ: -252,
+                startZ: -260,
                 atmoColor: 0xa855f7,
-                cloudOpacity: 0.38
+                cloudOpacity: 0.35
             },
             {
                 tex: this.textures.planetIceWorldTex,
                 hasRing: false,
                 radius: 8.2,
-                baseX: -29,
+                baseX: -38,
                 baseY: 22,
-                startZ: -44,
+                startZ: -75,
                 atmoColor: 0x38bdf8,
-                cloudOpacity: 0.72
+                cloudOpacity: 0.58
             },
             {
                 tex: this.textures.planetLavaWorldTex,
                 hasRing: true,
-                radius: 11.6,
-                baseX: 36,
+                radius: 11.2,
+                baseX: 48,
                 baseY: 20,
-                startZ: -298,
+                startZ: -315,
                 atmoColor: 0xf59e0b,
                 cloudOpacity: 0.25
             }
@@ -832,7 +831,7 @@ export class PixiRenderer {
             const cfg = planetConfigs[i];
             const group = new THREE.Group();
 
-            // 1. Planet Sphere with Photorealistic Day Albedo + Cloud Deck + Terminator + Night City Lights
+            // 1. Planet Sphere with Cel-Shaded Comic Day Albedo + Cloud Deck + Bold Black Ink Outline
             const surfaceMat = this.createPlanetSurfaceMaterial(
                 cfg.tex,
                 this.textures.planetCityLightsTex,
@@ -843,6 +842,8 @@ export class PixiRenderer {
             const sphereMesh = new THREE.Mesh(sphereGeo, surfaceMat);
             sphereMesh.scale.setScalar(cfg.radius);
             sphereMesh.rotation.z = (i % 2 === 0 ? 1 : -1) * 0.26;
+            const planetOutline = this.createOutline(sphereGeo, 0.042);
+            sphereMesh.add(planetOutline);
             group.add(sphereMesh);
 
             // 2. Volumetric Atmospheric Scattering Outer Shell
@@ -984,55 +985,65 @@ export class PixiRenderer {
     }
 
     /**
-     * Builds 36 Sculpted 3D Deep-Space Asteroids with Photorealistic Worley Cratered Regolith PBR Maps
+     * Builds 36 Chiseled Cel-Shaded Comic Meteorites (Matches Reference Image 4):
+     * Sharp angular rock facets, slate-blue comic texture with /// ink hatching & rust spots,
+     * and bold inverted-hull black comic ink outlines!
      */
     private buildAsteroidField() {
-        const baseAstGeo = new THREE.IcosahedronGeometry(1.6, 3);
-        const posAttr = baseAstGeo.attributes.position as THREE.BufferAttribute;
+        const rawAstGeo = new THREE.IcosahedronGeometry(1.55, 1);
+        const posAttr = rawAstGeo.attributes.position as THREE.BufferAttribute;
         const vertex = new THREE.Vector3();
 
         for (let i = 0; i < posAttr.count; i++) {
             vertex.fromBufferAttribute(posAttr, i);
-            const n1 = Math.sin(vertex.x * 2.4 + vertex.y * 1.9) * Math.cos(vertex.z * 2.2);
-            const n2 = Math.sin(vertex.x * 5.3 - vertex.z * 4.7) * 0.08;
-            const disp = 1.0 + 0.24 * n1 + n2;
+            const n1 = Math.sin(vertex.x * 2.1 + vertex.y * 1.7) * Math.cos(vertex.z * 2.0);
+            const n2 = Math.cos(vertex.x * 3.8 - vertex.z * 3.2) * 0.14;
+            const disp = 1.0 + 0.26 * n1 + n2;
             vertex.multiplyScalar(disp);
             posAttr.setXYZ(i, vertex.x, vertex.y, vertex.z);
         }
+        rawAstGeo.computeVertexNormals();
+
+        // Non-indexed geometry gives razor-sharp chiseled flat comic facets (like Image 4)
+        const baseAstGeo = rawAstGeo.toNonIndexed();
         baseAstGeo.computeVertexNormals();
 
         const asteroidMat = new THREE.MeshStandardMaterial({
             map: this.textures.asteroidColor,
-            bumpMap: this.textures.asteroidBump,
-            bumpScale: 0.22,
-            roughnessMap: this.textures.asteroidRoughness,
-            roughness: 0.78,
-            metalness: 0.28
+            roughness: 0.88,
+            metalness: 0.08,
+            emissive: new THREE.Color(0x1e293b),
+            emissiveIntensity: 0.26,
+            flatShading: true
         });
 
         for (let i = 0; i < ASTEROID_COUNT; i++) {
             const mesh = new THREE.Mesh(baseAstGeo, asteroidMat);
+            // Bold black comic ink outline around every meteorite (Matches Image 4!)
+            const astOutline = this.createOutline(rawAstGeo, 0.11);
+            mesh.add(astOutline);
+
             const side = i % 2 === 0 ? -1 : 1;
-            const baseX = side * (15.5 + Math.random() * 24.0);
+            const baseX = side * (21.5 + Math.random() * 24.0);
             const baseY = -8.0 + Math.random() * 26.0;
-            const z = -Math.random() * 220;
+            const z = -15 - Math.random() * 215;
 
             mesh.position.set(baseX, baseY, z);
-            const scale = 0.65 + Math.random() * 1.95;
+            const scale = 0.75 + Math.random() * 1.85;
             mesh.scale.set(
-                scale * (0.8 + Math.random() * 0.4),
-                scale * (0.7 + Math.random() * 0.5),
-                scale * (0.8 + Math.random() * 0.4)
+                scale * (0.82 + Math.random() * 0.36),
+                scale * (0.74 + Math.random() * 0.48),
+                scale * (0.82 + Math.random() * 0.36)
             );
             mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
             this.scene.add(mesh);
 
             this.asteroids.push({
                 mesh,
-                rotSpeedX: (Math.random() - 0.5) * 1.8,
-                rotSpeedY: (Math.random() - 0.5) * 1.8,
-                rotSpeedZ: (Math.random() - 0.5) * 1.8,
-                driftSpeedZ: 14 + Math.random() * 20,
+                rotSpeedX: (Math.random() - 0.5) * 1.35,
+                rotSpeedY: (Math.random() - 0.5) * 1.35,
+                rotSpeedZ: (Math.random() - 0.5) * 1.35,
+                driftSpeedZ: 14 + Math.random() * 18,
                 baseX,
                 baseY
             });
@@ -1078,7 +1089,8 @@ export class PixiRenderer {
      * Builds the 3D Cel-Shaded Floating Cardboard Mystery Boxes, Mini Sun, and ACME Cartoon Naval Bombs
      */
     private buildFloatingMultiplierCardsPool() {
-        const hitboxGeo = new THREE.BoxGeometry(4.24, 3.95, 2.95);
+        // Tall stationary hitbox covers both resting crate AND lifted bonus crate (Y = -0.85..+5.95)
+        const hitboxGeo = new THREE.BoxGeometry(4.32, 6.8, 3.8);
         const hitboxMat = new THREE.MeshBasicMaterial({
             transparent: true,
             opacity: 0,
@@ -1221,9 +1233,9 @@ export class PixiRenderer {
                 const visualGroup = new THREE.Group();
                 group.add(visualGroup);
 
-                // 1. Stationary Oversized Invisible Hitbox (Fixes Edge Hover Flicker 100%!)
+                // 1. Stationary Oversized Invisible Hitbox (Covers both resting & lifted bonus crates 100%!)
                 const hitboxMesh = new THREE.Mesh(hitboxGeo, hitboxMat);
-                hitboxMesh.position.set(0, 1.35, 0);
+                hitboxMesh.position.set(0, 2.55, 0);
                 hitboxMesh.userData = { isVaultPlatform: true, slotIndex: s, lane };
                 group.add(hitboxMesh);
                 this.interactiveHitboxMeshes.push(hitboxMesh);
@@ -1270,45 +1282,47 @@ export class PixiRenderer {
                 diffuseHazeSprite.visible = false;
                 visualGroup.add(diffuseHazeSprite);
 
-                // 4. Mini Sun (Revealed underneath Orange Box)
+                // 4. Hand-Drawn Comic Sun (Image 5: Revealed underneath Orange Bonus Box)
                 const miniSunGroup = new THREE.Group();
-                miniSunGroup.position.set(0, 0.95, 0);
+                miniSunGroup.position.set(0, 1.05, 0);
 
-                const miniSunMat = new THREE.MeshBasicMaterial({ color: 0xfff08a });
+                const miniSunMat = new THREE.MeshBasicMaterial({ color: 0xfff08a, transparent: true, opacity: 0 });
                 const miniSunCore = new THREE.Mesh(sunCoreGeo, miniSunMat);
+                miniSunCore.visible = false;
+
                 const sunCoronaMat = new THREE.SpriteMaterial({
                     map: this.textures.miniSunTex,
-                    blending: THREE.AdditiveBlending,
+                    blending: THREE.NormalBlending,
                     transparent: true,
-                    opacity: 0.9
+                    opacity: 1.0
                 });
                 const miniSunCorona = new THREE.Sprite(sunCoronaMat);
-                miniSunCorona.scale.set(2.4, 2.4, 1.0);
-                miniSunGroup.add(miniSunCore, miniSunCorona, this.createOutline(sunCoreGeo, 0.07));
+                miniSunCorona.scale.set(2.35, 2.35, 1.0);
+                miniSunGroup.add(miniSunCore, miniSunCorona);
                 miniSunGroup.visible = false;
                 visualGroup.add(miniSunGroup);
 
-                // 5. Alien Cosmic Portal / Core (Revealed underneath Alien Box - clean, NO floor circle)
+                // 5. Hand-Drawn Comic Blue Plasma Symbol (Revealed underneath Blue/Alien Bonus Box - matches Image 5 style!)
                 const alienPortalGroup = new THREE.Group();
-                alienPortalGroup.position.set(0, 0.95, 0);
+                alienPortalGroup.position.set(0, 1.05, 0);
 
                 const alienCoreMesh = new THREE.Mesh(alienCoreGeo, alienCoreMat);
-                const alienCoreOutline = this.createOutline(alienCoreGeo, 0.07);
+                alienCoreMesh.visible = false;
 
                 const alienRingMesh = new THREE.Mesh(alienRingGeo, alienRingMat);
                 alienRingMesh.rotation.x = Math.PI * 0.25;
+                alienRingMesh.visible = false;
 
-                const alienGlowMat = new THREE.SpriteMaterial({
-                    map: this.textures.particleGlow,
-                    color: 0xa855f7,
-                    blending: THREE.AdditiveBlending,
+                const alienComicSymbolMat = new THREE.SpriteMaterial({
+                    map: this.textures.alienSymbolTex,
+                    blending: THREE.NormalBlending,
                     transparent: true,
-                    opacity: 0.75
+                    opacity: 1.0
                 });
-                const alienGlowSprite = new THREE.Sprite(alienGlowMat);
-                alienGlowSprite.scale.set(2.4, 2.4, 1.0);
+                const alienGlowSprite = new THREE.Sprite(alienComicSymbolMat);
+                alienGlowSprite.scale.set(2.35, 2.35, 1.0);
 
-                alienPortalGroup.add(alienCoreMesh, alienCoreOutline, alienRingMesh, alienGlowSprite);
+                alienPortalGroup.add(alienCoreMesh, alienRingMesh, alienGlowSprite);
                 alienPortalGroup.visible = false;
                 visualGroup.add(alienPortalGroup);
 
@@ -1437,15 +1451,16 @@ export class PixiRenderer {
         const saucerMesh = new THREE.Mesh(saucerBodyGeo, saucerMat);
         this.alienUfoGroup.add(saucerMesh, this.createOutline(saucerBodyGeo, 0.08));
 
-        // Glass Cockpit Dome with Cel-Shaded Cyan Tint
+        // Glass Cockpit Dome with Cel-Shaded Cyan Tint (Standard material avoids costly dual-pass transmission lag!)
         const domeGeo = new THREE.SphereGeometry(0.88, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.5);
-        const domeMat = new THREE.MeshPhysicalMaterial({
-            color: 0x00f0ff,
-            roughness: 0.05,
-            metalness: 0.3,
-            transmission: 0.85,
+        const domeMat = new THREE.MeshStandardMaterial({
+            color: 0x38bdf8,
+            emissive: 0x00f0ff,
+            emissiveIntensity: 0.35,
+            roughness: 0.18,
+            metalness: 0.25,
             transparent: true,
-            opacity: 0.88
+            opacity: 0.86
         });
         const domeMesh = new THREE.Mesh(domeGeo, domeMat);
         domeMesh.position.y = 0.22;
@@ -1539,11 +1554,11 @@ export class PixiRenderer {
             worldX,
             1.0,
             worldZ,
-            160,
+            80,
             [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
             12,
             28,
-            0.65
+            0.55
         );
 
         gsap.killTweensOf(this.alienUfoGroup.position);
@@ -1553,53 +1568,73 @@ export class PixiRenderer {
         // 3. UFO swoops down rapidly from deep space
         gsap.to(this.alienUfoGroup.position, {
             y: 8.0,
-            duration: 0.22,
-            ease: 'back.out(1.5)',
+            duration: 0.20,
+            ease: 'back.out(1.4)',
             onComplete: () => {
                 // Tractor beam activates and expands
                 gsap.to(this.alienTractorBeam.scale, {
                     x: 1.0,
                     z: 1.0,
-                    duration: 0.14,
+                    duration: 0.12,
                     ease: 'power2.out'
                 });
 
                 // Ship lifts upward into the beam
                 gsap.to(this.ship.pos, {
                     y: 4.8,
-                    duration: 0.28,
+                    duration: 0.24,
                     ease: 'power2.inOut',
+                    onUpdate: () => {
+                        this.ship.targetPos.copy(this.ship.pos);
+                    },
                     onComplete: () => {
-                        // Cosmic warp jump! UFO and ship streak forward to clean destination tile (NO BOX!)
-                        this.vfx.spawnShockwave3D(worldX, 0.4, destinationZ, 0xa855f7, 12.0, 0.48);
-                        this.vfx.spawnGpuParticleCloud(
-                            worldX,
-                            1.2,
-                            destinationZ,
-                            160,
-                            [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
-                            12,
-                            28,
-                            0.65
-                        );
-                        this.ship.pos.set(worldX, 4.8, destinationZ);
-                        this.alienUfoGroup.position.set(worldX, 8.0, destinationZ);
-                        this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, destinationZ);
-
-                        // Lower ship safely onto the clean track (completely clear tile)
+                        // Smooth 60fps cosmic warp glide across the skipped rows (zero 1-frame teleport stutter!)
+                        this.vfx.spawnShockwave3D(worldX, 0.4, destinationZ, 0xa855f7, 11.0, 0.42);
+                        gsap.to(this.alienUfoGroup.position, {
+                            z: destinationZ,
+                            duration: 0.28,
+                            ease: 'power2.inOut'
+                        });
                         gsap.to(this.ship.pos, {
-                            y: SHIP_FLIGHT_Y,
-                            duration: 0.26,
-                            ease: 'back.out(1.2)',
+                            z: destinationZ,
+                            duration: 0.28,
+                            ease: 'power2.inOut',
+                            onUpdate: () => {
+                                this.ship.targetPos.copy(this.ship.pos);
+                            },
                             onComplete: () => {
-                                // UFO ascends and vanishes into hyperspace
-                                gsap.to(this.alienUfoGroup.position, {
-                                    y: 30,
-                                    duration: 0.35,
-                                    ease: 'power2.in',
+                                this.vfx.spawnGpuParticleCloud(
+                                    worldX,
+                                    1.2,
+                                    destinationZ,
+                                    80,
+                                    [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
+                                    11,
+                                    24,
+                                    0.55
+                                );
+                                this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, destinationZ);
+
+                                // Lower ship safely onto the clean track (completely clear tile)
+                                gsap.to(this.ship.pos, {
+                                    y: SHIP_FLIGHT_Y,
+                                    duration: 0.24,
+                                    ease: 'back.out(1.2)',
+                                    onUpdate: () => {
+                                        this.ship.targetPos.copy(this.ship.pos);
+                                    },
                                     onComplete: () => {
-                                        this.alienUfoGroup.visible = false;
+                                        this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, destinationZ);
                                         this.isAbductionActive = false;
+                                        // UFO ascends and vanishes into hyperspace
+                                        gsap.to(this.alienUfoGroup.position, {
+                                            y: 30,
+                                            duration: 0.30,
+                                            ease: 'power2.in',
+                                            onComplete: () => {
+                                                this.alienUfoGroup.visible = false;
+                                            }
+                                        });
                                     }
                                 });
                             }
@@ -1620,17 +1655,16 @@ export class PixiRenderer {
             if (rect.width <= 0 || rect.height <= 0) return;
             const normX = ((clientX - rect.left) / rect.width - 0.5) * 2;
             const normY = ((clientY - rect.top) / rect.height - 0.5) * 2;
-            this.mouseParallax.set(
-                THREE.MathUtils.clamp(normX, -1, 1),
-                THREE.MathUtils.clamp(normY, -1, 1)
+            // Soft tanh curve prevents hard corner-clamp jumps when moving to viewport corners and returning
+            this.targetMouseParallax.set(
+                Math.tanh(THREE.MathUtils.clamp(normX, -1, 1) * 1.05),
+                Math.tanh(THREE.MathUtils.clamp(normY, -1, 1) * 1.05)
             );
-            this.ship.setCursorAim(this.mouseParallax.x, this.mouseParallax.y);
         };
 
         window.addEventListener('pointermove', (e) => {
             if (e.pointerType === 'touch') {
-                this.mouseParallax.set(0, 0);
-                this.ship.setCursorAim(0, 0);
+                this.targetMouseParallax.set(0, 0);
                 return;
             }
             updateFromCoords(e.clientX, e.clientY);
@@ -1764,6 +1798,14 @@ export class PixiRenderer {
                         0.45
                     );
                 }
+            } else if (pick.shieldSaved) {
+                // Quantum Shield absorbed the mine impact!
+                if (pick.specialType === 'NONE') {
+                    this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'normal');
+                }
+                this.vfx.spawnShieldDeflect3D(worldX, 0.9, worldZ);
+                this.vfx.triggerScreenShake(0.35, 0.25);
+                this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ);
             } else {
                 // Fatal mine hit!
                 if (pick.specialType === 'NONE') {
@@ -1903,10 +1945,6 @@ export class PixiRenderer {
         const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
         const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
 
-        this.mouseParallax.x = THREE.MathUtils.clamp(ndcX, -1, 1);
-        this.mouseParallax.y = THREE.MathUtils.clamp(-ndcY, -1, 1);
-        this.ship.setCursorAim(this.mouseParallax.x, this.mouseParallax.y);
-
         this.pointerNdc.set(ndcX, ndcY);
         this.raycaster.setFromCamera(this.pointerNdc, this.camera);
         const hits = this.raycaster.intersectObjects(this.interactiveHitboxMeshes, false);
@@ -1942,7 +1980,7 @@ export class PixiRenderer {
         if (
             this.hoveredLane !== null &&
             this.hoveredRow === currentRow &&
-            (now - this.lastValidHoverTime < HOVER_DEBOUNCE_MS || cursorDelta < 0.048)
+            (now - this.lastValidHoverTime < HOVER_DEBOUNCE_MS || cursorDelta < 0.085)
         ) {
             this.canvas.style.cursor = 'pointer';
             return;
@@ -1958,8 +1996,6 @@ export class PixiRenderer {
         this.hoveredRow = null;
         this.hoveredLane = null;
         this.lastHoveredLaneAudio = null;
-        this.mouseParallax.set(0, 0);
-        this.ship.setCursorAim(0, 0);
         this.canvas.style.cursor = 'default';
     }
 
@@ -2034,6 +2070,11 @@ export class PixiRenderer {
 
         const currentMult = engine.currentMultiplier || 1.0;
         const isCashedOut = engine.state === GameState.WON;
+
+        // Smoothly interpolate mouseParallax toward targetMouseParallax so corner returns never snap!
+        this.mouseParallax.lerp(this.targetMouseParallax, Math.min(1, dt * 12));
+        this.ship.setCursorAim(this.mouseParallax.x, this.mouseParallax.y);
+
         this.ship.update(
             dt,
             theme.primaryHex,
@@ -2072,7 +2113,7 @@ export class PixiRenderer {
         dt: number,
         isHitStop: boolean,
         hitStopX: number | null,
-        hoverX: number | null
+        _hoverX: number | null
     ) {
         const aspect = this.width / Math.max(1, this.height);
         const isPortrait916 = aspect < 1.0;
@@ -2101,14 +2142,13 @@ export class PixiRenderer {
         }
 
         const panScale = isPortrait916 ? 0.12 : 0.65;
-        const hoverPanScale = isPortrait916 ? 0.05 : 0.15;
-        const parallaxXScale = isPortrait916 ? 0.12 : 0.55;
+        const parallaxXScale = isPortrait916 ? 0.12 : 0.48;
 
+        // Do NOT shift camera position or rotation based on hoverX — this prevents raycast feedback oscillation on bonus crates!
         const targetCamX =
             this.ship.pos.x * panScale +
-            (hoverX !== null ? (hoverX - this.ship.pos.x) * hoverPanScale : 0) +
             this.mouseParallax.x * parallaxXScale;
-        const targetCamY = this.ship.pos.y + offsetY - this.mouseParallax.y * 0.35;
+        const targetCamY = this.ship.pos.y + offsetY - this.mouseParallax.y * 0.30;
         const targetCamZ = this.ship.pos.z + offsetZ;
 
         const camStiff = 82;
@@ -2132,20 +2172,18 @@ export class PixiRenderer {
         const focusLaneX =
             hitStopX !== null
                 ? THREE.MathUtils.lerp(this.ship.pos.x, hitStopX, isPortrait916 ? 0.25 : 0.55)
-                : hoverX !== null
-                  ? THREE.MathUtils.lerp(this.ship.pos.x, hoverX, isPortrait916 ? 0.10 : 0.25)
-                  : this.ship.pos.x * lookScale + this.mouseParallax.x * (isPortrait916 ? 0.15 : 0.8);
+                : this.ship.pos.x * lookScale + this.mouseParallax.x * (isPortrait916 ? 0.15 : 0.65);
 
         const baseLookY = isPortrait916 ? 0.25 : 1.05;
         const desiredLook = this.scratchDesiredLook.set(
             focusLaneX,
-            baseLookY - this.mouseParallax.y * (isPortrait916 ? 0.12 : 0.4),
+            baseLookY - this.mouseParallax.y * (isPortrait916 ? 0.12 : 0.32),
             this.ship.pos.z + lookAheadZ
         );
         this.camLookAt.lerp(desiredLook, dt * 16);
         this.camera.lookAt(this.camLookAt);
 
-        this.camera.rotation.z += -this.ship.roll * 0.2 + this.vfx.shakeRoll;
+        this.camera.rotation.z += this.vfx.shakeRoll;
     }
 
     /**
@@ -2300,13 +2338,10 @@ export class PixiRenderer {
                     if (boxType === 'orange') {
                         plat.miniSunGroup.visible = true;
                         plat.miniSunGroup.position.y = 1.05 + Math.sin(this.elapsed * 3.6 + lane) * 0.08;
-                        plat.miniSunGroup.rotation.y = this.elapsed * 2.8;
+                        plat.miniSunCorona.material.rotation = Math.sin(this.elapsed * 1.8 + lane) * 0.08;
                     } else if (boxType === 'alien') {
                         plat.alienPortalGroup.visible = true;
-                        plat.alienPortalGroup.position.y = 1.0;
-                        plat.alienPortalGroup.rotation.y = this.elapsed * 2.4;
-                        plat.alienRingMesh.rotation.x = this.elapsed * 2.8;
-                        plat.alienRingMesh.rotation.y = this.elapsed * 1.8;
+                        plat.alienPortalGroup.position.y = 1.05 + Math.sin(this.elapsed * 3.6 + lane) * 0.08;
                     }
                 }
 
@@ -2485,9 +2520,9 @@ export class PixiRenderer {
             }
             p.group.position.z += p.driftSpeedZ * speedMult * dt;
 
-            if (p.group.position.z > camZ + 32) {
+            if (p.group.position.z > camZ - 52) {
                 p.group.position.z -= 320;
-            } else if (p.group.position.z < camZ - 300) {
+            } else if (p.group.position.z < camZ - 372) {
                 p.group.position.z += 320;
             }
         }
@@ -2495,7 +2530,7 @@ export class PixiRenderer {
         // 3. Shooting Stars / Comets Streaking Across the Void
         for (const s of this.shootingStars) {
             s.age += dt;
-            if (s.age >= s.maxAge || s.group.position.z > camZ + 15) {
+            if (s.age >= s.maxAge || s.group.position.z > camZ - 6) {
                 this.respawnShootingStar(s, this.ship.pos.z);
                 continue;
             }
@@ -2513,9 +2548,9 @@ export class PixiRenderer {
             ast.mesh.rotation.z += ast.rotSpeedZ * dt;
             ast.mesh.position.z += ast.driftSpeedZ * speedMult * dt;
 
-            if (ast.mesh.position.z > camZ + 12) {
+            if (ast.mesh.position.z > camZ - 8) {
                 ast.mesh.position.z -= 220;
-            } else if (ast.mesh.position.z < camZ - 220) {
+            } else if (ast.mesh.position.z < camZ - 228) {
                 ast.mesh.position.z += 220;
             }
         }
@@ -2529,9 +2564,9 @@ export class PixiRenderer {
             const shiftedHue = (c.baseHue + this.elapsed * 0.018 + Math.sin(c.offsetZ) * 0.06) % 1.0;
             c.mat.color.setHSL(shiftedHue, 0.72, 0.72);
 
-            if (c.sprite.position.z > camZ + 18) {
+            if (c.sprite.position.z > camZ - 14) {
                 c.sprite.position.z -= 245;
-            } else if (c.sprite.position.z < camZ - 245) {
+            } else if (c.sprite.position.z < camZ - 259) {
                 c.sprite.position.z += 245;
             }
         }

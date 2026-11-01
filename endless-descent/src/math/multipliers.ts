@@ -3,6 +3,7 @@ export const MAX_MULTIPLIER = 1000000;
 export const THEORETICAL_RTP = 0.96; // 96.00% Return to Player (4.00% House Edge)
 export const THEORETICAL_HOUSE_EDGE = 0.04; // 4.00% House Edge
 export const BTC_USD_RATE = 20000; // Simulated rate: 1 BTC = $20,000 (0.0125 BTC = $250.00)
+export const SHIELD_RETENTION_FACTOR = 0.50; // Deflecting a mine retains 50% of accumulated multiplier
 
 /**
  * Calculates the baseline exact multiplier for a given row and hazard count (standard path).
@@ -44,15 +45,25 @@ export function calculateNextStepMultiplier(
 }
 
 /**
- * Calculates total effective wager (pure base bet).
+ * Computes the multiplier after a Quantum Shield deflects a fatal mine impact.
+ * Retains 50% of the accumulated multiplier (minimum 0.50x).
+ */
+export function calculateShieldSaveMultiplier(previousStepMultiplier: number): number {
+    const retained = previousStepMultiplier * SHIELD_RETENTION_FACTOR;
+    return Math.max(0.5, Math.floor(retained * 10000) / 10000);
+}
+
+/**
+ * Calculates total effective wager including optional +25% Quantum Shield surcharge.
  */
 export function calculateEffectiveBet(
     baseBet: number,
     _luckyBoost = false,
-    _shieldActive = false,
+    shieldActive = false,
     _gameMode = 'base'
 ): number {
-    return Math.round(baseBet * 100) / 100;
+    const mult = shieldActive ? 1.25 : 1.0;
+    return Math.round(baseBet * mult * 100) / 100;
 }
 
 /**

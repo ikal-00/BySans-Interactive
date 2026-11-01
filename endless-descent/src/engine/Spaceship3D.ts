@@ -646,8 +646,8 @@ export class Spaceship3D {
         shipAssembly.rotation.x = -0.36;
 
         this.sculptedShipMesh = new THREE.Mesh(this.plumeBundle.geo, this.sculptedShipMat);
-        this.sculptedShipMesh.castShadow = true;
-        this.sculptedShipMesh.receiveShadow = true;
+        this.sculptedShipMesh.castShadow = false;
+        this.sculptedShipMesh.receiveShadow = false;
         shipAssembly.add(this.sculptedShipMesh);
 
         // Dynamic 3D Articulated Thruster Plumes & High-Contrast Comic Streak Layers
@@ -1123,21 +1123,26 @@ export class Spaceship3D {
 
         const isBursting = this.postHitStopBurstTimer > 0;
 
-        // 1. Spring-Damper Translation Physics
-        const stiffness = isAbducted ? 220 : isHitStop ? 55 : isBursting ? 260 : 140;
-        const damping = isAbducted ? 24 : isHitStop ? 11 : isBursting ? 19 : 16;
+        // 1. Spring-Damper Translation Physics (Paused during UFO Abduction so GSAP tweens smoothly without fighting!)
+        if (isAbducted) {
+            this.vel.set(0, 0, 0);
+            this.targetPos.copy(this.pos);
+        } else {
+            const stiffness = isHitStop ? 55 : isBursting ? 260 : 140;
+            const damping = isHitStop ? 11 : isBursting ? 19 : 16;
 
-        const forceX = (this.targetPos.x - this.pos.x) * stiffness;
-        const forceY = (this.targetPos.y - this.pos.y) * stiffness;
-        const forceZ = (this.targetPos.z - this.pos.z) * stiffness;
+            const forceX = (this.targetPos.x - this.pos.x) * stiffness;
+            const forceY = (this.targetPos.y - this.pos.y) * stiffness;
+            const forceZ = (this.targetPos.z - this.pos.z) * stiffness;
 
-        this.vel.x += (forceX - this.vel.x * damping) * dt;
-        this.vel.y += (forceY - this.vel.y * damping) * dt;
-        this.vel.z += (forceZ - this.vel.z * damping) * dt;
+            this.vel.x += (forceX - this.vel.x * damping) * dt;
+            this.vel.y += (forceY - this.vel.y * damping) * dt;
+            this.vel.z += (forceZ - this.vel.z * damping) * dt;
 
-        this.pos.x += this.vel.x * dt;
-        this.pos.y += this.vel.y * dt;
-        this.pos.z += this.vel.z * dt;
+            this.pos.x += this.vel.x * dt;
+            this.pos.y += this.vel.y * dt;
+            this.pos.z += this.vel.z * dt;
+        }
 
         // 2. Aerodynamic Banking (Roll), Pitch, and Yaw
         let desiredRoll = THREE.MathUtils.clamp(-this.vel.x * 0.065 - this.cursorAimX * 0.06, -0.42, 0.42);

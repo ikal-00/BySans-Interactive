@@ -104,7 +104,7 @@ export function createControlsUI(
           </div>
           <div class="brand-titles">
             <span class="brand-name">${t.gameTitle}</span>
-            <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator">
+            <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator" style="display: none !important;">
               <span class="${isReplay ? 'rgs-pulse-dot' : 'sandbox-dot'}"></span>
               ${t.studioName} · ${isReplay ? t.replayBadge : t.sandboxDemo}
             </span>
@@ -340,7 +340,28 @@ export function createControlsUI(
               </div>
             </div>
 
-            <!-- Column 3: Comic-Inked Emerald Launch Button with Hand-Drawn Electric Sparks -->
+            <!-- Column 3: Comic-Inked Quantum Shield Purchase Toggle (+25% Bet · Deflects 1 Mine) -->
+            <div class="betting-field-group shield-field-group">
+              <div class="betting-field-header">
+                <span class="betting-field-label" id="shield-field-label">${lang === 'es' ? 'Escudo' : 'Shield'}</span>
+                <span class="betting-field-meta" id="shield-cost-badge">+25%</span>
+              </div>
+              <button class="comic-shield-toggle-btn" id="btn-shield-toggle" type="button" aria-pressed="false" title="${lang === 'es' ? 'Comprar Escudo Cuántico (+25% apuesta): Absorbe 1 mina y conserva 50% del multiplicador' : 'Buy Quantum Shield (+25% bet): Deflects 1 mine and retains 50% multiplier'}">
+                <span class="shield-icon-wrap" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L4 5.5V11.5C4 16.8 7.4 21.6 12 23C16.6 21.6 20 16.8 20 11.5V5.5L12 2Z" fill="currentColor" fill-opacity="0.22" stroke="#080b11" stroke-width="2.4" stroke-linejoin="round"/>
+                    <path d="M12 3.6L5.5 6.5V11.4C5.5 15.8 8.3 19.8 12 21.1C15.7 19.8 18.5 15.8 18.5 11.4V6.5L12 3.6Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                    <path d="M9.5 12L11.3 13.8L15 9.8" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span class="shield-btn-copy">
+                  <span class="shield-btn-title" id="shield-btn-title">${lang === 'es' ? 'ESCUDO' : 'SHIELD'}</span>
+                  <span class="shield-btn-state" id="shield-btn-state">OFF · 50% SAVE</span>
+                </span>
+              </button>
+            </div>
+
+            <!-- Column 4: Comic-Inked Emerald Launch Button with Hand-Drawn Electric Sparks -->
             <div class="betting-field-group fintech-cta-wrap">
               <div class="betting-field-header cta-telemetry-header">
                 <span class="betting-field-label" id="focal-cta-header-label">${t.focalActionLabel}</span>
@@ -399,7 +420,7 @@ export function createControlsUI(
           <svg class="mult-holo-hud-svg" viewBox="0 0 436 116" preserveAspectRatio="none" aria-hidden="true">
             <!-- 1. Outer Stepped Octagonal Gunmetal Steel Frame (Matches Ship Rear Bulkhead) -->
             <polygon
-              points="34,12 108,12 118,20 318,20 328,12 402,12 426,36 426,80 402,104 328,104 318,96 118,96 108,104 34,104 10,80 10,36"
+              points="34,7 108,7 118,15 318,15 328,7 402,7 426,31 426,85 402,109 328,109 318,101 118,101 108,109 34,109 10,85 10,31"
               fill="#5a6b7c"
               stroke="#080b11"
               stroke-width="3.5"
@@ -408,27 +429,27 @@ export function createControlsUI(
 
             <!-- Top Metallic Light Bevel Highlight -->
             <polygon
-              points="36,14 106,14 116,22 320,22 330,14 400,14 422,36 414,36 396,19 332,19 322,26 114,26 104,19 40,19 22,36 14,36"
+              points="36,9 106,9 116,17 320,17 330,9 400,9 422,31 414,31 396,14 332,14 322,20 114,20 104,14 40,14 22,31 14,31"
               fill="#7c8fa3"
             />
 
             <!-- Bottom Metallic Shadow Bevel -->
             <polygon
-              points="14,80 22,80 40,97 104,97 114,90 322,90 332,97 396,97 414,80 422,80 400,102 330,102 320,94 116,94 106,102 36,102"
+              points="14,85 22,85 40,102 104,102 114,96 322,96 332,102 396,102 414,85 422,85 400,107 330,107 320,99 116,99 106,107 36,107"
               fill="#394654"
             />
 
             <!-- 2. Top-Center Orange & Cyan Indicator Strip (Matches Ship Bulkhead Top Bar) -->
             <g stroke="#080b11" stroke-width="2.6" stroke-linejoin="round">
-              <polygon points="146,13 184,13 180,21 152,21" fill="#38bdf8"/>
-              <polygon points="184,11 252,11 248,21 188,21" fill="#f97316"/>
-              <polygon points="188,12.5 248,12.5 246,16 190,16" fill="#fdba74" stroke="none"/>
-              <polygon points="252,13 290,13 284,21 256,21" fill="#38bdf8"/>
+              <polygon points="146,8 184,8 180,15 152,15" fill="#38bdf8"/>
+              <polygon points="184,6 252,6 248,15 188,15" fill="#f97316"/>
+              <polygon points="188,7.5 248,7.5 246,11 190,11" fill="#fdba74" stroke="none"/>
+              <polygon points="252,8 290,8 284,15 256,15" fill="#38bdf8"/>
             </g>
 
             <!-- 3. Inner Cyan Rim Strip Around Chamber -->
             <polygon
-              points="44,24 392,24 410,42 410,74 392,92 44,92 26,74 26,42"
+              points="42,17 394,17 413,36 413,80 394,99 42,99 23,80 23,36"
               fill="#38bdf8"
               stroke="#080b11"
               stroke-width="3"
@@ -437,37 +458,37 @@ export function createControlsUI(
 
             <!-- 4. Recessed Dark Slate Steel Readout Screen -->
             <polygon
-              points="48,28 388,28 404,44 404,72 388,88 48,88 32,72 32,44"
+              points="46,21 390,21 407,38 407,78 390,95 46,95 29,78 29,38"
               fill="#263442"
               stroke="#080b11"
               stroke-width="2.8"
               stroke-linejoin="round"
             />
             <polygon
-              points="50,30 386,30 401,45 401,56 35,56 35,45"
+              points="48,23 388,23 404,39 404,58 32,58 32,39"
               fill="#2d3d4e"
             />
 
             <!-- 5. 4 Angled Corner Orange Warning Pads (Matches Reference Image & Ship Bulkhead) -->
             <g stroke="#080b11" stroke-width="2.4" stroke-linejoin="round">
               <!-- Top-Left Corner Orange Pad -->
-              <polygon points="19,35 33,21 39,27 25,41" fill="#f97316"/>
+              <polygon points="17,30 31,16 37,22 23,36" fill="#f97316"/>
               <!-- Bottom-Left Corner Orange Pad -->
-              <polygon points="25,75 39,89 33,95 19,81" fill="#f97316"/>
+              <polygon points="23,80 37,94 31,100 17,86" fill="#f97316"/>
               <!-- Top-Right Corner Orange Pad -->
-              <polygon points="403,21 417,35 411,41 397,27" fill="#f97316"/>
+              <polygon points="405,16 419,30 413,36 399,22" fill="#f97316"/>
               <!-- Bottom-Right Corner Orange Pad -->
-              <polygon points="397,89 411,75 417,81 403,95" fill="#f97316"/>
+              <polygon points="399,94 413,80 419,86 405,100" fill="#f97316"/>
             </g>
 
             <!-- 6. Hand-Drawn Comic Ink Panel Seams & Hatching Ticks -->
             <g stroke="#080b11" stroke-width="2.2" stroke-linecap="round">
-              <line x1="72" y1="12" x2="72" y2="24"/>
-              <line x1="364" y1="12" x2="364" y2="24"/>
-              <line x1="72" y1="92" x2="72" y2="104"/>
-              <line x1="364" y1="92" x2="364" y2="104"/>
-              <line x1="10" y1="58" x2="26" y2="58"/>
-              <line x1="410" y1="58" x2="426" y2="58"/>
+              <line x1="72" y1="7" x2="72" y2="17"/>
+              <line x1="364" y1="7" x2="364" y2="17"/>
+              <line x1="72" y1="99" x2="72" y2="109"/>
+              <line x1="364" y1="99" x2="364" y2="109"/>
+              <line x1="10" y1="58" x2="23" y2="58"/>
+              <line x1="413" y1="58" x2="426" y2="58"/>
             </g>
           </svg>
 
@@ -531,6 +552,9 @@ export function createControlsUI(
         '#mine-selector .fintech-segment-btn'
     );
     const quickBetBtns = leftDock.querySelectorAll<HTMLButtonElement>('.fintech-quick-pill');
+    const btnShieldToggle = document.getElementById('btn-shield-toggle') as HTMLButtonElement | null;
+    const shieldBtnState = document.getElementById('shield-btn-state');
+    const shieldCostBadge = document.getElementById('shield-cost-badge');
 
     const btnPrimaryCta = document.getElementById('btn-primary-cta') as HTMLButtonElement | null;
     const focalCtaTitle = document.getElementById('focal-cta-title');
@@ -950,13 +974,13 @@ export function createControlsUI(
         syncBetInputFontSize();
         const baseVal = Math.max(stakeRGS.betConfig.minBet, parseFloat(betInput.value) || stakeRGS.betConfig.defaultBetLevel);
         engine.betAmount = baseVal;
-        const effVal = calculateEffectiveBet(baseVal);
+        const effVal = calculateEffectiveBet(baseVal, engine.luckyBoost, engine.shieldPurchased);
         const formattedEff = stakeRGS.formatCurrency(effVal);
         if (betPctBadge) {
             betPctBadge.textContent = `Total: ${formattedEff}`;
         }
         if (focalCtaSub && engine.state !== GameState.PLAYING) {
-            focalCtaSub.textContent = `${formattedEff} · ${t.focalActionReady}`;
+            focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
         }
     }
 
@@ -1039,6 +1063,16 @@ export function createControlsUI(
         });
     });
 
+    if (btnShieldToggle) {
+        btnShieldToggle.addEventListener('click', () => {
+            if (isRulesModalOpen() || engine.state === GameState.PLAYING) return;
+            audioController.playClick();
+            engine.shieldPurchased = !engine.shieldPurchased;
+            syncBetMetrics();
+            syncUI();
+        });
+    }
+
     function triggerMechanicalPress() {
         if (!btnPrimaryCta) return;
         btnPrimaryCta.classList.add('depressed-heavy');
@@ -1072,7 +1106,7 @@ export function createControlsUI(
             const betVal = snapToNearestBetLevel(rawVal);
             if (betInput) betInput.value = formatBetLevelVal(betVal);
 
-            const effVal = calculateEffectiveBet(betVal);
+            const effVal = calculateEffectiveBet(betVal, engine.luckyBoost, engine.shieldPurchased);
 
             // [222] Client-side check preventing /wallet/play if balance < effVal
             if (engine.balance < effVal) {
@@ -1108,7 +1142,9 @@ export function createControlsUI(
             if (
                 engine.startBet(
                     betVal,
-                    engine.minesCount
+                    engine.minesCount,
+                    engine.luckyBoost,
+                    engine.shieldPurchased
                 )
             ) {
                 gsap.fromTo(
@@ -1254,10 +1290,36 @@ export function createControlsUI(
         quickBetBtns.forEach((b) => (b.disabled = isPlaying));
         mineBtns.forEach((b) => (b.disabled = isPlaying));
 
+        if (btnShieldToggle) {
+            btnShieldToggle.disabled = isPlaying;
+            const isShieldOn = isPlaying ? engine.hasActiveShield : engine.shieldPurchased;
+            btnShieldToggle.classList.toggle('active', isShieldOn);
+            btnShieldToggle.setAttribute('aria-pressed', String(isShieldOn));
+            if (shieldBtnState) {
+                if (isPlaying) {
+                    if (engine.hasActiveShield) {
+                        shieldBtnState.textContent = lang === 'es' ? 'ARMADO · 50%' : 'ARMED · 50%';
+                    } else if (engine.shieldUsedInRound) {
+                        shieldBtnState.textContent = lang === 'es' ? 'USADO ✓' : 'USED ✓';
+                    } else {
+                        shieldBtnState.textContent = 'OFF · 50% SAVE';
+                    }
+                } else {
+                    shieldBtnState.textContent = engine.shieldPurchased
+                        ? (lang === 'es' ? 'ACTIVO · +25%' : 'ACTIVE · +25%')
+                        : 'OFF · 50% SAVE';
+                }
+            }
+            if (shieldCostBadge) {
+                shieldCostBadge.textContent = engine.shieldPurchased ? '+25% ON' : '+25%';
+                shieldCostBadge.style.color = engine.shieldPurchased ? '#38bdf8' : '';
+            }
+        }
+
         if (betInput && betPctBadge && !isReplay) {
             syncBetInputFontSize();
             const baseVal = Math.max(stakeRGS.betConfig.minBet, parseFloat(betInput.value) || currentBetLevels[0]);
-            const effVal = calculateEffectiveBet(baseVal);
+            const effVal = calculateEffectiveBet(baseVal, engine.luckyBoost, engine.shieldPurchased);
             const formattedEff = stakeRGS.formatCurrency(effVal);
             betPctBadge.textContent = `Total: ${formattedEff}`;
 
@@ -1363,6 +1425,31 @@ export function createControlsUI(
                 multHeroWrap,
                 { scale: 1.04 },
                 { scale: 1, duration: 0.48, ease: 'elastic.out(1.35, 0.32)' }
+            );
+        } else if (pick.shieldSaved) {
+            gsap.killTweensOf(hitStopStamp);
+            hitStopStamp.textContent =
+                lang === 'es'
+                    ? `🛡️ ESCUDO ABSORBIÓ MINA · ${pick.stepMultiplierAfter.toFixed(2)}× RETENIDO`
+                    : `🛡️ SHIELD DEFLECTED MINE · ${pick.stepMultiplierAfter.toFixed(2)}× RETAINED`;
+            hitStopStamp.style.borderColor = '#38bdf8';
+            hitStopStamp.style.color = '#38bdf8';
+            gsap.fromTo(
+                hitStopStamp,
+                { opacity: 1, scale: 1.06, y: 0 },
+                {
+                    opacity: 0,
+                    scale: 0.96,
+                    y: -3,
+                    delay: 0.95,
+                    duration: 0.25,
+                    ease: 'power2.out'
+                }
+            );
+            gsap.fromTo(
+                multHeroVal,
+                { scale: 1.14, color: '#38bdf8' },
+                { scale: 1, color: '#ffffff', duration: 0.5, ease: 'elastic.out(1.4, 0.3)' }
             );
         } else {
             gsap.killTweensOf(hitStopStamp);
