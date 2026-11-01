@@ -148,7 +148,7 @@ body {
   left: 22px;
   right: 22px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   padding: 0;
   background: transparent;
@@ -494,7 +494,7 @@ body {
 }
 
 .icon-btn {
-  height: 38px;
+  height: 44px;
   padding: 0 14px;
   border-radius: 9px;
   background: #2b3847;
@@ -535,7 +535,9 @@ body {
 }
 
 .balance-pill {
+  height: 44px;
   min-height: 44px;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -550,7 +552,7 @@ body {
     0 0 0 5px #080b11,
     0 6px 14px rgba(0, 0, 0, 0.55);
   border-radius: 9px;
-  padding: 5px 18px 4px;
+  padding: 0 16px;
 }
 
 .balance-inner-readout {
@@ -558,35 +560,36 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   text-align: center;
-  line-height: 1;
 }
 
 .balance-label {
   font-family: var(--font-sans);
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  color: #cbd5e1;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   line-height: 1;
   margin: 0;
+  padding: 0;
   text-align: center;
-  text-shadow: 0 1.5px 0 #080b11;
+  text-shadow: 0 1px 0 #080b11;
 }
 
 .balance-value {
   font-family: var(--font-sans);
-  font-size: 1.02rem;
+  font-size: 0.98rem;
   font-weight: 900;
   color: #ffffff;
   letter-spacing: -0.01em;
-  line-height: 1.05;
+  line-height: 1.1;
   margin: 0;
+  padding: 0;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  text-shadow: 0 2px 0 #080b11;
+  text-shadow: 0 1.5px 0 #080b11;
 }
 
 /* ============================================================================
@@ -597,19 +600,20 @@ body {
   inset: 0;
   pointer-events: none;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 16px 24px 160px;
-  z-index: 15;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 18;
 }
 
 .stage-top-hud-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  transform: translateY(-90px);
+  pointer-events: none;
   width: 100%;
-  min-width: 0;
 }
 
 .multiplier-hero-banner {
@@ -619,10 +623,11 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  min-width: 446px;
-  height: 112px;
-  padding: 0 54px;
+  gap: 2px;
+  min-width: 320px;
+  max-width: 380px;
+  height: 52px;
+  padding: 0 28px;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -631,7 +636,7 @@ body {
   box-shadow: none;
   will-change: transform;
   overflow: visible;
-  max-width: calc(100vw - 24px);
+  pointer-events: auto;
 }
 
 .mult-holo-hud-svg {
@@ -641,23 +646,23 @@ body {
   height: 100%;
   pointer-events: none;
   z-index: 0;
-  filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.68));
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.65));
 }
 
 .multiplier-God-value {
   position: relative;
   z-index: 1;
   font-family: var(--font-sans);
-  font-size: 2.18rem;
+  font-size: 1.45rem;
   font-weight: 900;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   line-height: 1.0;
   margin: 0;
-  padding: 0 6px;
+  padding: 0;
   color: #ffffff;
   text-shadow:
-    0 3px 0 #080b11,
-    0 5px 12px rgba(0, 0, 0, 0.55);
+    0 2.5px 0 #080b11,
+    0 4px 10px rgba(0, 0, 0, 0.55);
   font-variant-numeric: tabular-nums;
   transform-origin: center center;
   will-change: transform, color;
@@ -666,14 +671,14 @@ body {
 .multiplier-sub-pill {
   position: relative;
   z-index: 1;
-  margin-top: 0;
-  line-height: 1.15;
+  margin-top: 1px;
+  line-height: 1.0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   font-family: var(--font-sans);
-  font-size: 0.76rem;
+  font-size: 0.64rem;
   font-weight: 700;
   max-width: 100%;
 }
@@ -1864,33 +1869,30 @@ body {
     font-size: 0.84rem;
   }
 
-  /* 2. Floating Multiplier Banner (Compact & Never Overflows Viewport) */
+  /* 2. Floating Hitstop Stamp Overlay */
   .stage-hud-overlay {
-    padding: calc(max(8px, env(safe-area-inset-top, 8px)) + 44px) 8px 142px;
+    padding: 0;
   }
 
   .stage-top-hud-stack {
-    gap: 5px;
+    transform: translateY(-60px);
   }
 
   .multiplier-hero-banner {
-    min-width: 290px;
-    padding: 12px 38px 14px;
-    max-width: calc(100vw - 16px);
+    min-width: 240px;
+    max-width: 290px;
+    height: 44px;
+    padding: 0 16px;
   }
 
   .multiplier-God-value {
-    font-size: 1.82rem;
-    line-height: 1.08;
-    padding: 1px 4px;
+    font-size: 1.25rem;
+    line-height: 1.0;
   }
 
   .multiplier-sub-pill {
-    margin-top: 4px;
-    gap: 6px;
-    font-size: 0.66rem;
-    white-space: nowrap;
-    max-width: 100%;
+    font-size: 0.58rem;
+    gap: 4px;
   }
 
   .mult-sub-status {
@@ -2187,24 +2189,24 @@ body {
   }
 
   .stage-hud-overlay {
-    padding: 6px 12px 64px;
+    padding: 0;
   }
 
   .multiplier-hero-banner {
-    min-width: 310px;
-    padding: 8px 34px 9px;
-    flex-direction: row;
-    gap: 10px;
+    min-width: 220px;
+    max-width: 260px;
+    height: 40px;
+    padding: 0 14px;
+    gap: 4px;
     align-items: center;
   }
 
   .multiplier-God-value {
-    font-size: 1.4rem;
+    font-size: 1.15rem;
   }
 
   .multiplier-sub-pill {
-    margin-top: 0;
-    font-size: 0.64rem;
+    font-size: 0.55rem;
   }
 
   .pc-left-dock {
@@ -3106,7 +3108,7 @@ body.rules-modal-open #rules-modal-overlay {
    ========================================================================== */
 
 .dev-quick-btn {
-  height: 38px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 5px;

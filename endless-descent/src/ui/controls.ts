@@ -103,23 +103,98 @@ export function createControlsUI(
 
     // 1. PRODUCTION TOP COMIC-INKED STARFIGHTER HEADER (Hand-Drawn Cel-Shaded Steel Plaques)
     topHeader.innerHTML = `
-      <div class="brand-telemetry-stack">
-        <div class="brand-cluster">
-          <div class="brand-emblem" title="Endless Descent">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff" stroke="#080b11" stroke-width="1.5" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="brand-titles">
-            <span class="brand-name">${t.gameTitle}</span>
-            <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator" style="display: none !important;">
-              <span class="${isReplay ? 'rgs-pulse-dot' : 'sandbox-dot'}"></span>
-              ${t.studioName} · ${isReplay ? t.replayBadge : t.sandboxDemo}
-            </span>
-          </div>
+      <div class="brand-cluster" title="Endless Descent">
+        <div class="brand-emblem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff" stroke="#080b11" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
         </div>
+        <div class="brand-titles">
+          <span class="brand-name">${t.gameTitle}</span>
+          <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator" style="display: none !important;">
+            <span class="${isReplay ? 'rgs-pulse-dot' : 'sandbox-dot'}"></span>
+            ${t.studioName} · ${isReplay ? t.replayBadge : t.sandboxDemo}
+          </span>
+        </div>
+      </div>
 
-        <div class="header-ticker-strip" id="history-ticker"></div>
+      <div class="multiplier-hero-banner" id="mult-hero-wrap">
+        <svg class="mult-holo-hud-svg" viewBox="0 0 436 116" preserveAspectRatio="none" aria-hidden="true">
+          <!-- 1. Outer Stepped Octagonal Gunmetal Steel Frame (Matches Ship Rear Bulkhead) -->
+          <polygon
+            points="34,7 108,7 118,15 318,15 328,7 402,7 426,31 426,85 402,109 328,109 318,101 118,101 108,109 34,109 10,85 10,31"
+            fill="#5a6b7c"
+            stroke="#080b11"
+            stroke-width="3.5"
+            stroke-linejoin="round"
+          />
+
+          <!-- Top Metallic Light Bevel Highlight -->
+          <polygon
+            points="36,9 106,9 116,17 320,17 330,9 400,9 422,31 414,31 396,14 332,14 322,20 114,20 104,14 40,14 22,31 14,31"
+            fill="#7c8fa3"
+          />
+
+          <!-- Bottom Metallic Shadow Bevel -->
+          <polygon
+            points="14,85 22,85 40,102 104,102 114,96 322,96 332,102 396,102 414,85 422,85 400,107 330,107 320,99 116,99 106,107 36,107"
+            fill="#394654"
+          />
+
+          <!-- 2. Top-Center Orange & Cyan Indicator Strip (Matches Ship Bulkhead Top Bar) -->
+          <g stroke="#080b11" stroke-width="2.6" stroke-linejoin="round">
+            <polygon points="146,8 184,8 180,15 152,15" fill="#38bdf8"/>
+            <polygon points="184,6 252,6 248,15 188,15" fill="#f97316"/>
+            <polygon points="188,7.5 248,7.5 246,11 190,11" fill="#fdba74" stroke="none"/>
+            <polygon points="252,8 290,8 284,15 256,15" fill="#38bdf8"/>
+          </g>
+
+          <!-- 3. Inner Cyan Rim Strip Around Chamber -->
+          <polygon
+            points="42,17 394,17 413,36 413,80 394,99 42,99 23,80 23,36"
+            fill="#38bdf8"
+            stroke="#080b11"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+
+          <!-- 4. Recessed Dark Slate Steel Readout Screen -->
+          <polygon
+            points="46,21 390,21 407,38 407,78 390,95 46,95 29,78 29,38"
+            fill="#263442"
+            stroke="#080b11"
+            stroke-width="2.8"
+            stroke-linejoin="round"
+          />
+          <polygon
+            points="48,23 388,23 404,39 404,58 32,58 32,39"
+            fill="#2d3d4e"
+          />
+
+          <!-- 5. 4 Angled Corner Orange Warning Pads (Matches Reference Image & Ship Bulkhead) -->
+          <g stroke="#080b11" stroke-width="2.4" stroke-linejoin="round">
+            <polygon points="17,30 31,16 37,22 23,36" fill="#f97316"/>
+            <polygon points="23,80 37,94 31,100 17,86" fill="#f97316"/>
+            <polygon points="405,16 419,30 413,36 399,22" fill="#f97316"/>
+            <polygon points="399,94 413,80 419,86 405,100" fill="#f97316"/>
+          </g>
+
+          <!-- 6. Hand-Drawn Comic Ink Panel Seams & Hatching Ticks -->
+          <g stroke="#080b11" stroke-width="2.2" stroke-linecap="round">
+            <line x1="72" y1="7" x2="72" y2="17"/>
+            <line x1="364" y1="7" x2="364" y2="17"/>
+            <line x1="72" y1="99" x2="72" y2="109"/>
+            <line x1="364" y1="99" x2="364" y2="109"/>
+            <line x1="10" y1="58" x2="23" y2="58"/>
+            <line x1="413" y1="58" x2="426" y2="58"/>
+          </g>
+        </svg>
+
+        <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
+        <div class="multiplier-sub-pill">
+          <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
+          <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
+        </div>
       </div>
 
       <div class="header-telemetry-cluster">
@@ -152,6 +227,7 @@ export function createControlsUI(
             <div class="balance-value" id="hud-balance">${stakeRGS.formatCurrency(isReplay && stakeRGS.session.replayParams ? stakeRGS.session.replayParams.amount : engine.balance)}</div>
           </div>
         </div>
+        <div class="header-ticker-strip" id="history-ticker" style="display: none !important;"></div>
       </div>
     `;
 
@@ -419,94 +495,11 @@ export function createControlsUI(
         `;
     }
 
-    // 3. CENTER FLOATING HAND-DRAWN COMIC OCTAGONAL BULKHEAD MULTIPLIER HUD
+    // 3. CENTER STAGE HIT-STOP COMIC CALLOUT STAMP OVERLAY
     const stageOverlay = document.createElement('div');
     stageOverlay.className = 'stage-hud-overlay';
     stageOverlay.innerHTML = `
       <div class="stage-top-hud-stack">
-        <div class="multiplier-hero-banner" id="mult-hero-wrap">
-          <svg class="mult-holo-hud-svg" viewBox="0 0 436 116" preserveAspectRatio="none" aria-hidden="true">
-            <!-- 1. Outer Stepped Octagonal Gunmetal Steel Frame (Matches Ship Rear Bulkhead) -->
-            <polygon
-              points="34,7 108,7 118,15 318,15 328,7 402,7 426,31 426,85 402,109 328,109 318,101 118,101 108,109 34,109 10,85 10,31"
-              fill="#5a6b7c"
-              stroke="#080b11"
-              stroke-width="3.5"
-              stroke-linejoin="round"
-            />
-
-            <!-- Top Metallic Light Bevel Highlight -->
-            <polygon
-              points="36,9 106,9 116,17 320,17 330,9 400,9 422,31 414,31 396,14 332,14 322,20 114,20 104,14 40,14 22,31 14,31"
-              fill="#7c8fa3"
-            />
-
-            <!-- Bottom Metallic Shadow Bevel -->
-            <polygon
-              points="14,85 22,85 40,102 104,102 114,96 322,96 332,102 396,102 414,85 422,85 400,107 330,107 320,99 116,99 106,107 36,107"
-              fill="#394654"
-            />
-
-            <!-- 2. Top-Center Orange & Cyan Indicator Strip (Matches Ship Bulkhead Top Bar) -->
-            <g stroke="#080b11" stroke-width="2.6" stroke-linejoin="round">
-              <polygon points="146,8 184,8 180,15 152,15" fill="#38bdf8"/>
-              <polygon points="184,6 252,6 248,15 188,15" fill="#f97316"/>
-              <polygon points="188,7.5 248,7.5 246,11 190,11" fill="#fdba74" stroke="none"/>
-              <polygon points="252,8 290,8 284,15 256,15" fill="#38bdf8"/>
-            </g>
-
-            <!-- 3. Inner Cyan Rim Strip Around Chamber -->
-            <polygon
-              points="42,17 394,17 413,36 413,80 394,99 42,99 23,80 23,36"
-              fill="#38bdf8"
-              stroke="#080b11"
-              stroke-width="3"
-              stroke-linejoin="round"
-            />
-
-            <!-- 4. Recessed Dark Slate Steel Readout Screen -->
-            <polygon
-              points="46,21 390,21 407,38 407,78 390,95 46,95 29,78 29,38"
-              fill="#263442"
-              stroke="#080b11"
-              stroke-width="2.8"
-              stroke-linejoin="round"
-            />
-            <polygon
-              points="48,23 388,23 404,39 404,58 32,58 32,39"
-              fill="#2d3d4e"
-            />
-
-            <!-- 5. 4 Angled Corner Orange Warning Pads (Matches Reference Image & Ship Bulkhead) -->
-            <g stroke="#080b11" stroke-width="2.4" stroke-linejoin="round">
-              <!-- Top-Left Corner Orange Pad -->
-              <polygon points="17,30 31,16 37,22 23,36" fill="#f97316"/>
-              <!-- Bottom-Left Corner Orange Pad -->
-              <polygon points="23,80 37,94 31,100 17,86" fill="#f97316"/>
-              <!-- Top-Right Corner Orange Pad -->
-              <polygon points="405,16 419,30 413,36 399,22" fill="#f97316"/>
-              <!-- Bottom-Right Corner Orange Pad -->
-              <polygon points="399,94 413,80 419,86 405,100" fill="#f97316"/>
-            </g>
-
-            <!-- 6. Hand-Drawn Comic Ink Panel Seams & Hatching Ticks -->
-            <g stroke="#080b11" stroke-width="2.2" stroke-linecap="round">
-              <line x1="72" y1="7" x2="72" y2="17"/>
-              <line x1="364" y1="7" x2="364" y2="17"/>
-              <line x1="72" y1="99" x2="72" y2="109"/>
-              <line x1="364" y1="99" x2="364" y2="109"/>
-              <line x1="10" y1="58" x2="23" y2="58"/>
-              <line x1="413" y1="58" x2="426" y2="58"/>
-            </g>
-          </svg>
-
-          <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
-          <div class="multiplier-sub-pill">
-            <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
-            <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
-          </div>
-        </div>
-
         <div class="hitstop-callout-pill" id="hitstop-comic-stamp">1.20×</div>
       </div>
       <div></div>

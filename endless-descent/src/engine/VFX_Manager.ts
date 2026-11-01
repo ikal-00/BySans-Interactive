@@ -28,7 +28,7 @@ const SpaceOverdrivePostShader = {
         uMotionBlur: { value: 0.0 },
         uHitStopFlash: { value: 0.0 },
         uSupernovaFlash: { value: 0.0 },
-        uLensDistortion: { value: 0.024 },
+        uLensDistortion: { value: 0.0 },
         uDofStrength: { value: 0.18 },
         uGodRays: { value: 0.0 },
         uTime: { value: 0.0 }
@@ -114,7 +114,7 @@ const SpaceOverdrivePostShader = {
                     godRayAccum += sCol * bright * decay;
                     decay *= 0.82;
                 }
-                float angle = atan(centeredUv.y, centeredUv.x);
+                float angle = atan(centeredUv.y + 0.00001, centeredUv.x + 0.00001);
                 float rayBeam = 0.65 + 0.35 * sin(angle * 12.0 + uTime * 3.5);
                 col += godRayAccum * uGodRays * rayBeam * 0.22;
             }
@@ -133,7 +133,7 @@ const SpaceOverdrivePostShader = {
             if (uSupernovaFlash > 0.01) {
                 float radialGlow = exp(-dist * 2.6) * uSupernovaFlash;
                 float anamorphicStreak = exp(-abs(vUv.y - 0.52) * 26.0) * exp(-abs(vUv.x - 0.5) * 2.0) * uSupernovaFlash;
-                float angle = atan(centeredUv.y, centeredUv.x);
+                float angle = atan(centeredUv.y + 0.00001, centeredUv.x + 0.00001);
                 float crepuscularShafts = pow(0.5 + 0.5 * cos(angle * 16.0 - uTime * 2.5), 3.0) * exp(-dist * 2.2) * uSupernovaFlash;
                 vec3 goldLight = vec3(1.0, 0.86, 0.32) * (radialGlow * 0.85 + anamorphicStreak * 1.18 + crepuscularShafts * 0.65);
                 col += goldLight;
@@ -241,7 +241,7 @@ export class VFXManager {
     private rgbSplitIntensity = 0.0014;
     private warpIntensity = 0;
     private motionBlurIntensity = 0;
-    private supernovaFlashIntensity = 0;
+    public supernovaFlashIntensity = 0;
     private godRaysIntensity = 0;
     private elapsed = 0;
 

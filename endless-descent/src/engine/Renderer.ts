@@ -994,7 +994,7 @@ export class PixiRenderer {
         rawAstGeo.computeVertexNormals();
 
         // Non-indexed geometry gives razor-sharp chiseled flat comic facets (like Image 4)
-        const baseAstGeo = rawAstGeo.toNonIndexed();
+        const baseAstGeo = rawAstGeo.index ? rawAstGeo.toNonIndexed() : rawAstGeo.clone();
         baseAstGeo.computeVertexNormals();
 
         const asteroidMat = new THREE.MeshStandardMaterial({
@@ -1009,11 +1009,11 @@ export class PixiRenderer {
         for (let i = 0; i < ASTEROID_COUNT; i++) {
             const mesh = new THREE.Mesh(baseAstGeo, asteroidMat);
             // Bold black comic ink outline around every meteorite (Matches Image 4!)
-            const astOutline = this.createOutline(rawAstGeo, 0.11);
+            const astOutline = this.createOutline(baseAstGeo, 0.11);
             mesh.add(astOutline);
 
             const side = i % 2 === 0 ? -1 : 1;
-            const baseX = side * (21.5 + Math.random() * 24.0);
+            const baseX = side * (26.0 + Math.random() * 24.0);
             const baseY = -8.0 + Math.random() * 26.0;
             const z = -15 - Math.random() * 215;
 
@@ -1553,42 +1553,45 @@ export class PixiRenderer {
         gsap.killTweensOf(this.alienUfoGroup.position);
         gsap.killTweensOf(this.alienTractorBeam.scale);
         gsap.killTweensOf(this.ship.pos);
+        this.ship.vel.set(0, 0, 0);
 
-        // 3. UFO swoops down rapidly from deep space
+        // 3. UFO swoops down rapidly from deep space (Snappy anime pacing)
         gsap.to(this.alienUfoGroup.position, {
             y: 8.0,
-            duration: 0.20,
-            ease: 'back.out(1.4)',
+            duration: 0.12,
+            ease: 'back.out(1.5)',
             onComplete: () => {
                 // Tractor beam activates and expands
                 gsap.to(this.alienTractorBeam.scale, {
                     x: 1.0,
                     z: 1.0,
-                    duration: 0.12,
+                    duration: 0.08,
                     ease: 'power2.out'
                 });
 
-                // Ship lifts upward into the beam
+                // Ship lifts upward into the beam smoothly
                 gsap.to(this.ship.pos, {
                     y: 4.8,
-                    duration: 0.24,
+                    duration: 0.14,
                     ease: 'power2.inOut',
                     onUpdate: () => {
+                        this.ship.vel.set(0, 0, 0);
                         this.ship.targetPos.copy(this.ship.pos);
                     },
                     onComplete: () => {
-                        // Smooth 60fps cosmic warp glide across the skipped rows (zero 1-frame teleport stutter!)
-                        this.vfx.spawnShockwave3D(worldX, 0.4, destinationZ, 0xa855f7, 11.0, 0.42);
+                        // Smooth cosmic warp glide across the skipped rows
+                        this.vfx.spawnShockwave3D(worldX, 0.4, destinationZ, 0xa855f7, 11.0, 0.35);
                         gsap.to(this.alienUfoGroup.position, {
                             z: destinationZ,
-                            duration: 0.28,
+                            duration: 0.18,
                             ease: 'power2.inOut'
                         });
                         gsap.to(this.ship.pos, {
                             z: destinationZ,
-                            duration: 0.28,
+                            duration: 0.18,
                             ease: 'power2.inOut',
                             onUpdate: () => {
+                                this.ship.vel.set(0, 0, 0);
                                 this.ship.targetPos.copy(this.ship.pos);
                             },
                             onComplete: () => {
@@ -1600,25 +1603,27 @@ export class PixiRenderer {
                                     [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
                                     11,
                                     24,
-                                    0.55
+                                    0.45
                                 );
                                 this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, destinationZ);
 
-                                // Lower ship safely onto the clean track (completely clear tile)
+                                // Lower ship safely onto the clean track
                                 gsap.to(this.ship.pos, {
                                     y: SHIP_FLIGHT_Y,
-                                    duration: 0.24,
+                                    duration: 0.14,
                                     ease: 'back.out(1.2)',
                                     onUpdate: () => {
+                                        this.ship.vel.set(0, 0, 0);
                                         this.ship.targetPos.copy(this.ship.pos);
                                     },
                                     onComplete: () => {
+                                        this.ship.vel.set(0, 0, 0);
                                         this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, destinationZ);
                                         this.isAbductionActive = false;
                                         // UFO ascends and vanishes into hyperspace
                                         gsap.to(this.alienUfoGroup.position, {
                                             y: 30,
-                                            duration: 0.30,
+                                            duration: 0.16,
                                             ease: 'power2.in',
                                             onComplete: () => {
                                                 this.alienUfoGroup.visible = false;
@@ -1639,15 +1644,18 @@ export class PixiRenderer {
      * dynamically pitches, yaws, and banks toward the user's cursor in real time!
      */
     private bindGlobalCursorTracking() {
+        let lastClientX = -9999;
+        let lastClientY = -9999;
+
         const updateFromCoords = (clientX: number, clientY: number) => {
             const rect = this.canvas.getBoundingClientRect();
             if (rect.width <= 0 || rect.height <= 0) return;
             const normX = ((clientX - rect.left) / rect.width - 0.5) * 2;
             const normY = ((clientY - rect.top) / rect.height - 0.5) * 2;
-            // Soft tanh curve prevents hard corner-clamp jumps when moving to viewport corners and returning
+            // Gentle tanh clamping prevents edge/corner jumping
             this.targetMouseParallax.set(
-                Math.tanh(THREE.MathUtils.clamp(normX, -1, 1) * 1.05),
-                Math.tanh(THREE.MathUtils.clamp(normY, -1, 1) * 1.05)
+                Math.tanh(THREE.MathUtils.clamp(normX, -1, 1) * 0.85),
+                Math.tanh(THREE.MathUtils.clamp(normY, -1, 1) * 0.85)
             );
         };
 
@@ -1656,7 +1664,17 @@ export class PixiRenderer {
                 this.targetMouseParallax.set(0, 0);
                 return;
             }
+            if (Math.hypot(e.clientX - lastClientX, e.clientY - lastClientY) < 1.5) return;
+            lastClientX = e.clientX;
+            lastClientY = e.clientY;
             updateFromCoords(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('pointerleave', () => {
+            this.targetMouseParallax.set(0, 0);
+        });
+        document.addEventListener('mouseleave', () => {
+            this.targetMouseParallax.set(0, 0);
         });
     }
 
@@ -1965,6 +1983,21 @@ export class PixiRenderer {
             return;
         }
 
+        // Sticky Hysteresis: If we are already hovering a lane on the active row,
+        // keep it stably locked while the cursor stays within column vicinity
+        if (this.hoveredLane !== null && this.hoveredRow === currentRow) {
+            const slotIdx = (currentRow - 1) % VISIBLE_ROW_SLOTS;
+            const currentCard = this.rowSlots[slotIdx]?.[this.hoveredLane];
+            if (currentCard && currentCard.group.visible) {
+                const distNdc = Math.hypot(ndcX - this.lastHoverNdc.x, ndcY - this.lastHoverNdc.y);
+                if (distNdc < 0.24) {
+                    this.lastValidHoverTime = now;
+                    this.canvas.style.cursor = 'pointer';
+                    return;
+                }
+            }
+        }
+
         const cursorDelta = Math.hypot(ndcX - this.lastHoverNdc.x, ndcY - this.lastHoverNdc.y);
         if (
             this.hoveredLane !== null &&
@@ -1995,7 +2028,15 @@ export class PixiRenderer {
             this.elapsed += dt;
 
             this.updateScene3D(dt);
-            this.vfx.composer.render();
+
+            // Direct WebGL hardware MSAA rendering:
+            // Eliminates 11 full-screen down/up passes per frame for buttery smooth 60-120 FPS
+            // and pristine, razor-sharp hand-drawn comic ink outlines with ZERO buffer flickering.
+            if (this.vfx.supernovaFlashIntensity > 0.01) {
+                this.vfx.composer.render();
+            } else {
+                this.webglRenderer.render(this.scene, this.camera);
+            }
 
             requestAnimationFrame(animate);
         };
@@ -2272,10 +2313,10 @@ export class PixiRenderer {
 
                 if (boxType !== 'normal') {
                     if (isHitStopTarget) {
-                        targetBoxLiftY = 4.4;
+                        targetBoxLiftY = 3.4;
                         targetLidProgress = 1.0;
                     } else if (isHovered) {
-                        targetBoxLiftY = 3.6;
+                        targetBoxLiftY = 2.2;
                         targetLidProgress = 0.65;
                     }
                 }
