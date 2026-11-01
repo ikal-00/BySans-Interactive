@@ -118,82 +118,113 @@ export function createControlsUI(
         </div>
       </div>
 
-      <div class="multiplier-hero-banner" id="mult-hero-wrap">
-        <svg class="mult-holo-hud-svg" viewBox="0 0 436 116" preserveAspectRatio="none" aria-hidden="true">
-          <!-- 1. Outer Stepped Octagonal Gunmetal Steel Frame (Matches Ship Rear Bulkhead) -->
-          <polygon
-            points="34,7 108,7 118,15 318,15 328,7 402,7 426,31 426,85 402,109 328,109 318,101 118,101 108,109 34,109 10,85 10,31"
-            fill="#5a6b7c"
-            stroke="#080b11"
-            stroke-width="3.5"
-            stroke-linejoin="round"
-          />
+      <div class="multiplier-hero-anchor">
+        <div class="multiplier-hero-banner" id="mult-hero-wrap">
+          <svg class="mult-holo-hud-svg" viewBox="0 0 460 80" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="hud-frame-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#5a6b7c"/>
+                <stop offset="50%" stop-color="#465463"/>
+                <stop offset="100%" stop-color="#34404d"/>
+              </linearGradient>
+              <linearGradient id="hud-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#1f2c3b"/>
+                <stop offset="40%" stop-color="#182330"/>
+                <stop offset="100%" stop-color="#0f1620"/>
+              </linearGradient>
+              <linearGradient id="hud-cyan-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00e5ff"/>
+                <stop offset="100%" stop-color="#38bdf8"/>
+              </linearGradient>
+              <linearGradient id="hud-orange-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#fb923c"/>
+                <stop offset="100%" stop-color="#ea580c"/>
+              </linearGradient>
+            </defs>
 
-          <!-- Top Metallic Light Bevel Highlight -->
-          <polygon
-            points="36,9 106,9 116,17 320,17 330,9 400,9 422,31 414,31 396,14 332,14 322,20 114,20 104,14 40,14 22,31 14,31"
-            fill="#7c8fa3"
-          />
+            <!-- 1. Outer Stepped Octagonal Gunmetal Steel Frame (Matches Ship Rear Bulkhead) -->
+            <polygon
+              points="26,4 120,4 130,9 330,9 340,4 434,4 452,22 452,58 434,76 340,76 330,71 130,71 120,76 26,76 8,58 8,22"
+              fill="url(#hud-frame-grad)"
+              stroke="#080b11"
+              stroke-width="3"
+              stroke-linejoin="round"
+            />
 
-          <!-- Bottom Metallic Shadow Bevel -->
-          <polygon
-            points="14,85 22,85 40,102 104,102 114,96 322,96 332,102 396,102 414,85 422,85 400,107 330,107 320,99 116,99 106,107 36,107"
-            fill="#394654"
-          />
+            <!-- Top Metallic Light Bevel Highlight -->
+            <polygon
+              points="27,5 120,5 129,10 331,10 340,5 433,5 449,21 443,21 430,8 342,8 333,13 127,13 118,8 30,8 17,21 11,21"
+              fill="#7c8fa3"
+            />
 
-          <!-- 2. Top-Center Orange & Cyan Indicator Strip (Matches Ship Bulkhead Top Bar) -->
-          <g stroke="#080b11" stroke-width="2.6" stroke-linejoin="round">
-            <polygon points="146,8 184,8 180,15 152,15" fill="#38bdf8"/>
-            <polygon points="184,6 252,6 248,15 188,15" fill="#f97316"/>
-            <polygon points="188,7.5 248,7.5 246,11 190,11" fill="#fdba74" stroke="none"/>
-            <polygon points="252,8 290,8 284,15 256,15" fill="#38bdf8"/>
-          </g>
+            <!-- Bottom Metallic Shadow Bevel -->
+            <polygon
+              points="11,58 17,58 30,72 118,72 127,67 333,67 342,72 430,72 443,58 449,58 433,75 340,75 331,70 129,70 120,75 27,75"
+              fill="#232b35"
+            />
 
-          <!-- 3. Inner Cyan Rim Strip Around Chamber -->
-          <polygon
-            points="42,17 394,17 413,36 413,80 394,99 42,99 23,80 23,36"
-            fill="#38bdf8"
-            stroke="#080b11"
-            stroke-width="3"
-            stroke-linejoin="round"
-          />
+            <!-- 2. Top-Center Orange & Cyan Indicator Strip (Matches Ship Bulkhead Top Bar) -->
+            <g stroke="#080b11" stroke-width="2.2" stroke-linejoin="round">
+              <polygon points="160,5 205,5 201,10 164,10" fill="url(#hud-cyan-grad)"/>
+              <polygon points="205,3 255,3 251,10 209,10" fill="url(#hud-orange-grad)"/>
+              <polygon points="208,4.5 252,4.5 250,7 210,7" fill="#fdba74" stroke="none"/>
+              <polygon points="255,5 300,5 296,10 259,10" fill="url(#hud-cyan-grad)"/>
+            </g>
 
-          <!-- 4. Recessed Dark Slate Steel Readout Screen -->
-          <polygon
-            points="46,21 390,21 407,38 407,78 390,95 46,95 29,78 29,38"
-            fill="#263442"
-            stroke="#080b11"
-            stroke-width="2.8"
-            stroke-linejoin="round"
-          />
-          <polygon
-            points="48,23 388,23 404,39 404,58 32,58 32,39"
-            fill="#2d3d4e"
-          />
+            <!-- 3. Inner Cyan Rim Strip Around Chamber -->
+            <polygon
+              points="32,11 428,11 443,26 443,54 428,69 32,69 17,54 17,26"
+              fill="url(#hud-cyan-grad)"
+              stroke="#080b11"
+              stroke-width="2.6"
+              stroke-linejoin="round"
+            />
 
-          <!-- 5. 4 Angled Corner Orange Warning Pads (Matches Reference Image & Ship Bulkhead) -->
-          <g stroke="#080b11" stroke-width="2.4" stroke-linejoin="round">
-            <polygon points="17,30 31,16 37,22 23,36" fill="#f97316"/>
-            <polygon points="23,80 37,94 31,100 17,86" fill="#f97316"/>
-            <polygon points="405,16 419,30 413,36 399,22" fill="#f97316"/>
-            <polygon points="399,94 413,80 419,86 405,100" fill="#f97316"/>
-          </g>
+            <!-- 4. Recessed Dark Slate Steel Readout Screen -->
+            <polygon
+              points="35,14 425,14 439,28 439,52 425,66 35,66 21,52 21,28"
+              fill="url(#hud-screen-grad)"
+              stroke="#080b11"
+              stroke-width="2.4"
+              stroke-linejoin="round"
+            />
+            <polygon
+              points="36,15 424,15 437,28 437,38 23,38 23,28"
+              fill="rgba(255, 255, 255, 0.05)"
+            />
 
-          <!-- 6. Hand-Drawn Comic Ink Panel Seams & Hatching Ticks -->
-          <g stroke="#080b11" stroke-width="2.2" stroke-linecap="round">
-            <line x1="72" y1="7" x2="72" y2="17"/>
-            <line x1="364" y1="7" x2="364" y2="17"/>
-            <line x1="72" y1="99" x2="72" y2="109"/>
-            <line x1="364" y1="99" x2="364" y2="109"/>
-            <line x1="10" y1="58" x2="23" y2="58"/>
-            <line x1="413" y1="58" x2="426" y2="58"/>
-          </g>
-        </svg>
+            <!-- 5. 4 Angled Corner Orange Warning Pads -->
+            <g stroke="#080b11" stroke-width="2.2" stroke-linejoin="round">
+              <polygon points="14,24 24,14 29,19 19,29" fill="url(#hud-orange-grad)"/>
+              <polygon points="19,51 29,61 24,66 14,56" fill="url(#hud-orange-grad)"/>
+              <polygon points="436,14 446,24 441,29 431,19" fill="url(#hud-orange-grad)"/>
+              <polygon points="431,61 441,51 446,56 436,66" fill="url(#hud-orange-grad)"/>
+            </g>
 
-        <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
-        <div class="multiplier-sub-pill">
-          <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
-          <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
+            <!-- 6. Hand-Drawn Comic Ink Panel Seams & Hatching Ticks -->
+            <g stroke="#080b11" stroke-width="2" stroke-linecap="round">
+              <line x1="68" y1="4" x2="68" y2="12"/>
+              <line x1="392" y1="4" x2="392" y2="12"/>
+              <line x1="68" y1="68" x2="68" y2="76"/>
+              <line x1="392" y1="68" x2="392" y2="76"/>
+              <line x1="8" y1="40" x2="18" y2="40"/>
+              <line x1="442" y1="40" x2="452" y2="40"/>
+            </g>
+          </svg>
+
+          <div class="mult-hero-content">
+            <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
+            <div class="multiplier-sub-pill">
+              <div class="mult-status-badge">
+                <span class="mult-status-dot" id="mult-status-dot"></span>
+                <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
+              </div>
+              <span class="mult-sub-divider">│</span>
+              <div class="mult-next-badge">
+                <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -544,6 +575,7 @@ export function createControlsUI(
     const multHeroVal = document.getElementById('mult-hero-value')!;
     const multHeroSub = document.getElementById('mult-hero-sub')!;
     const multNextPreview = document.getElementById('mult-next-preview')!;
+    const multStatusDot = document.getElementById('mult-status-dot');
     const hitStopStamp = document.getElementById('hitstop-comic-stamp')!;
 
     const betInput = document.getElementById('bet-input') as HTMLInputElement | null;
@@ -1283,6 +1315,22 @@ export function createControlsUI(
             multHeroSub.textContent = `${t.roundCrashedSub} ${engine.lastCrashedRow ?? 1}`;
         } else {
             multHeroSub.textContent = t.readyToLaunchSub;
+        }
+
+        if (multStatusDot) {
+            if (isPlaying) {
+                multStatusDot.style.background = '#00f0ff';
+                multStatusDot.style.boxShadow = '0 0 10px #00f0ff, 0 0 18px rgba(0, 240, 255, 0.7)';
+            } else if (engine.state === GameState.WON) {
+                multStatusDot.style.background = '#00e676';
+                multStatusDot.style.boxShadow = '0 0 10px #00e676, 0 0 18px rgba(0, 230, 118, 0.7)';
+            } else if (engine.state === GameState.CRASHED) {
+                multStatusDot.style.background = '#ef4444';
+                multStatusDot.style.boxShadow = '0 0 10px #ef4444, 0 0 18px rgba(239, 68, 68, 0.7)';
+            } else {
+                multStatusDot.style.background = '#38bdf8';
+                multStatusDot.style.boxShadow = '0 0 8px #38bdf8';
+            }
         }
 
         if (betInput) {
