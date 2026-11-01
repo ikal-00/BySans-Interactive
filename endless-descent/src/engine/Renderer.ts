@@ -12,10 +12,10 @@ const LANE_COUNT = 5;
 const LANE_SPACING_X = 4.35; // Wide 5-lane Cosmic Void spacing: [-8.7, -4.35, 0, +4.35, +8.7]
 const ROW_SPACING_Z = 12.2;
 const VISIBLE_ROW_SLOTS = 14;
-const NEBULA_CLOUD_COUNT = 20;
+const NEBULA_CLOUD_COUNT = 32;
 const NEBULA_FLOW_PARTICLE_COUNT = 240;
 const COSMIC_DUST_PARTICLE_COUNT = 380;
-const ASTEROID_COUNT = 18;
+const ASTEROID_COUNT = 34;
 const STAR_PARTICLE_COUNT = 850;
 const PLANET_COUNT = 6;
 const RING_ASTEROIDS_PER_PLANET = 48; // Lightweight optimized 3D ring asteroids (clean 60+ FPS)
@@ -443,10 +443,10 @@ export class PixiRenderer {
             this.textures.nebulaPillarTex,
             this.textures.nebulaVeilTex
         ];
-        const baseHues = [0.54, 0.11, 0.88, 0.58, 0.76, 0.48];
+        const baseHues = [0.54, 0.11, 0.88, 0.58, 0.76, 0.48, 0.95, 0.32];
         for (let i = 0; i < NEBULA_CLOUD_COUNT; i++) {
             const baseHue = baseHues[i % baseHues.length];
-            const initCol = new THREE.Color().setHSL(baseHue, 0.68, 0.72);
+            const initCol = new THREE.Color().setHSL(baseHue, 0.72, 0.72);
             const nebulaMat = new THREE.SpriteMaterial({
                 map: nebulaTexPool[i % nebulaTexPool.length],
                 color: initCol,
@@ -458,12 +458,13 @@ export class PixiRenderer {
             });
             const sprite = new THREE.Sprite(nebulaMat);
             const side = i % 2 === 0 ? -1 : 1;
-            const baseX = side * (26 + Math.random() * 36);
-            const baseY = -12 + Math.random() * 32;
-            const offsetZ = -20 - Math.random() * 240;
+            const offsetZ = -15 - (i / NEBULA_CLOUD_COUNT) * 260 - Math.random() * 20;
+            const lateralDepth = Math.abs(offsetZ) + 16;
+            const baseX = side * lateralDepth * (0.48 + (i % 4) * 0.11 + Math.random() * 0.12);
+            const baseY = -16 + Math.random() * 36;
             sprite.position.set(baseX, baseY, offsetZ);
-            const scale = 22 + Math.random() * 24;
-            sprite.scale.set(scale, scale * 0.82, 1);
+            const scale = 36 + Math.random() * 38;
+            sprite.scale.set(scale, scale * 0.85, 1);
             this.scene.add(sprite);
 
             this.nebulaClouds.push({
@@ -485,9 +486,10 @@ export class PixiRenderer {
 
         for (let i = 0; i < NEBULA_FLOW_PARTICLE_COUNT; i++) {
             const streamSide = i % 2 === 0 ? -1 : 1;
-            const x = streamSide * (14 + Math.random() * 32);
-            const y = -10 + Math.random() * 28;
-            const z = -Math.random() * 240;
+            const z = -Math.random() * 260;
+            const lateralDepth = Math.abs(z) + 16;
+            const x = streamSide * lateralDepth * (0.38 + Math.random() * 0.52);
+            const y = -12 + Math.random() * 30;
             this.nebulaFlowPositions[i * 3] = x;
             this.nebulaFlowPositions[i * 3 + 1] = y;
             this.nebulaFlowPositions[i * 3 + 2] = z;
@@ -521,9 +523,11 @@ export class PixiRenderer {
         const dustColors = new Float32Array(COSMIC_DUST_PARTICLE_COUNT * 3);
 
         for (let i = 0; i < COSMIC_DUST_PARTICLE_COUNT; i++) {
-            this.cosmicDustPositions[i * 3] = (Math.random() - 0.5) * 44;
-            this.cosmicDustPositions[i * 3 + 1] = (Math.random() - 0.5) * 28 + 2;
-            this.cosmicDustPositions[i * 3 + 2] = 15 - Math.random() * 145;
+            const z = 15 - Math.random() * 155;
+            const lateralDepth = Math.abs(z) + 16;
+            this.cosmicDustPositions[i * 3] = (Math.random() - 0.5) * lateralDepth * 1.85;
+            this.cosmicDustPositions[i * 3 + 1] = (Math.random() - 0.5) * 36 + 2;
+            this.cosmicDustPositions[i * 3 + 2] = z;
 
             const c = new THREE.Color(i % 3 === 0 ? 0xe0f2fe : i % 3 === 1 ? 0x38bdf8 : 0xfef08a);
             dustColors[i * 3] = c.r;
@@ -765,64 +769,70 @@ export class PixiRenderer {
 
         const planetConfigs = [
             {
+                // Planet 0: Majestic Gas Giant with Rings (Dominates Left Flank)
                 tex: this.textures.planetGasGiantTex,
                 hasRing: true,
-                radius: 13.5,
-                baseX: -52,
-                baseY: 16,
-                startZ: -95,
+                radius: 14.5,
+                baseX: -70,
+                baseY: 18,
+                startZ: -85,
                 atmoColor: 0x38bdf8,
-                cloudOpacity: 0.32
+                cloudOpacity: 0.35
             },
             {
+                // Planet 1: Luminous Cyan Ice World with Rings (Dominates Right Flank)
                 tex: this.textures.planetIceWorldTex,
                 hasRing: true,
-                radius: 10.4,
-                baseX: 48,
-                baseY: 11,
+                radius: 12.0,
+                baseX: 96,
+                baseY: 14,
                 startZ: -150,
                 atmoColor: 0x00f0ff,
                 cloudOpacity: 0.55
             },
             {
+                // Planet 2: Crimson Fiery Magma World (Mid-Deep Far-Left Flank)
                 tex: this.textures.planetLavaWorldTex,
                 hasRing: false,
-                radius: 8.6,
-                baseX: -42,
-                baseY: -12,
-                startZ: -205,
+                radius: 13.5,
+                baseX: -136,
+                baseY: -16,
+                startZ: -215,
                 atmoColor: 0xf97316,
-                cloudOpacity: 0.22
+                cloudOpacity: 0.24
             },
             {
+                // Planet 3: Violet Nebula Colossus with Dense Rings (Mid-Deep Far-Right Flank)
                 tex: this.textures.planetGasGiantTex,
                 hasRing: true,
-                radius: 14.5,
-                baseX: 56,
-                baseY: -9,
-                startZ: -260,
+                radius: 16.5,
+                baseX: 172,
+                baseY: -12,
+                startZ: -280,
                 atmoColor: 0xa855f7,
-                cloudOpacity: 0.35
+                cloudOpacity: 0.36
             },
             {
+                // Planet 4: Azure / Emerald Deep Space World (Deep Far-Left Horizon)
                 tex: this.textures.planetIceWorldTex,
                 hasRing: false,
-                radius: 8.2,
-                baseX: -38,
-                baseY: 22,
-                startZ: -75,
-                atmoColor: 0x38bdf8,
-                cloudOpacity: 0.58
+                radius: 14.5,
+                baseX: -198,
+                baseY: 24,
+                startZ: -345,
+                atmoColor: 0x10b981,
+                cloudOpacity: 0.50
             },
             {
+                // Planet 5: Amber Radiant Solar Giant with Rings (Deep Far-Right Horizon)
                 tex: this.textures.planetLavaWorldTex,
                 hasRing: true,
-                radius: 11.2,
-                baseX: 48,
+                radius: 16.0,
+                baseX: 228,
                 baseY: 20,
-                startZ: -315,
+                startZ: -410,
                 atmoColor: 0xf59e0b,
-                cloudOpacity: 0.25
+                cloudOpacity: 0.28
             }
         ];
 
@@ -970,7 +980,7 @@ export class PixiRenderer {
         star.maxAge = 1.2 + Math.random() * 1.5;
 
         const fromLeft = Math.random() > 0.5;
-        const startX = (fromLeft ? -1 : 1) * (24 + Math.random() * 44);
+        const startX = (fromLeft ? -1 : 1) * (36 + Math.random() * 64);
         const startY = 8 + Math.random() * 28;
         const startZ = refZ - 55 - Math.random() * 165;
 
@@ -1025,12 +1035,14 @@ export class PixiRenderer {
             mesh.add(astOutline);
 
             const side = i % 2 === 0 ? -1 : 1;
-            const baseX = side * (26.0 + Math.random() * 24.0);
-            const baseY = -8.0 + Math.random() * 26.0;
-            const z = -15 - Math.random() * 215;
+            const z = -15 - (i / ASTEROID_COUNT) * 260 - Math.random() * 20;
+            const lateralDepth = Math.abs(z) + 18;
+            const lateralSpan = lateralDepth * (0.42 + (i % 6) * 0.09 + Math.random() * 0.12);
+            const baseX = side * lateralSpan;
+            const baseY = -14.0 + Math.random() * 32.0;
 
             mesh.position.set(baseX, baseY, z);
-            const scale = 0.75 + Math.random() * 1.85;
+            const scale = 0.85 + Math.random() * 2.2;
             mesh.scale.set(
                 scale * (0.82 + Math.random() * 0.36),
                 scale * (0.74 + Math.random() * 0.48),
@@ -2599,8 +2611,14 @@ export class PixiRenderer {
             // Only recycle once asteroid has completely tumbled past and exited behind camera
             if (ast.mesh.position.z > camZ + 30) {
                 ast.mesh.position.z -= 280;
-            } else if (ast.mesh.position.z < camZ - 290) {
+                const lateralDepth = Math.abs(ast.mesh.position.z - camZ) + 18;
+                const side = Math.sign(ast.baseX) || (Math.random() > 0.5 ? 1 : -1);
+                ast.mesh.position.x = side * lateralDepth * (0.42 + Math.random() * 0.45);
+            } else if (ast.mesh.position.z < camZ - 310) {
                 ast.mesh.position.z += 280;
+                const lateralDepth = Math.abs(ast.mesh.position.z - camZ) + 18;
+                const side = Math.sign(ast.baseX) || (Math.random() > 0.5 ? 1 : -1);
+                ast.mesh.position.x = side * lateralDepth * (0.42 + Math.random() * 0.45);
             }
         }
 
@@ -2621,9 +2639,15 @@ export class PixiRenderer {
 
             // Only recycle once fully transparent or safely behind camera
             if (c.sprite.position.z > camZ + 25) {
-                c.sprite.position.z -= 260;
-            } else if (c.sprite.position.z < camZ - 280) {
-                c.sprite.position.z += 260;
+                c.sprite.position.z -= 280;
+                const lateralDepth = Math.abs(c.sprite.position.z - camZ) + 16;
+                const side = Math.sign(c.baseX) || (Math.random() > 0.5 ? 1 : -1);
+                c.baseX = side * lateralDepth * (0.48 + Math.random() * 0.45);
+            } else if (c.sprite.position.z < camZ - 310) {
+                c.sprite.position.z += 280;
+                const lateralDepth = Math.abs(c.sprite.position.z - camZ) + 16;
+                const side = Math.sign(c.baseX) || (Math.random() > 0.5 ? 1 : -1);
+                c.baseX = side * lateralDepth * (0.48 + Math.random() * 0.45);
             }
         }
 
@@ -2661,8 +2685,9 @@ export class PixiRenderer {
             let dy = this.cosmicDustPositions[i * 3 + 1] + camSlipY * dt;
             let dz = this.cosmicDustPositions[i * 3 + 2] + dustSpeedZ * dt;
 
-            if (dx > 24) dx -= 48;
-            else if (dx < -24) dx += 48;
+            const maxLateralX = Math.abs(dz - camZ) * 0.95 + 28;
+            if (dx > maxLateralX) dx -= maxLateralX * 2;
+            else if (dx < -maxLateralX) dx += maxLateralX * 2;
 
             if (dy > 18) dy -= 32;
             else if (dy < -14) dy += 32;
