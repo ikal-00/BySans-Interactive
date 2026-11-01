@@ -577,12 +577,14 @@ export class PixiRenderer {
                 varying vec3 vWorldNormal;
                 varying vec3 vViewDir;
                 varying vec3 vObjPos;
+                varying float vDistToCam;
                 void main() {
                     vUv = uv;
                     vObjPos = position;
                     vec4 worldPos = modelMatrix * vec4(position, 1.0);
                     vWorldNormal = normalize(mat3(modelMatrix) * normal);
                     vViewDir = normalize(cameraPosition - worldPos.xyz);
+                    vDistToCam = length(cameraPosition - worldPos.xyz);
                     gl_Position = projectionMatrix * viewMatrix * worldPos;
                 }
             `,
@@ -598,6 +600,7 @@ export class PixiRenderer {
                 varying vec3 vWorldNormal;
                 varying vec3 vViewDir;
                 varying vec3 vObjPos;
+                varying float vDistToCam;
 
                 float hash31(vec3 p) {
                     p = fract(p * vec3(443.897, 441.423, 437.195));
@@ -682,7 +685,12 @@ export class PixiRenderer {
                     float fresnel = pow(1.0 - max(0.0, dot(normalize(vWorldNormal), V)), 3.2);
                     vec3 atmoRim = uAtmoColor * fresnel * (0.28 + 0.72 * max(0.0, rawNdotL + 0.35));
 
-                    gl_FragColor = vec4(dayComposite + nightCityGlow + atmoRim, 1.0);
+                    // 7. Seamless Deep-Space Distance Fog Blending (Prevents any abrupt popping at deep range)
+                    float distFade = smoothstep(400.0, 260.0, vDistToCam);
+                    vec3 spaceBg = vec3(0.008, 0.015, 0.04);
+                    vec3 planetColor = mix(spaceBg, dayComposite + nightCityGlow + atmoRim, distFade);
+
+                    gl_FragColor = vec4(planetColor, 1.0);
                 }
             `
         });
@@ -701,10 +709,12 @@ export class PixiRenderer {
             vertexShader: `
                 varying vec3 vNormal;
                 varying vec3 vViewDir;
+                varying float vDistToCam;
                 void main() {
                     vec4 worldPos = modelMatrix * vec4(position, 1.0);
                     vNormal = normalize(mat3(modelMatrix) * normal);
                     vViewDir = normalize(cameraPosition - worldPos.xyz);
+                    vDistToCam = length(cameraPosition - worldPos.xyz);
                     gl_Position = projectionMatrix * viewMatrix * worldPos;
                 }
             `,
@@ -713,12 +723,14 @@ export class PixiRenderer {
                 uniform vec3 uSunDir;
                 varying vec3 vNormal;
                 varying vec3 vViewDir;
+                varying float vDistToCam;
                 void main() {
                     vec3 N = normalize(vNormal);
                     vec3 V = normalize(vViewDir);
                     float rim = pow(clamp(1.0 + dot(N, V), 0.0, 1.0), 2.5);
                     float sunSide = 0.3 + 0.7 * smoothstep(-0.4, 0.8, dot(-N, uSunDir));
-                    gl_FragColor = vec4(uAtmoColor * rim * sunSide * 1.35, rim * 0.72);
+                    float distFade = smoothstep(400.0, 260.0, vDistToCam);
+                    gl_FragColor = vec4(uAtmoColor * rim * sunSide * 1.35 * distFade, rim * 0.72 * distFade);
                 }
             `,
             side: THREE.BackSide,
@@ -898,7 +910,7 @@ export class PixiRenderer {
                 atmoMesh,
                 ringSystemGroup,
                 rotSpeedY: 0.14 + (i % 3) * 0.06,
-                driftSpeedZ: 7.5 + (i % 3) * 2.5,
+                driftSpeedZ: 0.65 + (i % 3) * 0.35,
                 baseX: cfg.baseX,
                 baseY: cfg.baseY
             });
@@ -2527,21 +2539,23 @@ export class PixiRenderer {
         const phaseFactor = 1.0 + Math.max(0, theme.tier) * 0.42;
         const speedMult = (isBursting ? 2.6 : 1.0) * phaseFactor;
 
-        // 1. Starfield Scrolling
+        // 1. Starfield Scrolling (Recycles safely well behind the camera)
         const starSpeed = (isBursting ? 115 : 34) * phaseFactor;
         for (let i = 0; i < STAR_PARTICLE_COUNT; i++) {
             let sz = this.starfieldPositions[i * 3 + 2];
             sz += dt * starSpeed;
-            if (sz > camZ + 10) {
-                sz -= 260;
-            } else if (sz < camZ - 260) {
-                sz += 260;
+            if (sz > camZ + 25) {
+                sz -= 300;
+            } else if (sz < camZ - 300) {
+                sz += 300;
             }
             this.starfieldPositions[i * 3 + 2] = sz;
         }
         (this.starfieldGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
 
         // 2. Massive Photorealistic Planets Rotating (Cloud Deck Drift + Day/Night City Lights + Asteroid Ring Belts)
+        // Planets glide with authentic cosmic parallax and NEVER disappear on-screen:
+        // Only recycled once completely behind the camera frustum (camZ + 75, well past rings).
         for (const p of this.planets) {
             p.sphereMesh.rotation.y += p.rotSpeedY * dt;
             p.surfaceMat.uniforms['uTime'].value = this.elapsed;
@@ -2550,42 +2564,47 @@ export class PixiRenderer {
             }
             p.group.position.z += p.driftSpeedZ * speedMult * dt;
 
-            if (p.group.position.z > camZ - 75) {
-                p.group.position.z -= 320;
-            } else if (p.group.position.z < camZ - 395) {
-                p.group.position.z += 320;
+            if (p.group.position.z > camZ + 75) {
+                p.group.position.z -= 360;
+            } else if (p.group.position.z < camZ - 420) {
+                p.group.position.z += 360;
             }
         }
 
         // 3. Shooting Stars / Comets Streaking Across the Void
         for (const s of this.shootingStars) {
             s.age += dt;
-            if (s.age >= s.maxAge || s.group.position.z > camZ - 20) {
+            if (s.age >= s.maxAge || s.group.position.z > camZ + 30) {
                 this.respawnShootingStar(s, this.ship.pos.z);
                 continue;
             }
             s.group.position.addScaledVector(s.vel, dt * (isBursting ? 1.5 : 1.0));
             const lifeNorm = s.age / s.maxAge;
             const fade = Math.sin(lifeNorm * Math.PI);
-            s.tailMat.opacity = fade * 0.88;
-            (s.headSprite.material as THREE.SpriteMaterial).opacity = fade;
+
+            // Proximity fade so comets smoothly disappear if nearing camera plane, never popping
+            const distToCam = camZ - s.group.position.z;
+            const proximityFade = THREE.MathUtils.clamp((distToCam - 6.0) / 20.0, 0.0, 1.0);
+            s.tailMat.opacity = fade * proximityFade * 0.88;
+            (s.headSprite.material as THREE.SpriteMaterial).opacity = fade * proximityFade;
         }
 
-        // 5. Cratered Regolith Asteroids Tumbling & Scrolling (Firmly on flanks, recycling well ahead of camera)
+        // 5. Cratered Regolith Asteroids Tumbling & Scrolling (Fly naturally past camera, never pop ahead)
         for (const ast of this.asteroids) {
             ast.mesh.rotation.x += ast.rotSpeedX * dt;
             ast.mesh.rotation.y += ast.rotSpeedY * dt;
             ast.mesh.rotation.z += ast.rotSpeedZ * dt;
             ast.mesh.position.z += ast.driftSpeedZ * speedMult * dt;
 
-            if (ast.mesh.position.z > camZ - 25) {
-                ast.mesh.position.z -= 220;
-            } else if (ast.mesh.position.z < camZ - 245) {
-                ast.mesh.position.z += 220;
+            // Only recycle once asteroid has completely tumbled past and exited behind camera
+            if (ast.mesh.position.z > camZ + 30) {
+                ast.mesh.position.z -= 280;
+            } else if (ast.mesh.position.z < camZ - 290) {
+                ast.mesh.position.z += 280;
             }
         }
 
-        // 6. Photorealistic Volumetric Nebulas with Shifting Colors & Dynamic Particle Flow Stream
+        // 6. Photorealistic Volumetric Nebulas with Shifting Colors & Proximity Opacity Feathering
         for (const c of this.nebulaClouds) {
             c.sprite.position.y = c.baseY + Math.sin(this.elapsed * 1.2 + c.offsetZ) * 1.2;
             c.sprite.position.x = c.baseX + Math.cos(this.elapsed * 0.65 + c.offsetZ) * 1.8;
@@ -2594,10 +2613,17 @@ export class PixiRenderer {
             const shiftedHue = (c.baseHue + this.elapsed * 0.018 + Math.sin(c.offsetZ) * 0.06) % 1.0;
             c.mat.color.setHSL(shiftedHue, 0.72, 0.72);
 
-            if (c.sprite.position.z > camZ - 25) {
-                c.sprite.position.z -= 245;
-            } else if (c.sprite.position.z < camZ - 270) {
-                c.sprite.position.z += 245;
+            // Smooth proximity opacity feathering: near fade and far fade (zero popping)
+            const distZ = camZ - c.sprite.position.z;
+            const nearFade = THREE.MathUtils.clamp((distZ - 10.0) / 38.0, 0.0, 1.0);
+            const farFade = THREE.MathUtils.clamp((260.0 - distZ) / 60.0, 0.0, 1.0);
+            c.mat.opacity = 0.46 * nearFade * farFade;
+
+            // Only recycle once fully transparent or safely behind camera
+            if (c.sprite.position.z > camZ + 25) {
+                c.sprite.position.z -= 260;
+            } else if (c.sprite.position.z < camZ - 280) {
+                c.sprite.position.z += 260;
             }
         }
 
@@ -2613,10 +2639,10 @@ export class PixiRenderer {
             fy += Math.cos(this.elapsed * 1.1 + phase + fx * 0.04) * 1.8 * dt;
             fz += flowSpeedZ * dt;
 
-            if (fz > camZ + 12) {
-                fz -= 235;
-            } else if (fz < camZ - 235) {
-                fz += 235;
+            if (fz > camZ + 20) {
+                fz -= 260;
+            } else if (fz < camZ - 260) {
+                fz += 260;
             }
 
             this.nebulaFlowPositions[i * 3] = fx;
@@ -2641,10 +2667,10 @@ export class PixiRenderer {
             if (dy > 18) dy -= 32;
             else if (dy < -14) dy += 32;
 
-            if (dz > camZ + 6) {
-                dz -= 140;
-            } else if (dz < camZ - 140) {
-                dz += 140;
+            if (dz > camZ + 15) {
+                dz -= 160;
+            } else if (dz < camZ - 160) {
+                dz += 160;
             }
 
             this.cosmicDustPositions[i * 3] = dx;
