@@ -25,10 +25,10 @@ function createAnimatedComicStreaksTexture(): THREE.CanvasTexture {
     ctx.clearRect(0, 0, 512, 512);
 
     const cx = 256;
-    const cy = 84;
+    const cy = 64;
 
-    // Clean, luminous cyan & white comic plasma tongues (no dark clutter lines!)
-    const rayAngles = [-0.38, -0.24, -0.12, 0.0, 0.12, 0.24, 0.38];
+    // Clean, luminous cyan & white comic plasma tongues with 100% smooth feathered origin (zero flat base line!)
+    const rayAngles = [-0.30, -0.19, -0.09, 0.0, 0.09, 0.19, 0.30];
     for (let i = 0; i < rayAngles.length; i++) {
         const ang = rayAngles[i];
         const sinA = Math.sin(ang);
@@ -36,9 +36,9 @@ function createAnimatedComicStreaksTexture(): THREE.CanvasTexture {
         const perpX = cosA;
         const perpY = sinA;
 
-        const rStart = 24;
-        const rEnd = 340 + (i % 2) * 55;
-        const halfW = 18 + (i % 2) * 6;
+        const rStart = 18;
+        const rEnd = 340 + (i % 2) * 52;
+        const halfW = 15 + (i % 2) * 5;
 
         const x0 = cx + sinA * rStart;
         const y0 = cy + cosA * rStart;
@@ -46,16 +46,27 @@ function createAnimatedComicStreaksTexture(): THREE.CanvasTexture {
         const yTip = cy + cosA * rEnd;
 
         const grad = ctx.createLinearGradient(x0, y0, xTip, yTip);
-        grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.95)');
-        grad.addColorStop(0.45, 'rgba(125, 211, 252, 0.85)');
-        grad.addColorStop(0.85, 'rgba(56, 189, 248, 0.45)');
+        grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.0)');
+        grad.addColorStop(0.22, 'rgba(255, 255, 255, 0.88)');
+        grad.addColorStop(0.55, 'rgba(125, 211, 252, 0.76)');
+        grad.addColorStop(0.85, 'rgba(56, 189, 248, 0.36)');
         grad.addColorStop(1.0, 'rgba(14, 165, 233, 0.0)');
 
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.moveTo(x0 - perpX * halfW, y0 - perpY * halfW);
-        ctx.lineTo(xTip, yTip);
-        ctx.lineTo(x0 + perpX * halfW, y0 + perpY * halfW);
+        ctx.moveTo(x0, y0);
+        ctx.quadraticCurveTo(
+            x0 - perpX * halfW,
+            y0 + cosA * 68 - perpY * halfW,
+            xTip,
+            yTip
+        );
+        ctx.quadraticCurveTo(
+            x0 + perpX * halfW,
+            y0 + cosA * 68 + perpY * halfW,
+            x0,
+            y0
+        );
         ctx.closePath();
         ctx.fill();
     }
@@ -116,84 +127,63 @@ function createComicDropletTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Evaluates the 3D anatomical height/relief `zFront(u, v)` and back-face thickness `zBack(u, v)`
+ * C^2 smooth cosine-squared bell (`0` for `dist >= radius`, `1` at `dist === 0`,
+ * with zero value jump and zero derivative jump at `dist === radius`).
+ */
+function smoothBell(dist: number, radius: number): number {
+    if (dist >= radius) return 0.0;
+    const t = dist / radius;
+    const c = Math.cos(t * Math.PI * 0.5);
+    return c * c;
+}
+
+function smoothBand(x: number, center: number, halfWidth: number): number {
+    return smoothBell(Math.abs(x - center), halfWidth);
+}
+
+/**
+ * Evaluates a 100% C^2 smooth, continuous 3D anatomical height/relief `zFront(u, v)`
  * for normalized image coordinates `(u, v) ∈ [0, 1]^2` of the reference ship illustration.
+ * Zero piecewise `if` step discontinuities or creases anywhere on the hull, wings, or engines.
  */
 function evaluateShipAnatomicalDepth(u: number, v: number): { zFront: number; zBack: number } {
     const dx = u - 0.5;
-    const adx = Math.abs(dx);
 
-    const radialNorm = Math.min(1.0, Math.hypot(dx * 2.1, (v - 0.46) * 1.45));
-    const fuselageDome = Math.max(0.0, Math.cos(radialNorm * Math.PI * 0.5)) * 0.42;
+    // 1. Smooth Fuselage & Wing Camber Dome
+    const hullDist = Math.hypot(dx * 1.48, (v - 0.45) * 1.32);
+    const fuselageDome = smoothBell(hullDist, 1.0) * 0.28;
 
-    let zFront = fuselageDome;
-    let zBack = -0.26 * Math.max(0.25, Math.cos(radialNorm * Math.PI * 0.5));
+    // 2. Smooth Central Vertical Stabilizer Fin
+    const finRelief = smoothBand(dx, 0.0, 0.036) * smoothBand(v, 0.18, 0.16) * 0.15;
 
-    // 1. Central Vertical Stabilizer Fin
-    if (adx < 0.024 && v >= 0.04 && v <= 0.33) {
-        const finProfile = 1.0 - adx / 0.024;
-        zFront += 0.24 * finProfile;
-        zBack -= 0.14 * finProfile;
-    }
+    // 3. Smooth Curved Cyan Glass Cockpit Canopy
+    const canopyDist = Math.hypot(dx * 5.2, (v - 0.20) * 6.2);
+    const canopyRelief = smoothBell(canopyDist, 1.0) * 0.10;
 
-    // 2. Curved Cyan Glass Cockpit Canopy
-    if (adx < 0.12 && v >= 0.12 && v <= 0.27) {
-        const canopyT = 1.0 - (0.27 - v) / 0.15;
-        zFront = 0.16 + 0.18 * canopyT - adx * 0.6;
-        zBack = -0.32;
-    }
-
-    // 3. Raised Trapezoidal Gunmetal Shoulder Armor Blocks
-    if (adx >= 0.025 && adx <= 0.135 && v >= 0.20 && v <= 0.39) {
-        zFront += 0.14;
-    }
-
-    // 4. Upper Dihedral Wings & Lower Main Swept Wings
-    if (adx > 0.175 && v < 0.76) {
-        const wingSpanT = Math.min(1.0, (adx - 0.175) / 0.27);
-        zFront = 0.18 * (1.0 - wingSpanT) - 0.08 * wingSpanT;
-        zBack = zFront - 0.16 * (1.0 - 0.45 * wingSpanT);
-    }
-
-    // 5. Octagonal Rear Bulkhead & Recessed Central Circular Sub-Drive Nozzle
+    // 4. Smooth Central Octagonal Rear Bulkhead & Recessed Sub-Drive Nozzle
     const centerNozzleR = Math.hypot(dx * 1.79, v - 0.542);
-    if (adx < 0.125 && v >= 0.34 && v <= 0.77) {
-        zFront = Math.max(zFront, 0.46);
-        zBack = -0.34;
+    const bulkheadRelief = smoothBell(centerNozzleR, 0.22) * 0.14;
+    const nozzleRecess = smoothBell(centerNozzleR, 0.092) * -0.22;
 
-        if (centerNozzleR < 0.122) {
-            if (centerNozzleR >= 0.074) {
-                const lipT = Math.sin(((centerNozzleR - 0.074) / (0.122 - 0.074)) * Math.PI);
-                zFront = 0.52 + 0.11 * lipT;
-            } else {
-                const coreDepth = Math.cos((centerNozzleR / 0.074) * Math.PI * 0.5);
-                zFront = 0.48 - 0.36 * coreDepth;
-            }
-        }
-    }
+    // 5. Continuous Twin Engine Barrels & Plasma Plume Ridges (zero horizontal or vertical steps!)
+    const rawPlumeT = Math.max(0.0, Math.min(1.0, (v - 0.54) / 0.46));
+    const smoothPlumeT = rawPlumeT * rawPlumeT * (3.0 - 2.0 * rawPlumeT);
+    const leftEngineAxisU = 0.352 - 0.096 * smoothPlumeT;
+    const rightEngineAxisU = 0.648 + 0.092 * smoothPlumeT;
 
-    // 6. Twin Lateral Cylindrical Ribbed Booster Barrels
-    const distLeftBarrel = Math.hypot((u - 0.352) * 1.65, (v - 0.565) * 1.15);
-    const distRightBarrel = Math.hypot((u - 0.648) * 1.65, (v - 0.565) * 1.15);
-    const barrelR = Math.min(distLeftBarrel, distRightBarrel);
-    if (barrelR < 0.145 && v >= 0.44 && v <= 0.72) {
-        const cylProfile = Math.cos((barrelR / 0.145) * Math.PI * 0.5);
-        zFront = Math.max(zFront, 0.42 + 0.28 * cylProfile);
-        zBack = Math.min(zBack, -0.34 - 0.12 * cylProfile);
-    }
+    const leftEngineBell = smoothBell(Math.abs(u - leftEngineAxisU), 0.165);
+    const rightEngineBell = smoothBell(Math.abs(u - rightEngineAxisU), 0.165);
+    const engineVerticalEnvelope = smoothBand(v, 0.68, 0.34);
+    const twinEnginesRelief = (leftEngineBell + rightEngineBell) * engineVerticalEnvelope * 0.18;
 
-    // 7. Twin Blazing Comic Plasma Plumes
-    if (v > 0.56) {
-        const plumeT = Math.min(1.0, (v - 0.56) / 0.44);
-        const leftPlumeAxisU = 0.344 - 0.095 * plumeT;
-        const rightPlumeAxisU = 0.646 + 0.091 * plumeT;
-        const distPlumeAxis = Math.min(Math.abs(u - leftPlumeAxisU), Math.abs(u - rightPlumeAxisU));
-        if (distPlumeAxis < 0.18) {
-            const ridge = Math.max(0.0, 1.0 - distPlumeAxis / 0.18);
-            zFront = Math.max(zFront, 0.54 + 0.14 * ridge + 0.08 * plumeT);
-            zBack = zFront - (0.14 * ridge + 0.06);
-        }
-    }
+    const zFront =
+        fuselageDome +
+        finRelief +
+        canopyRelief +
+        bulkheadRelief +
+        nozzleRecess +
+        twinEnginesRelief;
+    const zBack = -0.18;
 
     return { zFront, zBack };
 }
@@ -222,31 +212,41 @@ function evaluatePlumeVertexAnimationParams(u: number, v: number): PlumeVertexPo
         dirY: -1
     };
 
-    // Smooth starting contour vStart(u) that follows the barrel rim (0.688) and the sloped lower wing edges
-    const leftWingEdgeV = u < 0.25 ? 0.688 + Math.max(0, (0.25 - u) / 0.19) * 0.058 : 0.688;
-    const rightWingEdgeV = u > 0.75 ? 0.688 + Math.max(0, (u - 0.75) / 0.19) * 0.058 : 0.688;
-    const vStart = Math.max(0.688, leftWingEdgeV, rightWingEdgeV);
-    if (v <= vStart) return zero;
-
-    // Smooth horizontal taper near the central octagonal bulkhead (independent of v -> zero vertical step!)
-    const bulkheadMask = Math.max(0, Math.min(1, (Math.abs(u - 0.498) - 0.094) / 0.048));
-    if (bulkheadMask <= 0.0001) return zero;
-
     const side = u < 0.5 ? -1 : 1;
     const nozzleU = side < 0 ? 0.344 : 0.648;
-    const nozzleV = 0.605;
+    const nozzleV = 0.602;
+    if (v <= nozzleV) return zero;
 
     const dxWorld = (u - nozzleU) * 1.79;
     const dyWorld = -(v - nozzleV);
-
     const dist = Math.hypot(dxWorld, dyWorld);
-    const dirX = dist > 0.001 ? dxWorld / dist : side * 0.38;
-    const dirY = dist > 0.001 ? dyWorld / dist : -0.925;
+    if (dist <= 0.055) return zero;
+
+    const dirX = dxWorld / dist;
+    const dirY = dyWorld / dist;
     const rayAngle = Math.atan2(dxWorld, -dyWorld);
 
-    const radialNorm = Math.max(0, Math.min(1, (v - vStart) / (1.0 - vStart)));
+    // Polar cone mask around each engine's central exhaust axis (-0.26 rad for Left, +0.26 rad for Right)
+    const coneCenter = side * 0.26;
+    const coneHalfWidth = 0.64;
+    const angleDiff = Math.abs(rayAngle - coneCenter);
+    if (angleDiff >= coneHalfWidth) return zero;
+    const coneMask = smoothBell(angleDiff, coneHalfWidth);
+
+    // Keep outer metal wings (u < 0.255 or u > 0.745 for v < 0.738) and central bulkhead 100% rigid
+    const outerWingGuard =
+        u < 0.255 && v < 0.738
+            ? Math.max(0, Math.min(1, (u - (0.278 - (v - 0.58) * 0.34)) / 0.028))
+            : u > 0.745 && v < 0.738
+              ? Math.max(0, Math.min(1, (0.722 + (v - 0.58) * 0.34 - u) / 0.028))
+              : 1.0;
+    const bulkheadMask = Math.max(0, Math.min(1, (Math.abs(u - 0.498) - 0.096) / 0.038));
+
+    // True radial distance norm starting inside the uniform solid white nozzle core (dist = 0.055)
+    const radialNorm = Math.max(0, Math.min(1, (dist - 0.055) / 0.38));
     const smoothRadial = radialNorm * radialNorm * (3.0 - 2.0 * radialNorm);
-    const weight = smoothRadial * bulkheadMask;
+    const weight = smoothRadial * coneMask * outerWingGuard * bulkheadMask;
+    if (weight <= 0.0001) return zero;
 
     return {
         side,
@@ -282,6 +282,7 @@ function buildSculpted3DShipGeometry(
     worldHeight: number
 ): SculptedShipGeometryBundle {
     const positions: number[] = [];
+    const normals: number[] = [];
     const uvs: number[] = [];
     const indices: number[] = [];
     const vSide: number[] = [];
@@ -294,7 +295,6 @@ function buildSculpted3DShipGeometry(
     const vCols = gridW + 1;
     const vRows = gridH + 1;
     const frontVertIdx = new Int32Array(vCols * vRows).fill(-1);
-    const backVertIdx = new Int32Array(vCols * vRows).fill(-1);
 
     const isCellFrontActive = (cx: number, cy: number): boolean => {
         if (cx < 0 || cx >= gridW || cy < 0 || cy >= gridH) return false;
@@ -310,17 +310,7 @@ function buildSculpted3DShipGeometry(
         return false;
     };
 
-    const isCellInteriorSolid = (cx: number, cy: number): boolean => {
-        if (cx <= 1 || cx >= gridW - 2 || cy <= 1 || cy >= Math.floor(gridH * 0.66)) return false;
-        if (alphaGrid[cy * gridW + cx] < 0.92) return false;
-        return (
-            alphaGrid[(cy - 1) * gridW + cx] > 0.85 &&
-            alphaGrid[(cy + 1) * gridW + cx] > 0.85 &&
-            alphaGrid[cy * gridW + (cx - 1)] > 0.85 &&
-            alphaGrid[cy * gridW + (cx + 1)] > 0.85
-        );
-    };
-
+    const eps = 0.005;
     const getOrAddFrontVert = (vx: number, vy: number): number => {
         const key = vy * vCols + vx;
         if (frontVertIdx[key] !== -1) return frontVertIdx[key];
@@ -332,8 +322,24 @@ function buildSculpted3DShipGeometry(
         const { zFront } = evaluateShipAnatomicalDepth(u, v);
         const anim = evaluatePlumeVertexAnimationParams(u, v);
 
+        // Smooth analytical surface normal from the C^2 heightfield gradient (zero facet or wall seams!)
+        const zR = evaluateShipAnatomicalDepth(Math.min(1, u + eps), v).zFront;
+        const zL = evaluateShipAnatomicalDepth(Math.max(0, u - eps), v).zFront;
+        const zD = evaluateShipAnatomicalDepth(u, Math.min(1, v + eps)).zFront;
+        const zU = evaluateShipAnatomicalDepth(u, Math.max(0, v - eps)).zFront;
+        const dzdx = (zR - zL) / (2.0 * eps * worldWidth);
+        const dzdy = (zU - zD) / (2.0 * eps * worldHeight);
+        let nx = -dzdx;
+        let ny = -dzdy;
+        let nz = 1.0;
+        const nLen = Math.hypot(nx, ny, nz) || 1.0;
+        nx /= nLen;
+        ny /= nLen;
+        nz /= nLen;
+
         const idx = positions.length / 3;
         positions.push(x, y, zFront);
+        normals.push(nx, ny, nz);
         uvs.push(u, 1.0 - v);
         vSide.push(anim.side);
         vWeight.push(anim.weight);
@@ -342,30 +348,6 @@ function buildSculpted3DShipGeometry(
         vDirX.push(anim.dirX);
         vDirY.push(anim.dirY);
         frontVertIdx[key] = idx;
-        return idx;
-    };
-
-    const getOrAddBackVert = (vx: number, vy: number): number => {
-        const key = vy * vCols + vx;
-        if (backVertIdx[key] !== -1) return backVertIdx[key];
-
-        const u = vx / gridW;
-        const v = vy / gridH;
-        const x = (u - 0.5) * worldWidth;
-        const y = (0.5 - v) * worldHeight;
-        const { zBack } = evaluateShipAnatomicalDepth(u, v);
-        const anim = evaluatePlumeVertexAnimationParams(u, v);
-
-        const idx = positions.length / 3;
-        positions.push(x, y, zBack);
-        uvs.push(u, 1.0 - v);
-        vSide.push(anim.side);
-        vWeight.push(anim.weight);
-        vRadialNorm.push(anim.radialNorm);
-        vRayAngle.push(anim.rayAngle);
-        vDirX.push(anim.dirX);
-        vDirY.push(anim.dirY);
-        backVertIdx[key] = idx;
         return idx;
     };
 
@@ -380,33 +362,6 @@ function buildSculpted3DShipGeometry(
 
             indices.push(f00, f01, f10);
             indices.push(f10, f01, f11);
-
-            if (!isCellInteriorSolid(cx, cy)) continue;
-
-            const b00 = getOrAddBackVert(cx, cy);
-            const b10 = getOrAddBackVert(cx + 1, cy);
-            const b01 = getOrAddBackVert(cx, cy + 1);
-            const b11 = getOrAddBackVert(cx + 1, cy + 1);
-
-            indices.push(b00, b10, b01);
-            indices.push(b10, b11, b01);
-
-            if (!isCellInteriorSolid(cx, cy - 1)) {
-                indices.push(f00, f10, b00);
-                indices.push(f10, b10, b00);
-            }
-            if (!isCellInteriorSolid(cx, cy + 1)) {
-                indices.push(f01, b01, f11);
-                indices.push(f11, b01, b11);
-            }
-            if (!isCellInteriorSolid(cx - 1, cy)) {
-                indices.push(f00, b00, f01);
-                indices.push(f01, b00, b01);
-            }
-            if (!isCellInteriorSolid(cx + 1, cy)) {
-                indices.push(f10, f11, b10);
-                indices.push(f11, b11, b10);
-            }
         }
     }
 
@@ -415,9 +370,9 @@ function buildSculpted3DShipGeometry(
     const posAttr = new THREE.Float32BufferAttribute(positions, 3);
     posAttr.setUsage(THREE.DynamicDrawUsage);
     geo.setAttribute('position', posAttr);
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setIndex(indices);
-    geo.computeVertexNormals();
 
     return {
         geo,
@@ -700,9 +655,11 @@ export class Spaceship3D {
         const comicDropletTex = createComicDropletTexture();
 
         this.thrusterMat = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
+            map: _textures.particleGlow,
+            color: 0xe0f2fe,
             transparent: true,
-            opacity: 0.72,
+            opacity: 0.65,
+            blending: THREE.AdditiveBlending,
             depthWrite: false
         });
 
@@ -713,32 +670,32 @@ export class Spaceship3D {
             side: number
         ): THREE.Group => {
             const nozzleGroup = new THREE.Group();
-            nozzleGroup.position.set(xOffset, yOffset, 0.70);
+            // Positioned strictly in front of the smooth plume relief (max zFront ~0.46) -> ZERO mesh intersection!
+            nozzleGroup.position.set(xOffset, yOffset, 0.56);
             nozzleGroup.rotation.z = tiltZ;
 
             const jetGroup = new THREE.Group();
 
-            // Pulsing white-hot nozzle plasma core
-            const coreGlowGeo = new THREE.SphereGeometry(0.22, 16, 12);
-            coreGlowGeo.scale(1.15, 0.9, 0.55);
+            // Soft feathered radial nozzle plasma core (zero hard sphere or clipping edges)
+            const coreGlowGeo = new THREE.PlaneGeometry(0.52, 0.44);
             const coreGlowMesh = new THREE.Mesh(coreGlowGeo, this.thrusterMat);
             jetGroup.add(coreGlowMesh);
 
-            // 3 Luminous Additive Comic Plasma Streak Layers per engine
+            // 3 Luminous Additive Comic Plasma Streak Layers per engine (contained strictly inside the fire cone)
             for (let layerIdx = 0; layerIdx < 3; layerIdx++) {
                 const mat = new THREE.MeshBasicMaterial({
                     map: comicStreaksTex,
                     color: layerIdx === 0 ? 0xffffff : layerIdx === 1 ? 0x7dd3fc : 0x38bdf8,
                     transparent: true,
-                    opacity: 0.42,
+                    opacity: 0.36,
                     blending: THREE.AdditiveBlending,
                     depthWrite: false,
                     side: THREE.DoubleSide
                 });
-                const w = 0.85 + layerIdx * 0.14;
-                const h = 1.18 + layerIdx * 0.16;
+                const w = 0.50 + layerIdx * 0.08;
+                const h = 1.05 + layerIdx * 0.14;
                 const planeGeo = new THREE.PlaneGeometry(w, h);
-                planeGeo.translate(0, -h * 0.40, 0.02 + layerIdx * 0.015);
+                planeGeo.translate(0, -h * 0.42, 0.02 + layerIdx * 0.015);
                 const mesh = new THREE.Mesh(planeGeo, mat);
                 jetGroup.add(mesh);
 
@@ -867,8 +824,6 @@ export class Spaceship3D {
             const theta = angles[i];
             const dx = dirXs[i];
             const dy = dirYs[i];
-            const px = -dy;
-            const py = dx;
 
             const idx3 = i * 3;
             const bx = basePos[idx3];
@@ -877,8 +832,9 @@ export class Spaceship3D {
 
             const enginePhase = side < 0 ? 0.0 : 2.1;
 
-            // 1. Strictly Non-Negative Taut Radial Spike Extension (radialPump >= 0 everywhere -> dr'/dr0 >= 1.0!)
-            // Guarantees ZERO bunching, curling, or compression—every comic ink line stays 100% taut and razor-sharp!
+            // Purely Radial Multi-Spike Pumping along (dx, dy) from the nozzle center:
+            // Because displacement is 100% collinear with the radial ray (dx, dy) of each spike,
+            // every radial comic ink line stays 100% straight, taut, and free of any horizontal kink or shear line!
             const spikeStretch1 = 0.5 + 0.5 * Math.sin(time * 24.0 + theta * 5.0 + enginePhase);
             const spikeStretch2 = 0.5 + 0.5 * Math.cos(time * 37.0 - theta * 8.0 + enginePhase * 0.7);
             const globalPulse = 0.5 + 0.5 * Math.sin(time * 16.0 + enginePhase);
@@ -886,22 +842,16 @@ export class Spaceship3D {
             const radialPump =
                 rNorm *
                 w *
-                (0.18 * spikeStretch1 +
-                    0.10 * spikeStretch2 +
-                    0.08 * globalPulse +
-                    thrustBoost * 0.30);
+                (0.22 * spikeStretch1 +
+                    0.13 * spikeStretch2 +
+                    0.09 * globalPulse +
+                    thrustBoost * 0.32);
 
-            // 2. Smooth Traveling S-Wave Flame Whip perpendicular to ray (px, py)
-            const whipWave =
-                Math.sin(time * 20.0 - rNorm * 3.2 + enginePhase) * 0.058 +
-                Math.cos(time * 31.0 - rNorm * 4.5 + theta * 2.5) * 0.028;
-            const perpShift = w * whipWave;
+            // Subtle 3D Z-depth billowing
+            const zFlutter = w * Math.sin(time * 26.0 - rNorm * 4.0 + theta * 3.0) * 0.04;
 
-            // 3. 3D Z-depth billowing
-            const zFlutter = w * Math.sin(time * 26.0 - rNorm * 4.0 + theta * 3.0) * 0.05;
-
-            posArr[idx3] = bx + dx * radialPump + px * perpShift;
-            posArr[idx3 + 1] = by + dy * radialPump + py * perpShift;
+            posArr[idx3] = bx + dx * radialPump;
+            posArr[idx3 + 1] = by + dy * radialPump;
             posArr[idx3 + 2] = bz + zFlutter;
         }
 
