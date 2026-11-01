@@ -120,21 +120,22 @@ export function createControlsUI(
 
       <div class="multiplier-hero-anchor">
         <div class="multiplier-hero-banner" id="mult-hero-wrap">
-          <svg class="mult-holo-hud-svg" viewBox="0 0 460 80" preserveAspectRatio="none" aria-hidden="true">
+          <svg class="mult-holo-hud-svg" viewBox="0 0 540 116" preserveAspectRatio="none" aria-hidden="true">
             <defs>
               <linearGradient id="hud-frame-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#5a6b7c"/>
-                <stop offset="50%" stop-color="#465463"/>
-                <stop offset="100%" stop-color="#34404d"/>
+                <stop offset="0%" stop-color="#4e5d6e"/>
+                <stop offset="50%" stop-color="#3b4856"/>
+                <stop offset="100%" stop-color="#28323e"/>
               </linearGradient>
               <linearGradient id="hud-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#1f2c3b"/>
-                <stop offset="40%" stop-color="#182330"/>
-                <stop offset="100%" stop-color="#0f1620"/>
+                <stop offset="0%" stop-color="#141c26"/>
+                <stop offset="40%" stop-color="#0f1620"/>
+                <stop offset="100%" stop-color="#090d14"/>
               </linearGradient>
               <linearGradient id="hud-cyan-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#00e5ff"/>
-                <stop offset="100%" stop-color="#38bdf8"/>
+                <stop offset="0%" stop-color="#00f0ff"/>
+                <stop offset="50%" stop-color="#38bdf8"/>
+                <stop offset="100%" stop-color="#00f0ff"/>
               </linearGradient>
               <linearGradient id="hud-orange-grad" x1="0%" y1="0%" x2="0%" y2="100%">
                 <stop offset="0%" stop-color="#fb923c"/>
@@ -142,86 +143,101 @@ export function createControlsUI(
               </linearGradient>
             </defs>
 
-            <!-- 1. Outer Stepped Octagonal Gunmetal Steel Frame (Matches Ship Rear Bulkhead) -->
+            <!-- 1. Outer Stepped Octagonal Gunmetal Steel Chassis with Comic-Ink Stroke -->
             <polygon
-              points="26,4 120,4 130,9 330,9 340,4 434,4 452,22 452,58 434,76 340,76 330,71 130,71 120,76 26,76 8,58 8,22"
+              points="34,4 140,4 150,9 390,9 400,4 506,4 532,30 532,86 506,112 400,112 390,107 150,107 140,112 34,112 8,86 8,30"
               fill="url(#hud-frame-grad)"
               stroke="#080b11"
               stroke-width="3"
               stroke-linejoin="round"
             />
 
-            <!-- Top Metallic Light Bevel Highlight -->
+            <!-- Top Metallic Bevel Highlight -->
             <polygon
-              points="27,5 120,5 129,10 331,10 340,5 433,5 449,21 443,21 430,8 342,8 333,13 127,13 118,8 30,8 17,21 11,21"
+              points="35,5 140,5 149,10 391,10 400,5 505,5 528,28 522,28 502,8 402,8 393,13 147,13 138,8 38,8 18,28 12,28"
               fill="#7c8fa3"
             />
 
             <!-- Bottom Metallic Shadow Bevel -->
             <polygon
-              points="11,58 17,58 30,72 118,72 127,67 333,67 342,72 430,72 443,58 449,58 433,75 340,75 331,70 129,70 120,75 27,75"
-              fill="#232b35"
+              points="12,88 18,88 38,108 138,108 147,103 393,103 402,108 502,108 522,88 528,88 505,111 400,111 391,106 149,106 140,111 35,111"
+              fill="#18202a"
             />
 
-            <!-- 2. Top-Center Orange & Cyan Indicator Strip (Matches Ship Bulkhead Top Bar) -->
+            <!-- 2. Top-Center Warning Notch / Hazard Strip (Centered at X=270) -->
             <g stroke="#080b11" stroke-width="2.2" stroke-linejoin="round">
-              <polygon points="160,5 205,5 201,10 164,10" fill="url(#hud-cyan-grad)"/>
-              <polygon points="205,3 255,3 251,10 209,10" fill="url(#hud-orange-grad)"/>
-              <polygon points="208,4.5 252,4.5 250,7 210,7" fill="#fdba74" stroke="none"/>
-              <polygon points="255,5 300,5 296,10 259,10" fill="url(#hud-cyan-grad)"/>
+              <polygon points="190,5 235,5 231,10 194,10" fill="url(#hud-cyan-grad)"/>
+              <polygon points="235,3 305,3 301,10 239,10" fill="url(#hud-orange-grad)"/>
+              <polygon points="238,4.5 302,4.5 300,7 240,7" fill="#fed7aa" stroke="none"/>
+              <polygon points="305,5 350,5 346,10 309,10" fill="url(#hud-cyan-grad)"/>
             </g>
 
-            <!-- 3. Inner Cyan Rim Strip Around Chamber -->
+            <!-- 3. Inner Cyan Tech Rim Around Screen -->
             <polygon
-              points="32,11 428,11 443,26 443,54 428,69 32,69 17,54 17,26"
-              fill="url(#hud-cyan-grad)"
+              points="40,12 500,12 520,32 520,84 500,104 40,104 20,84 20,32"
+              fill="none"
+              stroke="url(#hud-cyan-grad)"
+              stroke-width="2"
+              stroke-linejoin="round"
+              opacity="0.85"
+            />
+
+            <!-- 4. Recessed Dark Slate Cockpit Avionics Screen -->
+            <polygon
+              points="42,14 498,14 518,34 518,82 498,102 42,102 22,82 22,34"
+              fill="url(#hud-screen-grad)"
               stroke="#080b11"
               stroke-width="2.6"
               stroke-linejoin="round"
             />
 
-            <!-- 4. Recessed Dark Slate Steel Readout Screen -->
+            <!-- Screen Glass Highlight Glare (Top 40%) -->
             <polygon
-              points="35,14 425,14 439,28 439,52 425,66 35,66 21,52 21,28"
-              fill="url(#hud-screen-grad)"
-              stroke="#080b11"
-              stroke-width="2.4"
-              stroke-linejoin="round"
-            />
-            <polygon
-              points="36,15 424,15 437,28 437,38 23,38 23,28"
-              fill="rgba(255, 255, 255, 0.05)"
+              points="43,15 497,15 516,34 516,52 24,52 24,34"
+              fill="rgba(255, 255, 255, 0.04)"
             />
 
-            <!-- 5. 4 Angled Corner Orange Warning Pads -->
-            <g stroke="#080b11" stroke-width="2.2" stroke-linejoin="round">
-              <polygon points="14,24 24,14 29,19 19,29" fill="url(#hud-orange-grad)"/>
-              <polygon points="19,51 29,61 24,66 14,56" fill="url(#hud-orange-grad)"/>
-              <polygon points="436,14 446,24 441,29 431,19" fill="url(#hud-orange-grad)"/>
-              <polygon points="431,61 441,51 446,56 436,66" fill="url(#hud-orange-grad)"/>
+            <!-- 5. 4 Corner Heavy Orange Hazard Pads (Exact X/Y Symmetry) -->
+            <g stroke="#080b11" stroke-width="2" stroke-linejoin="round">
+              <polygon points="13,34 25,22 31,28 19,40" fill="url(#hud-orange-grad)"/>
+              <polygon points="13,82 25,94 31,88 19,76" fill="url(#hud-orange-grad)"/>
+              <polygon points="527,34 515,22 509,28 521,40" fill="url(#hud-orange-grad)"/>
+              <polygon points="527,82 515,94 509,88 521,76" fill="url(#hud-orange-grad)"/>
             </g>
 
-            <!-- 6. Hand-Drawn Comic Ink Panel Seams & Hatching Ticks -->
+            <!-- 6. Hand-Drawn Comic Tech Seams & Calibration Ticks -->
             <g stroke="#080b11" stroke-width="2" stroke-linecap="round">
-              <line x1="68" y1="4" x2="68" y2="12"/>
-              <line x1="392" y1="4" x2="392" y2="12"/>
-              <line x1="68" y1="68" x2="68" y2="76"/>
-              <line x1="392" y1="68" x2="392" y2="76"/>
-              <line x1="8" y1="40" x2="18" y2="40"/>
-              <line x1="442" y1="40" x2="452" y2="40"/>
+              <line x1="85" y1="4" x2="85" y2="13"/>
+              <line x1="455" y1="4" x2="455" y2="13"/>
+              <line x1="85" y1="103" x2="85" y2="112"/>
+              <line x1="455" y1="103" x2="455" y2="112"/>
+              <line x1="8" y1="58" x2="20" y2="58"/>
+              <line x1="520" y1="58" x2="532" y2="58"/>
             </g>
           </svg>
 
+          <!-- 3-TIER SYMMETRICALLY CENTERED CONTENT HIERARCHY -->
           <div class="mult-hero-content">
-            <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
-            <div class="multiplier-sub-pill">
-              <div class="mult-status-badge">
+            <!-- Tier 1: Symmetrically Centered Next Multiplier Target Chip -->
+            <div class="mult-target-row">
+              <div class="mult-target-chip">
+                <span class="mult-target-arrow">▲</span>
+                <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
+                <span class="mult-target-arrow">▲</span>
+              </div>
+            </div>
+
+            <!-- Tier 2: Symmetrically Centered Giant Hero Multiplier Readout -->
+            <div class="mult-hero-value-wrap">
+              <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
+            </div>
+
+            <!-- Tier 3: Symmetrically Centered Tactical Status Capsule -->
+            <div class="mult-status-row">
+              <div class="mult-status-capsule">
                 <span class="mult-status-dot" id="mult-status-dot"></span>
                 <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
-              </div>
-              <span class="mult-sub-divider">│</span>
-              <div class="mult-next-badge">
-                <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
+                <span class="mult-status-dot-end" aria-hidden="true"></span>
               </div>
             </div>
           </div>
