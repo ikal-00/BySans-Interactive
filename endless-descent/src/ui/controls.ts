@@ -118,14 +118,65 @@ export function createControlsUI(
 
             <!-- Quantum Starfighter Radar Hologram -->
             <div class="gantry-radar-emblem" title="Quantum Radar Telemetry">
-              <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
-                <circle cx="32" cy="32" r="28" stroke="#00f0ff" stroke-width="1.2" stroke-dasharray="3,4" opacity="0.35"/>
-                <circle cx="32" cy="32" r="18" stroke="#00f0ff" stroke-width="1" opacity="0.25"/>
-                <circle cx="32" cy="32" r="8" stroke="#00f0ff" stroke-width="0.8" opacity="0.2"/>
-                <circle cx="14" cy="22" r="2.5" fill="#00f0ff" opacity="0.9"/>
-                <circle cx="50" cy="18" r="2" fill="#38bdf8" opacity="0.8"/>
-                <circle cx="46" cy="48" r="2.2" fill="#00f0ff" opacity="0.85"/>
-                <path d="M46 22 L34 32 L46 42 L38 42 L28 35 L16 35 L12 39 L12 25 L16 29 L28 29 L38 22 Z" fill="#38bdf8" stroke="#00f0ff" stroke-width="2" stroke-linejoin="round"/>
+              <svg width="46" height="46" viewBox="0 0 64 64" fill="none">
+                <defs>
+                  <linearGradient id="ship-hull-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#0369a1"/>
+                    <stop offset="45%" stop-color="#0284c7"/>
+                    <stop offset="85%" stop-color="#38bdf8"/>
+                    <stop offset="100%" stop-color="#a5f3fc"/>
+                  </linearGradient>
+                </defs>
+
+                <!-- Outer Holographic Tactical Radar Perimeter -->
+                <circle cx="32" cy="32" r="28" stroke="#00f0ff" stroke-width="1.2" stroke-dasharray="3,3.5" opacity="0.35"/>
+                <circle cx="32" cy="32" r="18" stroke="#00f0ff" stroke-width="0.9" opacity="0.22"/>
+                <circle cx="32" cy="32" r="8" stroke="#00f0ff" stroke-width="0.7" opacity="0.18"/>
+
+                <!-- Tactical Crosshair Cardinal Ticks -->
+                <line x1="32" y1="3" x2="32" y2="8" stroke="#00f0ff" stroke-width="1.2" opacity="0.6"/>
+                <line x1="32" y1="56" x2="32" y2="61" stroke="#00f0ff" stroke-width="1.2" opacity="0.6"/>
+                <line x1="3" y1="32" x2="8" y2="32" stroke="#00f0ff" stroke-width="1.2" opacity="0.6"/>
+                <line x1="56" y1="32" x2="61" y2="32" stroke="#00f0ff" stroke-width="1.2" opacity="0.6"/>
+
+                <!-- Telemetry Blips -->
+                <circle cx="15" cy="18" r="1.8" fill="#00f0ff" opacity="0.9"/>
+                <circle cx="49" cy="47" r="1.5" fill="#38bdf8" opacity="0.8"/>
+                <circle cx="48" cy="17" r="1.2" fill="#00f0ff" opacity="0.65"/>
+
+                <!-- Twin Ion Thruster Plasma Plumes (Shooting Left) -->
+                <polygon points="17,26 9,28 17,30" fill="#00f0ff" opacity="0.85"/>
+                <polygon points="17,34 9,36 17,38" fill="#00f0ff" opacity="0.85"/>
+                <line x1="14" y1="28" x2="5" y2="28" stroke="#e0faff" stroke-width="1.8" stroke-linecap="round"/>
+                <line x1="14" y1="36" x2="5" y2="36" stroke="#e0faff" stroke-width="1.8" stroke-linecap="round"/>
+
+                <!-- Main Starfighter Hull (Delta Wing Interceptor) -->
+                <path d="M 52,32 
+                         L 36,23 
+                         L 30,26 
+                         L 18,12 
+                         L 20,24 
+                         L 16,25 
+                         L 16,31 
+                         L 19,32 
+                         L 16,33 
+                         L 16,39 
+                         L 20,40 
+                         L 18,52 
+                         L 30,38 
+                         L 36,41 Z" 
+                      fill="url(#ship-hull-grad)" 
+                      stroke="#00f0ff" 
+                      stroke-width="1.8" 
+                      stroke-linejoin="round"/>
+
+                <!-- Cockpit Canopy (Gleaming Cyan Glass) -->
+                <polygon points="46,32 34,29 27,32 34,35" fill="#e0faff" stroke="#00f0ff" stroke-width="1.2" opacity="0.95"/>
+                <line x1="42" y1="32" x2="31" y2="32" stroke="#0284c7" stroke-width="1" stroke-linecap="round"/>
+
+                <!-- Wing Inset Armor Panels -->
+                <line x1="28" y1="27" x2="21" y2="17" stroke="#38bdf8" stroke-width="1.3" opacity="0.85" stroke-linecap="round"/>
+                <line x1="28" y1="37" x2="21" y2="47" stroke="#38bdf8" stroke-width="1.3" opacity="0.85" stroke-linecap="round"/>
               </svg>
             </div>
 
