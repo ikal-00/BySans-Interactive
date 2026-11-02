@@ -110,6 +110,8 @@ interface NebulaCloud3D {
     offsetZ: number;
     driftSpeedZ: number;
     baseHue: number;
+    baseLightness: number;
+    baseOpacity: number;
 }
 
 export class PixiRenderer {
@@ -395,7 +397,12 @@ export class PixiRenderer {
                     float spiralArms = exp(-pow(gDist - 0.08 * sin(spiralAngle * 2.0 + gDist * 20.0), 2.0) * 160.0);
                     vec3 distantGalaxy = (vec3(0.95, 0.88, 0.75) * spiralCore + vec3(0.40, 0.70, 0.95) * spiralArms * 0.55) * smoothstep(0.32, 0.0, gDist);
 
-                    vec3 skyCol = deepVoid + (galCoreCol + ionizedCyan + hAlphaRose + amberDust) * (1.0 - dustOcclusion) + distantGalaxy;
+                    // Central Flight Corridor Clarity Mask: Dims bright gas emissions directly behind the runway to eliminate blinding glare!
+                    float centerCorridorDist = length(vec2(d.x * 2.4, d.y - 0.22));
+                    float centerClarity = smoothstep(0.08, 0.55, centerCorridorDist);
+
+                    vec3 gasComposite = (galCoreCol + ionizedCyan + hAlphaRose + amberDust) * (1.0 - dustOcclusion) * (0.28 + 0.72 * centerClarity);
+                    vec3 skyCol = deepVoid + gasComposite + distantGalaxy;
 
                     // Multi-Magnitude Sparkling Background Starfield
                     // Layer 1: Bright primary stars (diamond & gold)
@@ -468,7 +475,7 @@ export class PixiRenderer {
         starPoints.frustumCulled = false;
         this.scene.add(starPoints);
 
-        // 2. 56 Photorealistic Volumetric Deep-Space Nebula Clouds
+        // 2. 56 Photorealistic Volumetric Deep-Space Nebula Clouds (Framing Flanks, Center Corridor Kept Clear)
         const nebulaTexPool = [
             this.textures.cartoonCloudTex,
             this.textures.nebulaPillarTex,
@@ -477,39 +484,31 @@ export class PixiRenderer {
         const baseHues = [0.54, 0.11, 0.88, 0.58, 0.76, 0.48, 0.95, 0.32, 0.05, 0.68];
         for (let i = 0; i < NEBULA_CLOUD_COUNT; i++) {
             const baseHue = baseHues[i % baseHues.length];
-            const initCol = new THREE.Color().setHSL(baseHue, 0.78, 0.72);
+            const side = i % 2 === 0 ? -1 : 1;
+            const offsetZ = -18 - (i / NEBULA_CLOUD_COUNT) * 270 - Math.random() * 20;
+            const lateralDepth = Math.abs(offsetZ) + 16;
+
+            // Lateral flank placement: guaranteed minimum margin away from central flight runway
+            const lateralSpan = lateralDepth * (0.35 + (i % 6) * 0.08 + Math.random() * 0.10) + 18;
+            const baseX = side * lateralSpan;
+            const baseY = -22 + Math.random() * 44;
+            const scale = 42 + Math.random() * 45;
+
+            // Comfortable, deep celestial lightness & opacity (darker & non-blinding)
+            const baseLightness = 0.42 + (i % 5) * 0.06; // 0.42 to 0.66 (comfortable, no whiteout!)
+            const baseOpacity = 0.36 + (i % 4) * 0.05;   // 0.36 to 0.51 (soft luminous veils)
+
+            const initCol = new THREE.Color().setHSL(baseHue, 0.75, baseLightness);
             const nebulaMat = new THREE.SpriteMaterial({
                 map: nebulaTexPool[i % nebulaTexPool.length],
                 color: initCol,
                 transparent: true,
-                opacity: 0.58,
+                opacity: baseOpacity,
                 blending: THREE.AdditiveBlending,
                 depthWrite: false,
                 rotation: (i * 1.1) % (Math.PI * 2)
             });
             const sprite = new THREE.Sprite(nebulaMat);
-
-            let baseX: number;
-            let baseY: number;
-            let offsetZ: number;
-            let scale: number;
-
-            if (i < 34) {
-                // Outer Lateral Flanks (framing both sides)
-                const side = i % 2 === 0 ? -1 : 1;
-                offsetZ = -15 - (i / 34) * 260 - Math.random() * 20;
-                const lateralDepth = Math.abs(offsetZ) + 16;
-                baseX = side * lateralDepth * (0.36 + (i % 5) * 0.09 + Math.random() * 0.12);
-                baseY = -18 + Math.random() * 40;
-                scale = 45 + Math.random() * 48;
-            } else {
-                // Midground & Background Veils (sitting behind crates, filling empty sky holes)
-                offsetZ = -45 - ((i - 34) / 22) * 220 - Math.random() * 20;
-                baseX = (Math.random() - 0.5) * 72;
-                baseY = -15 + Math.random() * 38;
-                scale = 38 + Math.random() * 34;
-            }
-
             sprite.position.set(baseX, baseY, offsetZ);
             sprite.scale.set(scale, scale * 0.85, 1);
             this.scene.add(sprite);
@@ -520,12 +519,14 @@ export class PixiRenderer {
                 baseX,
                 baseY,
                 offsetZ,
-                driftSpeedZ: 8 + Math.random() * 12,
-                baseHue
+                driftSpeedZ: 6 + Math.random() * 8,
+                baseHue,
+                baseLightness,
+                baseOpacity
             });
         }
 
-        // 3. 650-Particle Dynamic Nebula Flow Stream (shifting colors & sinuous particle currents)
+        // 3. 650-Particle Dynamic Nebula Flow Stream (flowing down the lateral flanks)
         this.nebulaFlowGeo = new THREE.BufferGeometry();
         this.nebulaFlowPositions = new Float32Array(NEBULA_FLOW_PARTICLE_COUNT * 3);
         this.nebulaFlowColors = new Float32Array(NEBULA_FLOW_PARTICLE_COUNT * 3);
@@ -535,14 +536,14 @@ export class PixiRenderer {
             const streamSide = i % 2 === 0 ? -1 : 1;
             const z = -Math.random() * 280;
             const lateralDepth = Math.abs(z) + 16;
-            const x = streamSide * lateralDepth * (0.28 + Math.random() * 0.58);
+            const x = streamSide * (lateralDepth * (0.28 + Math.random() * 0.48) + 16);
             const y = -14 + Math.random() * 36;
             this.nebulaFlowPositions[i * 3] = x;
             this.nebulaFlowPositions[i * 3 + 1] = y;
             this.nebulaFlowPositions[i * 3 + 2] = z;
             this.nebulaFlowPhases[i] = Math.random() * Math.PI * 2;
 
-            const c = new THREE.Color().setHSL(0.50 + (i % 12) * 0.035, 0.92, 0.62);
+            const c = new THREE.Color().setHSL(0.50 + (i % 12) * 0.035, 0.85, 0.52);
             this.nebulaFlowColors[i * 3] = c.r;
             this.nebulaFlowColors[i * 3 + 1] = c.g;
             this.nebulaFlowColors[i * 3 + 2] = c.b;
@@ -552,11 +553,11 @@ export class PixiRenderer {
         this.nebulaFlowGeo.setAttribute('color', new THREE.BufferAttribute(this.nebulaFlowColors, 3));
 
         const nebulaFlowMat = new THREE.PointsMaterial({
-            size: 1.45,
+            size: 0.95,
             map: this.textures.particleGlow,
             vertexColors: true,
             transparent: true,
-            opacity: 0.55,
+            opacity: 0.38,
             blending: THREE.AdditiveBlending,
             depthWrite: false
         });
@@ -2737,33 +2738,25 @@ export class PixiRenderer {
             c.sprite.position.z += c.driftSpeedZ * speedMult * dt;
 
             const shiftedHue = (c.baseHue + this.elapsed * 0.018 + Math.sin(c.offsetZ) * 0.06) % 1.0;
-            c.mat.color.setHSL(shiftedHue, 0.78, 0.72);
+            c.mat.color.setHSL(shiftedHue, 0.75, c.baseLightness);
 
             // Smooth proximity opacity feathering: near fade and far fade (zero popping)
             const distZ = camZ - c.sprite.position.z;
             const nearFade = THREE.MathUtils.clamp((distZ - 10.0) / 38.0, 0.0, 1.0);
             const farFade = THREE.MathUtils.clamp((280.0 - distZ) / 60.0, 0.0, 1.0);
-            c.mat.opacity = 0.58 * nearFade * farFade;
+            c.mat.opacity = c.baseOpacity * nearFade * farFade;
 
-            // Only recycle once fully transparent or safely behind camera
+            // Recycle along the lateral flanks: NEVER drift into the center flight corridor!
             if (c.sprite.position.z > camZ + 30) {
                 c.sprite.position.z -= 280;
                 const lateralDepth = Math.abs(c.sprite.position.z - camZ) + 16;
-                const side = Math.sign(c.baseX);
-                if (side !== 0) {
-                    c.baseX = side * lateralDepth * (0.32 + Math.random() * 0.42);
-                } else {
-                    c.baseX = (Math.random() - 0.5) * 72;
-                }
+                const side = Math.sign(c.baseX) || (Math.random() > 0.5 ? 1 : -1);
+                c.baseX = side * (lateralDepth * (0.35 + Math.random() * 0.38) + 18);
             } else if (c.sprite.position.z < camZ - 310) {
                 c.sprite.position.z += 280;
                 const lateralDepth = Math.abs(c.sprite.position.z - camZ) + 16;
-                const side = Math.sign(c.baseX);
-                if (side !== 0) {
-                    c.baseX = side * lateralDepth * (0.32 + Math.random() * 0.42);
-                } else {
-                    c.baseX = (Math.random() - 0.5) * 72;
-                }
+                const side = Math.sign(c.baseX) || (Math.random() > 0.5 ? 1 : -1);
+                c.baseX = side * (lateralDepth * (0.35 + Math.random() * 0.38) + 18);
             }
         }
 
