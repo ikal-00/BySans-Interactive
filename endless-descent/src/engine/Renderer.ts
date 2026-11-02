@@ -219,6 +219,7 @@ export class PixiRenderer {
         // Build 3D AAA [SPACE-OVERDRIVE V4] Starfighter (Floats freely in the open cosmic void)
         this.ship = new Spaceship3D(this.scene, this.textures);
         this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
+        this.ship.setShieldActive(this.gameState.engine.shieldPurchased, false);
 
         // Initialize Space-Overdrive V4 Next-Gen Post-Processing & 420-Instance Refractive Glass-Shatter Pool
         this.vfx = new VFXManager(
@@ -1810,6 +1811,7 @@ export class PixiRenderer {
             if (state === GameState.PLAYING && engine.currentRow === 1 && engine.currentPicks.length === 0) {
                 this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
                 this.vfx.clearGraffitiTags();
+                this.ship.setShieldActive(engine.hasActiveShield, true);
             } else if (state === GameState.IDLE) {
                 this.vfx.clearGraffitiTags();
                 this.ship.vel.set(0, 0, 0);
@@ -1819,6 +1821,9 @@ export class PixiRenderer {
                     this.camPos.set(0, 8.65, -0.8);
                 }
                 this.ship.setTargetPosition(0, SHIP_FLIGHT_Y, 0);
+                this.ship.setShieldActive(engine.shieldPurchased, true);
+            } else if (state === GameState.CRASHED || state === GameState.WON) {
+                this.ship.setShieldActive(false, true);
             }
         });
 
@@ -1938,6 +1943,7 @@ export class PixiRenderer {
                 this.vfx.spawnShieldDeflect3D(worldX, 0.9, worldZ);
                 this.vfx.triggerScreenShake(0.35, 0.25);
                 this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ);
+                this.ship.triggerShieldImpact(worldX, 0.9, worldZ);
             } else {
                 // Fatal mine hit!
                 if (pick.specialType === 'NONE') {

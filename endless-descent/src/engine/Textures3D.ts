@@ -39,6 +39,7 @@ export interface PBRTexturePack {
     planetRingTex: THREE.CanvasTexture;
     hdrEnvEquirectTex: THREE.CanvasTexture;
     toonGradientMap: THREE.DataTexture;
+    shieldHexTex: THREE.Texture;
 }
 
 // =============================================================================
@@ -1473,6 +1474,121 @@ export function createPBRTexturePack(): PBRTexturePack {
     const alienSymbolTex = new THREE.CanvasTexture(alienSymbolCanvas);
     alienSymbolTex.colorSpace = THREE.SRGBColorSpace;
 
+    function createShieldHexPatternCanvas(): HTMLCanvasElement {
+        const W = 1024;
+        const H = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d')!;
+
+        const pts: [number, number][] = [
+            [128, 28],
+            [896, 28],
+            [976, 108],
+            [946, 420],
+            [882, 484],
+            [142, 484],
+            [78, 420],
+            [48, 108]
+        ];
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.closePath();
+        ctx.clip();
+
+        const cx = W / 2;
+        const cy = H / 2;
+        const grad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 460);
+        grad.addColorStop(0.0, 'rgba(224, 250, 255, 0.45)');
+        grad.addColorStop(0.4, 'rgba(56, 189, 248, 0.32)');
+        grad.addColorStop(0.75, 'rgba(2, 132, 199, 0.20)');
+        grad.addColorStop(1.0, 'rgba(0, 240, 255, 0.08)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        const hexRadius = 26;
+        const hexW = hexRadius * Math.sqrt(3);
+        const hexH = hexRadius * 1.5;
+
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.55)';
+        ctx.lineWidth = 2.2;
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 8;
+
+        const cols = Math.ceil(W / hexW) + 4;
+        const rows = Math.ceil(H / hexH) + 4;
+
+        for (let r = -2; r < rows; r++) {
+            for (let c = -2; c < cols; c++) {
+                const hx = c * hexW + (r % 2 !== 0 ? hexW / 2 : 0);
+                const hy = r * hexH;
+
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    const angle = Math.PI / 6 + i * (Math.PI / 3);
+                    const px = hx + (hexRadius - 1.5) * Math.cos(angle);
+                    const py = hy + (hexRadius - 1.5) * Math.sin(angle);
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.stroke();
+
+                const dist = Math.hypot(hx - cx, hy - cy);
+                if (dist < 300) {
+                    const cellAlpha = 0.22 * (1.0 - dist / 300);
+                    ctx.fillStyle = `rgba(165, 243, 252, ${cellAlpha})`;
+                    ctx.fill();
+                }
+            }
+        }
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+        ctx.closePath();
+
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 18;
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.85)';
+        ctx.lineWidth = 9;
+        ctx.stroke();
+
+        ctx.shadowBlur = 8;
+        ctx.strokeStyle = '#a5f3fc';
+        ctx.lineWidth = 4.5;
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.0;
+        ctx.stroke();
+
+        for (const [px, py] of pts) {
+            ctx.beginPath();
+            ctx.arc(px, py, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#00f0ff';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(px, py, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+        }
+        ctx.restore();
+
+        return canvas;
+    }
+
+    const shieldCanvas = createShieldHexPatternCanvas();
+    const shieldHexTex = new THREE.CanvasTexture(shieldCanvas);
+    shieldHexTex.colorSpace = THREE.SRGBColorSpace;
+
     // Upgrade synchronously-initialized canvas textures with the extracted reference PNG assets
     if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
         const texLoader = new THREE.TextureLoader();
@@ -1496,6 +1612,7 @@ export function createPBRTexturePack(): PBRTexturePack {
         upgradeCanvas(alienTopCanvas, cardboardAlienBoxTopTex, '/assets/crate_top_alien.png');
         upgradeCanvas(miniSunCanvas, miniSunTex, '/assets/bonus_sun_comic.png', true);
         upgradeCanvas(alienSymbolCanvas, alienSymbolTex, '/assets/bonus_blue_comic.png', true);
+        upgradeCanvas(shieldCanvas, shieldHexTex, '/assets/shield_hex_pattern.png', true);
     }
 
     const dollarBillTex = new THREE.CanvasTexture(billCanvas);
@@ -1581,7 +1698,8 @@ export function createPBRTexturePack(): PBRTexturePack {
         planetCloudsTex,
         planetRingTex,
         hdrEnvEquirectTex,
-        toonGradientMap
+        toonGradientMap,
+        shieldHexTex
     };
 }
 

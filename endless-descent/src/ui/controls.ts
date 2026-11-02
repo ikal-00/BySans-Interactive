@@ -73,7 +73,7 @@ export function createControlsUI(
     leftDock: HTMLElement,
     stageContainer: HTMLElement,
     stateCtrl: GameStateController,
-    _renderer: PixiRenderer
+    renderer: PixiRenderer
 ) {
     const engine = stateCtrl.engine;
     const isReplay = stakeRGS.session.isReplay;
@@ -1222,6 +1222,7 @@ export function createControlsUI(
             if (isRulesModalOpen() || engine.state === GameState.PLAYING) return;
             audioController.playClick();
             engine.shieldPurchased = !engine.shieldPurchased;
+            renderer.ship.setShieldActive(engine.shieldPurchased, true);
             syncBetMetrics();
             syncUI();
         });
@@ -1465,6 +1466,7 @@ export function createControlsUI(
             const isShieldOn = isPlaying ? engine.hasActiveShield : engine.shieldPurchased;
             btnShieldToggle.classList.toggle('active', isShieldOn);
             btnShieldToggle.setAttribute('aria-pressed', String(isShieldOn));
+            renderer.ship.setShieldActive(isShieldOn, true);
             if (shieldBtnState) {
                 if (isPlaying) {
                     if (engine.hasActiveShield) {

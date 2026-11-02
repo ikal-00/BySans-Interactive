@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import gsap from 'gsap';
 import type { PBRTexturePack } from './Textures3D';
 
 /**
@@ -481,6 +482,33 @@ export class Spaceship3D {
     public crashExplosionTimer = 0;
     private wasCrashed = false;
 
+    // 3D Quantum Cyber-Shield Barrier (`shield_hex_pattern`)
+    public shieldGroup!: THREE.Group;
+    private shieldMesh!: THREE.Mesh;
+    private shieldCoreMesh!: THREE.Mesh;
+    private shieldMat!: THREE.MeshStandardMaterial;
+    private shieldCoreMat!: THREE.MeshBasicMaterial;
+    private shieldPointLight!: THREE.PointLight;
+    public isShieldActive = false;
+    public shieldTargetScale = 0;
+    public shieldCurrentScale = 0;
+    public shieldImpactTimer = 0;
+    private shieldEnergyPhase = 0;
+    private readonly shieldBaseColor = new THREE.Color(0x00f0ff);
+    private readonly shieldHitColor = new THREE.Color(0xffffff);
+
+    // 3D Hexagonal Impact Shards Pool
+    private readonly shieldShardsCount = 28;
+    private shieldShardsGroup!: THREE.Group;
+    private shieldShards: {
+        mesh: THREE.Mesh;
+        vel: THREE.Vector3;
+        rotVel: THREE.Vector3;
+        lifetime: number;
+        age: number;
+        active: boolean;
+    }[] = [];
+
     // Spring-damper physical state
     public readonly pos = new THREE.Vector3(0, 0.65, 0);
     public readonly vel = new THREE.Vector3(0, 0, 0);
@@ -787,6 +815,112 @@ export class Spaceship3D {
         this.thrusterAnchorR = new THREE.Object3D();
         this.thrusterAnchorR.position.set(1.15, -0.95, 0.72);
         shipAssembly.add(this.thrusterAnchorR);
+
+        // Build 3D Quantum Cyber-Shield Barrier
+        this.buildQuantumCyberShield(shipAssembly, _textures);
+    }
+
+    /**
+     * Constructs the 3D Curved Quantum Cyber-Shield Barrier (`shield_hex_pattern.png`):
+     * Features a dual-layered aerodynamic energy visor ahead of the cockpit canopy
+     * with pulsating hexagonal honeycomb cells, neon cyan outer rim, and dynamic PointLight illumination.
+     */
+    private buildQuantumCyberShield(shipAssembly: THREE.Group, textures: PBRTexturePack) {
+        this.shieldGroup = new THREE.Group();
+        // Positioned behind/above the cockpit canopy along the forward flight vector
+        this.shieldGroup.position.set(0, 1.25, 0.12);
+        this.shieldGroup.rotation.x = 0.16; // angled slightly upright like an aerodynamic blast visor
+        this.shieldGroup.scale.setScalar(0.0001); // starts retracted/invisible until armed
+        shipAssembly.add(this.shieldGroup);
+
+        const sW = 4.6;
+        const sH = 2.3;
+        const segX = 32;
+        const segY = 16;
+        const shieldGeo = new THREE.PlaneGeometry(sW, sH, segX, segY);
+
+        const posAttr = shieldGeo.attributes.position;
+        for (let i = 0; i < posAttr.count; i++) {
+            const vx = posAttr.getX(i);
+            const vy = posAttr.getY(i);
+            const normX = vx / (sW / 2); // -1 to 1
+            // Swept wings curve back
+            const zCurve = -Math.pow(normX, 2) * 0.42;
+            // Aerodynamic vertical arch
+            const zArch = (1.0 - Math.pow(vy / (sH / 2), 2)) * 0.08;
+            posAttr.setZ(i, zCurve + zArch);
+        }
+        shieldGeo.computeVertexNormals();
+
+        // 1. Primary Holographic Hex Barrier Layer
+        this.shieldMat = new THREE.MeshStandardMaterial({
+            map: textures.shieldHexTex,
+            transparent: true,
+            opacity: 0.92,
+            blending: THREE.AdditiveBlending,
+            emissive: new THREE.Color(0x00f0ff),
+            emissiveMap: textures.shieldHexTex,
+            emissiveIntensity: 0.95,
+            roughness: 0.22,
+            metalness: 0.12,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        this.shieldMesh = new THREE.Mesh(shieldGeo, this.shieldMat);
+        this.shieldMesh.castShadow = false;
+        this.shieldMesh.receiveShadow = false;
+        this.shieldGroup.add(this.shieldMesh);
+
+        // 2. Inner Glowing Energy Core Membrane
+        this.shieldCoreMat = new THREE.MeshBasicMaterial({
+            map: textures.shieldHexTex,
+            color: 0x38bdf8,
+            transparent: true,
+            opacity: 0.45,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        this.shieldCoreMesh = new THREE.Mesh(shieldGeo, this.shieldCoreMat);
+        this.shieldCoreMesh.scale.set(0.985, 0.985, 0.985);
+        this.shieldCoreMesh.position.set(0, 0, -0.018);
+        this.shieldGroup.add(this.shieldCoreMesh);
+
+        // 3. Dynamic Cyan PointLight on Cockpit & Hull
+        this.shieldPointLight = new THREE.PointLight(0x00f0ff, 0.0, 6.5, 1.8);
+        this.shieldPointLight.position.set(0, 0.85, 0.65);
+        shipAssembly.add(this.shieldPointLight);
+
+        // 4. Hexagonal Impact Shards Pool
+        this.shieldShardsGroup = new THREE.Group();
+        this.root.add(this.shieldShardsGroup);
+
+        const hexShardGeo = new THREE.CircleGeometry(0.18, 6);
+        const hexShardMat = new THREE.MeshBasicMaterial({
+            color: 0x00f0ff,
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        for (let i = 0; i < this.shieldShardsCount; i++) {
+            const shardMesh = new THREE.Mesh(hexShardGeo, hexShardMat.clone());
+            shardMesh.visible = false;
+            this.shieldShardsGroup.add(shardMesh);
+
+            this.shieldShards.push({
+                mesh: shardMesh,
+                vel: new THREE.Vector3(),
+                rotVel: new THREE.Vector3(),
+                lifetime: 0.55,
+                age: 999,
+                active: false
+            });
+        }
     }
 
     /**
@@ -1069,6 +1203,87 @@ export class Spaceship3D {
         this.impactWobbleTimer = 0.48;
     }
 
+    /**
+     * Arms or retracts the 3D Quantum Cyber-Shield Barrier ahead of the starfighter canopy
+     */
+    public setShieldActive(active: boolean, animate = true) {
+        this.isShieldActive = active;
+        this.shieldTargetScale = active ? 1.0 : 0.0;
+        if (!animate) {
+            this.shieldCurrentScale = this.shieldTargetScale;
+            this.shieldGroup.scale.setScalar(Math.max(0.0001, this.shieldCurrentScale));
+            if (!active) this.shieldPointLight.intensity = 0;
+        } else {
+            gsap.killTweensOf(this);
+            if (active) {
+                gsap.to(this, {
+                    shieldCurrentScale: 1.0,
+                    duration: 0.44,
+                    ease: 'back.out(2.2)',
+                    onUpdate: () => {
+                        this.shieldGroup.scale.setScalar(Math.max(0.0001, this.shieldCurrentScale));
+                    }
+                });
+            } else {
+                gsap.to(this, {
+                    shieldCurrentScale: 0.0,
+                    duration: 0.28,
+                    ease: 'power2.in',
+                    onUpdate: () => {
+                        this.shieldGroup.scale.setScalar(Math.max(0.0001, this.shieldCurrentScale));
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * Executes the violent 3D shield deflection animation when absorbing a lethal mine impact:
+     * - Blinding white/cyan plasma flash & surface overload ripple
+     * - Physical recoil displacement and camera screen shake trigger
+     * - 28 bursting 3D hexagonal energy shards exploding forward into space
+     */
+    public triggerShieldImpact(hitX?: number, hitY?: number, hitZ?: number) {
+        this.shieldImpactTimer = 0.65;
+        this.triggerImpactSquash();
+
+        const originX = hitX ?? this.pos.x;
+        const originY = hitY ?? this.pos.y + 0.6;
+        const originZ = hitZ ?? this.pos.z - 0.4;
+
+        for (let i = 0; i < this.shieldShards.length; i++) {
+            const s = this.shieldShards[i];
+            s.active = true;
+            s.age = 0;
+            s.lifetime = 0.45 + Math.random() * 0.35;
+            s.mesh.visible = true;
+            s.mesh.position.set(
+                originX + (Math.random() - 0.5) * 2.2,
+                originY + (Math.random() - 0.5) * 1.2,
+                originZ + (Math.random() - 0.5) * 0.8
+            );
+            s.mesh.scale.setScalar(0.7 + Math.random() * 0.6);
+
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 7.0 + Math.random() * 14.0;
+            s.vel.set(
+                Math.cos(angle) * speed,
+                (Math.random() - 0.4) * speed * 0.8,
+                Math.sin(angle) * speed * 0.6 + 4.0
+            );
+
+            s.rotVel.set(
+                (Math.random() - 0.5) * 18.0,
+                (Math.random() - 0.5) * 18.0,
+                (Math.random() - 0.5) * 18.0
+            );
+        }
+    }
+
+    public hasShieldActive(): boolean {
+        return this.isShieldActive;
+    }
+
     public snapTo(x: number, y: number, z: number) {
         this.pos.set(x, y, z);
         this.targetPos.set(x, y, z);
@@ -1281,6 +1496,66 @@ export class Spaceship3D {
             this.emitThrusterParticles(dt, totalThrustBoost, isCashedOut);
         }
         this.updateThrusterParticles(dt);
+
+        // 7. Animate 3D Quantum Cyber-Shield Barrier & Bursting Impact Shards
+        this.updateQuantumCyberShield(dt);
+    }
+
+    private updateQuantumCyberShield(dt: number) {
+        this.shieldEnergyPhase += dt * 3.6;
+
+        if (this.shieldImpactTimer > 0) {
+            this.shieldImpactTimer -= dt;
+            const norm = Math.max(0, this.shieldImpactTimer / 0.65);
+
+            // Blinding white-hot flash decaying back to electric cyan
+            this.shieldMat.emissive.lerpColors(this.shieldBaseColor, this.shieldHitColor, norm);
+            this.shieldMat.emissiveIntensity = 0.95 + norm * 2.8;
+            this.shieldPointLight.intensity = 2.2 + norm * 7.5;
+            this.shieldPointLight.color.lerpColors(this.shieldBaseColor, this.shieldHitColor, norm);
+
+            // Violent high-frequency micro-jitter
+            this.shieldGroup.position.x = (Math.random() - 0.5) * 0.22 * norm;
+            this.shieldGroup.position.y = 1.25 + (Math.random() - 0.5) * 0.16 * norm;
+
+            if (this.shieldImpactTimer <= 0) {
+                this.setShieldActive(false, true);
+            }
+        } else {
+            this.shieldGroup.position.x = 0;
+            this.shieldGroup.position.y = 1.25;
+            this.shieldMat.emissive.copy(this.shieldBaseColor);
+            this.shieldMat.emissiveIntensity = 0.95;
+
+            // Living energy breathing pulse and honeycomb shimmer
+            const pulse = 0.84 + Math.sin(this.shieldEnergyPhase) * 0.10;
+            this.shieldMat.opacity = pulse * this.shieldCurrentScale;
+            this.shieldCoreMat.opacity =
+                (0.35 + Math.sin(this.shieldEnergyPhase * 1.4) * 0.08) * this.shieldCurrentScale;
+            this.shieldPointLight.intensity = this.isShieldActive
+                ? (1.6 + Math.sin(this.shieldEnergyPhase * 1.5) * 0.5) * this.shieldCurrentScale
+                : 0;
+            this.shieldPointLight.color.copy(this.shieldBaseColor);
+        }
+
+        // 3D Hexagonal impact shards physics
+        for (let i = 0; i < this.shieldShards.length; i++) {
+            const s = this.shieldShards[i];
+            if (!s.active) continue;
+            s.age += dt;
+            if (s.age >= s.lifetime) {
+                s.active = false;
+                s.mesh.visible = false;
+                continue;
+            }
+            const p = s.age / s.lifetime;
+            s.mesh.position.addScaledVector(s.vel, dt);
+            s.mesh.rotation.x += s.rotVel.x * dt;
+            s.mesh.rotation.y += s.rotVel.y * dt;
+            s.mesh.rotation.z += s.rotVel.z * dt;
+            (s.mesh.material as THREE.MeshBasicMaterial).opacity = (1.0 - p) * 0.9;
+            s.mesh.scale.setScalar((1.0 - p * 0.6) * 1.2);
+        }
     }
 
     private emitThrusterParticles(dt: number, thrustPower: number, isCashedOut: boolean) {
