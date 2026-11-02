@@ -101,180 +101,213 @@ export function createControlsUI(
         return closest;
     }
 
-    // 1. PRODUCTION TOP COMIC-INKED STARFIGHTER HEADER (Hand-Drawn Cel-Shaded Steel Plaques)
+    // 1. PRODUCTION TOP UNIFIED CYBER-AVIONICS GANTRY HUD (Exact Continuous Metallic Cockpit Console)
     topHeader.innerHTML = `
-      <div class="brand-cluster" title="Endless Descent">
-        <div class="brand-emblem">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L21 20L12 15.5L3 20L12 2Z" fill="#ffffff" stroke="#080b11" stroke-width="1.5" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <div class="brand-titles">
-          <span class="brand-name">${t.gameTitle}</span>
-          <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator" style="display: none !important;">
-            <span class="${isReplay ? 'rgs-pulse-dot' : 'sandbox-dot'}"></span>
-            ${t.studioName} · ${isReplay ? t.replayBadge : t.sandboxDemo}
-          </span>
-        </div>
-      </div>
+      <div class="top-gantry-hud" id="top-gantry-hud">
+        <!-- ZONE 1: LEFT WING + CONDUIT BRIDGE (1fr) -->
+        <div class="gantry-zone gantry-zone-left">
+          <!-- Left Wing -->
+          <div class="gantry-wing gantry-wing-left">
+            <!-- Brand Button -->
+            <div class="gantry-brand-btn" title="Endless Descent">
+              <svg class="gantry-brand-arrow" width="9" height="9" viewBox="0 0 24 24" fill="#93c5fd">
+                <polygon points="12 4 22 20 2 20"/>
+              </svg>
+              <span class="gantry-brand-title">${t.gameTitle}</span>
+            </div>
 
-      <div class="multiplier-hero-anchor">
-        <div class="multiplier-hero-banner" id="mult-hero-wrap">
-          <svg class="mult-holo-hud-svg" viewBox="0 0 540 116" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              <linearGradient id="hud-frame-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#4e5d6e"/>
-                <stop offset="50%" stop-color="#3b4856"/>
-                <stop offset="100%" stop-color="#28323e"/>
-              </linearGradient>
-              <linearGradient id="hud-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#141c26"/>
-                <stop offset="40%" stop-color="#0f1620"/>
-                <stop offset="100%" stop-color="#090d14"/>
-              </linearGradient>
-              <linearGradient id="hud-cyan-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stop-color="#00f0ff"/>
-                <stop offset="50%" stop-color="#38bdf8"/>
-                <stop offset="100%" stop-color="#00f0ff"/>
-              </linearGradient>
-              <linearGradient id="hud-orange-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#fb923c"/>
-                <stop offset="100%" stop-color="#ea580c"/>
-              </linearGradient>
-            </defs>
+            <!-- Quantum Starfighter Radar Hologram -->
+            <div class="gantry-radar-emblem" title="Quantum Radar Telemetry">
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="13" stroke="#00f0ff" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.35"/>
+                <circle cx="16" cy="16" r="8" stroke="#00f0ff" stroke-width="0.8" opacity="0.25"/>
+                <circle cx="8" cy="12" r="1.5" fill="#00f0ff" opacity="0.9"/>
+                <circle cx="24" cy="9" r="1.2" fill="#38bdf8" opacity="0.8"/>
+                <circle cx="23" cy="23" r="1.4" fill="#00f0ff" opacity="0.85"/>
+                <path d="M23 11 L17 16 L23 21 L19 21 L14 17.5 L8 17.5 L6 19.5 L6 12.5 L8 14.5 L14 14.5 L19 11 Z" fill="#38bdf8" stroke="#00f0ff" stroke-width="1.2" stroke-linejoin="round"/>
+              </svg>
+            </div>
 
-            <!-- 1. Outer Stepped Octagonal Gunmetal Steel Chassis with Comic-Ink Stroke -->
-            <polygon
-              points="34,4 140,4 150,9 390,9 400,4 506,4 532,30 532,86 506,112 400,112 390,107 150,107 140,112 34,112 8,86 8,30"
-              fill="url(#hud-frame-grad)"
-              stroke="#080b11"
-              stroke-width="3"
-              stroke-linejoin="round"
-            />
+            <!-- Left Angled Transition Bracket with Dual Vent Slits -->
+            <div class="gantry-bracket gantry-bracket-left">
+              <svg width="44" height="46" viewBox="0 0 44 46" fill="none">
+                <polygon points="0,0 16,0 44,12 44,34 16,46 0,46" fill="url(#gantry-steel-grad)" stroke="#080d14" stroke-width="2" stroke-linejoin="round"/>
+                <line x1="0" y1="1" x2="16" y2="1" stroke="#5d7184" stroke-width="1.5"/>
+                <line x1="16" y1="1" x2="44" y2="13" stroke="#5d7184" stroke-width="1.5"/>
+                <line x1="0" y1="45" x2="16" y2="45" stroke="#0a0f16" stroke-width="1.5"/>
+                <line x1="16" y1="45" x2="44" y2="33" stroke="#0a0f16" stroke-width="1.5"/>
+                <line x1="8" y1="5" x2="13" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="14" y1="5" x2="19" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="20" y1="5" x2="25" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="8" y1="41" x2="13" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                <line x1="14" y1="41" x2="19" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                <line x1="20" y1="41" x2="25" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
 
-            <!-- Top Metallic Bevel Highlight -->
-            <polygon
-              points="35,5 140,5 149,10 391,10 400,5 505,5 528,28 522,28 502,8 402,8 393,13 147,13 138,8 38,8 18,28 12,28"
-              fill="#7c8fa3"
-            />
-
-            <!-- Bottom Metallic Shadow Bevel -->
-            <polygon
-              points="12,88 18,88 38,108 138,108 147,103 393,103 402,108 502,108 522,88 528,88 505,111 400,111 391,106 149,106 140,111 35,111"
-              fill="#18202a"
-            />
-
-            <!-- 2. Top-Center Warning Notch / Hazard Strip (Centered at X=270) -->
-            <g stroke="#080b11" stroke-width="2.2" stroke-linejoin="round">
-              <polygon points="190,5 235,5 231,10 194,10" fill="url(#hud-cyan-grad)"/>
-              <polygon points="235,3 305,3 301,10 239,10" fill="url(#hud-orange-grad)"/>
-              <polygon points="238,4.5 302,4.5 300,7 240,7" fill="#fed7aa" stroke="none"/>
-              <polygon points="305,5 350,5 346,10 309,10" fill="url(#hud-cyan-grad)"/>
-            </g>
-
-            <!-- 3. Inner Cyan Tech Rim Around Screen -->
-            <polygon
-              points="40,12 500,12 520,32 520,84 500,104 40,104 20,84 20,32"
-              fill="none"
-              stroke="url(#hud-cyan-grad)"
-              stroke-width="2"
-              stroke-linejoin="round"
-              opacity="0.85"
-            />
-
-            <!-- 4. Recessed Dark Slate Cockpit Avionics Screen -->
-            <polygon
-              points="42,14 498,14 518,34 518,82 498,102 42,102 22,82 22,34"
-              fill="url(#hud-screen-grad)"
-              stroke="#080b11"
-              stroke-width="2.6"
-              stroke-linejoin="round"
-            />
-
-            <!-- Screen Glass Highlight Glare (Top 40%) -->
-            <polygon
-              points="43,15 497,15 516,34 516,52 24,52 24,34"
-              fill="rgba(255, 255, 255, 0.04)"
-            />
-
-            <!-- 5. 4 Corner Heavy Orange Hazard Pads (Exact X/Y Symmetry) -->
-            <g stroke="#080b11" stroke-width="2" stroke-linejoin="round">
-              <polygon points="13,34 25,22 31,28 19,40" fill="url(#hud-orange-grad)"/>
-              <polygon points="13,82 25,94 31,88 19,76" fill="url(#hud-orange-grad)"/>
-              <polygon points="527,34 515,22 509,28 521,40" fill="url(#hud-orange-grad)"/>
-              <polygon points="527,82 515,94 509,88 521,76" fill="url(#hud-orange-grad)"/>
-            </g>
-
-            <!-- 6. Hand-Drawn Comic Tech Seams & Calibration Ticks -->
-            <g stroke="#080b11" stroke-width="2" stroke-linecap="round">
-              <line x1="85" y1="4" x2="85" y2="13"/>
-              <line x1="455" y1="4" x2="455" y2="13"/>
-              <line x1="85" y1="103" x2="85" y2="112"/>
-              <line x1="455" y1="103" x2="455" y2="112"/>
-              <line x1="8" y1="58" x2="20" y2="58"/>
-              <line x1="520" y1="58" x2="532" y2="58"/>
-            </g>
-          </svg>
-
-          <!-- 3-TIER SYMMETRICALLY CENTERED CONTENT HIERARCHY -->
-          <div class="mult-hero-content">
-            <!-- Tier 1: Symmetrically Centered Next Multiplier Target Chip -->
-            <div class="mult-target-row">
-              <div class="mult-target-chip">
-                <span class="mult-target-arrow">▲</span>
-                <span class="mult-next-tag" id="mult-next-preview">${t.nextMultiplierLabel}: 1.20×</span>
-                <span class="mult-target-arrow">▲</span>
+          <!-- Left Bridge Conduit Rail -->
+          <div class="gantry-bridge gantry-bridge-left">
+            <div class="bridge-rail-track">
+              <div class="bridge-rail-groove"></div>
+            </div>
+            <div class="bridge-dock-group">
+              <div class="bridge-hash-ticks">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
               </div>
-            </div>
-
-            <!-- Tier 2: Symmetrically Centered Giant Hero Multiplier Readout -->
-            <div class="mult-hero-value-wrap">
-              <div class="multiplier-God-value" id="mult-hero-value">1.00×</div>
-            </div>
-
-            <!-- Tier 3: Symmetrically Centered Tactical Status Capsule -->
-            <div class="mult-status-row">
-              <div class="mult-status-capsule">
-                <span class="mult-status-dot" id="mult-status-dot"></span>
-                <span class="mult-sub-status" id="mult-hero-sub">${t.readyToLaunchSub}</span>
-                <span class="mult-status-dot-end" aria-hidden="true"></span>
+              <div class="bridge-access-plate">
+                <span class="rivet r-tl"></span>
+                <span class="rivet r-tr"></span>
+                <span class="rivet r-bl"></span>
+                <span class="rivet r-br"></span>
+              </div>
+              <div class="bridge-chevron-interface right-pointing">
+                <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
+                  <path d="M3 2L9 8L3 14" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="header-telemetry-cluster">
-        <button class="icon-btn" id="btn-rules" type="button" title="${t.rulesToggleTitle}">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.2"/>
-            <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
-          </svg>
-          <span id="rules-label">${lang === 'es' ? 'Reglas' : 'Rules'}</span>
-        </button>
-        <button class="icon-btn active" id="btn-audio" type="button" title="${t.soundToggleTitle}">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-          </svg>
-          <span id="audio-label">${lang === 'es' ? 'Sonido' : 'Sound'}</span>
-        </button>
-        <button class="dev-quick-btn" id="btn-dev-quick-add" type="button" title="Modo Dev: Recargar +$1,000">
-          +$1K
-        </button>
-        <button class="icon-btn dev-toggle-btn" id="btn-dev-modal-toggle" type="button" title="Panel Developer (Atajo: D)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M13 6l6 6-6 6"/>
-          </svg>
-          <span>DEV</span>
-        </button>
-        <div class="balance-pill" title="${t.balanceLabel}">
-          <div class="balance-inner-readout">
-            <div class="balance-label" id="balance-title-label">${isReplay ? t.replayBadge : t.balanceLabel}</div>
-            <div class="balance-value" id="hud-balance">${stakeRGS.formatCurrency(isReplay && stakeRGS.session.replayParams ? stakeRGS.session.replayParams.amount : engine.balance)}</div>
+        <!-- ZONE 2: CENTER HERO MULTIPLIER CONSOLE (Dead-Center Column) -->
+        <div class="gantry-center-console" id="mult-hero-wrap">
+          <!-- Top Hex/Trapezoid Chip -->
+          <div class="gantry-next-chip">
+            <span id="mult-next-preview">${lang === 'es' ? 'SIGUIENTE: 1.20x' : 'NEXT 1.20x'}</span>
+          </div>
+
+          <!-- Main Console Cockpit Display Frame -->
+          <div class="gantry-console-screen">
+            <svg class="gantry-screen-svg" viewBox="0 0 240 44" preserveAspectRatio="none">
+              <polygon points="12,2 228,2 238,12 238,32 228,42 12,42 2,32 2,12" fill="url(#gantry-screen-grad)" stroke="#00f0ff" stroke-width="1.6" opacity="0.85"/>
+            </svg>
+
+            <!-- Screen Content -->
+            <div class="gantry-screen-body">
+              <!-- Flank Inward Chevrons -->
+              <div class="gantry-flank-chevron left">
+                <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+                  <path d="M3 2L8 7L3 12" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+              </div>
+
+              <!-- Hero Multiplier Value -->
+              <div class="gantry-multiplier-readout" id="mult-hero-value">1.00x</div>
+
+              <div class="gantry-flank-chevron right">
+                <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
+                  <path d="M7 2L2 7L7 12" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Symmetrical Tactical Status Capsule -->
+          <div class="gantry-status-capsule">
+            <span class="gantry-status-dot" id="mult-status-dot"></span>
+            <span class="gantry-status-text" id="mult-hero-sub">${t.readyToLaunchSub}</span>
           </div>
         </div>
+
+        <!-- ZONE 3: CONDUIT BRIDGE + RIGHT WING (1fr) -->
+        <div class="gantry-zone gantry-zone-right">
+          <!-- Right Bridge Conduit Rail -->
+          <div class="gantry-bridge gantry-bridge-right">
+            <div class="bridge-dock-group">
+              <div class="bridge-chevron-interface left-pointing">
+                <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
+                  <path d="M9 2L3 8L9 14" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="bridge-access-plate">
+                <span class="rivet r-tl"></span>
+                <span class="rivet r-tr"></span>
+                <span class="rivet r-bl"></span>
+                <span class="rivet r-br"></span>
+              </div>
+              <div class="bridge-hash-ticks">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+            <div class="bridge-rail-track">
+              <div class="bridge-rail-groove"></div>
+            </div>
+          </div>
+
+          <!-- Right Wing -->
+          <div class="gantry-wing gantry-wing-right">
+            <!-- Right Angled Transition Bracket with Dual Vent Slits -->
+            <div class="gantry-bracket gantry-bracket-right">
+              <svg width="44" height="46" viewBox="0 0 44 46" fill="none">
+                <polygon points="44,0 28,0 0,12 0,34 28,46 44,46" fill="url(#gantry-steel-grad)" stroke="#080d14" stroke-width="2" stroke-linejoin="round"/>
+                <line x1="44" y1="1" x2="28" y2="1" stroke="#5d7184" stroke-width="1.5"/>
+                <line x1="28" y1="1" x2="0" y2="13" stroke="#5d7184" stroke-width="1.5"/>
+                <line x1="44" y1="45" x2="28" y2="45" stroke="#0a0f16" stroke-width="1.5"/>
+                <line x1="28" y1="45" x2="0" y2="33" stroke="#0a0f16" stroke-width="1.5"/>
+                <line x1="36" y1="5" x2="31" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="30" y1="5" x2="25" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="24" y1="5" x2="19" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
+                <line x1="36" y1="41" x2="31" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                <line x1="30" y1="41" x2="25" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+                <line x1="24" y1="41" x2="19" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+
+            <!-- Action Button Cluster -->
+            <div class="gantry-btn-cluster">
+              <button class="gantry-icon-btn" id="btn-settings" type="button" title="Ajustes">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+              </button>
+              <button class="gantry-icon-btn" id="btn-rules" type="button" title="${t.rulesToggleTitle}">
+                <span class="btn-glyph">?</span>
+                <span id="rules-label" class="sr-only">${lang === 'es' ? 'Reglas' : 'Rules'}</span>
+              </button>
+              <div class="gantry-divider"></div>
+              <button class="gantry-icon-btn active" id="btn-audio" type="button" title="${t.soundToggleTitle}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                <span id="audio-label" class="sr-only">${lang === 'es' ? 'Sonido' : 'Sound'}</span>
+              </button>
+              <button class="gantry-icon-btn" id="btn-stats" type="button" title="Historial / Estadísticas">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                </svg>
+              </button>
+              <button class="gantry-pill-btn green" id="btn-dev-quick-add" type="button" title="Modo Dev: Recargar +$1,000">+$1K</button>
+              <button class="gantry-pill-btn blue" id="btn-dev-modal-toggle" type="button" title="Panel Developer (Atajo: D)">+DEV</button>
+            </div>
+
+            <!-- Recessed Avionics Balance Display Screen -->
+            <div class="gantry-balance-capsule balance-pill" title="${t.balanceLabel}">
+              <div class="gantry-balance-label" id="balance-title-label">${isReplay ? t.replayBadge : (lang === 'es' ? 'SALDO' : 'BALANCE')}</div>
+              <div class="gantry-balance-value" id="hud-balance">${stakeRGS.formatCurrency(isReplay && stakeRGS.session.replayParams ? stakeRGS.session.replayParams.amount : engine.balance)}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shared SVG Definitions -->
+        <svg width="0" height="0" style="position: absolute; pointer-events: none;" aria-hidden="true">
+          <defs>
+            <linearGradient id="gantry-steel-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#3a4857"/>
+              <stop offset="50%" stop-color="#273442"/>
+              <stop offset="100%" stop-color="#17222d"/>
+            </linearGradient>
+            <linearGradient id="gantry-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#0e1722"/>
+              <stop offset="100%" stop-color="#060a0f"/>
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <!-- Hidden Stake RGS Compatibility Elements -->
         <div class="header-ticker-strip" id="history-ticker" style="display: none !important;"></div>
+        <span class="brand-tag ${isReplay ? 'replay' : 'sandbox'}" id="brand-tag-indicator" style="display: none !important;"></span>
       </div>
     `;
 
@@ -621,6 +654,20 @@ export function createControlsUI(
     createRulesModal();
     if (btnRules) {
         btnRules.addEventListener('click', () => {
+            audioController.playClick();
+            openRulesModal();
+        });
+    }
+    const btnSettings = document.getElementById('btn-settings');
+    if (btnSettings) {
+        btnSettings.addEventListener('click', () => {
+            audioController.playClick();
+            openRulesModal();
+        });
+    }
+    const btnStats = document.getElementById('btn-stats');
+    if (btnStats) {
+        btnStats.addEventListener('click', () => {
             audioController.playClick();
             openRulesModal();
         });
@@ -1313,8 +1360,8 @@ export function createControlsUI(
             }
         }
 
-        multHeroVal.textContent = `${currentMult.toFixed(2)}×`;
-        multNextPreview.textContent = `${t.nextMultiplierLabel}: ${nextMult.toFixed(2)}×`;
+        multHeroVal.textContent = `${currentMult.toFixed(2)}x`;
+        multNextPreview.textContent = lang === 'es' ? `SIGUIENTE: ${nextMult.toFixed(2)}x` : `NEXT ${nextMult.toFixed(2)}x`;
 
         if (isPlaying) {
             const potentialWin = calculatePayout(engine.activeBetAmount, currentMult);
@@ -1344,8 +1391,8 @@ export function createControlsUI(
                 multStatusDot.style.background = '#ef4444';
                 multStatusDot.style.boxShadow = '0 0 10px #ef4444, 0 0 18px rgba(239, 68, 68, 0.7)';
             } else {
-                multStatusDot.style.background = '#38bdf8';
-                multStatusDot.style.boxShadow = '0 0 8px #38bdf8';
+                multStatusDot.style.background = '#10b981';
+                multStatusDot.style.boxShadow = '0 0 8px #10b981';
             }
         }
 

@@ -140,17 +140,17 @@ body {
 }
 
 /* ============================================================================
-   TOP COMIC-INKED STARFIGHTER COCKPIT HEADER (Matches Ship & Crates Art Style)
+   TOP UNIFIED CYBER-AVIONICS GANTRY HUD (Exact Continuous Metallic Cockpit Console)
    ============================================================================ */
 .pc-top-header {
   position: absolute;
-  top: 16px;
-  left: 22px;
-  right: 22px;
+  top: 14px;
+  left: 20px;
+  right: 20px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  min-height: 116px;
+  justify-content: center;
+  height: 58px;
   padding: 0;
   background: transparent;
   backdrop-filter: none;
@@ -160,6 +160,538 @@ body {
   box-shadow: none;
   z-index: 25;
   pointer-events: none;
+}
+
+.top-gantry-hud {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+  height: 58px;
+  pointer-events: none;
+  position: relative;
+}
+
+.gantry-zone {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.gantry-zone-left {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.gantry-zone-right {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+/* --- GANTRY WINGS (Left & Right) --- */
+.gantry-wing {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  background: linear-gradient(180deg, #374656 0%, #253240 50%, #16202b 100%);
+  border: 2px solid #080d14;
+  box-shadow:
+    inset 0 1.5px 0 #60758a,
+    inset 0 -1.5px 0 #0d141c,
+    0 6px 16px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+}
+
+.gantry-wing-left {
+  border-radius: 8px 0 0 8px;
+  border-right: none;
+  padding: 0 0 0 10px;
+  gap: 8px;
+}
+
+.gantry-wing-right {
+  border-radius: 0 8px 8px 0;
+  border-left: none;
+  padding: 0 10px 0 0;
+  gap: 8px;
+}
+
+/* Left Wing: Brand Button */
+.gantry-brand-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 10px;
+  background: linear-gradient(180deg, #202b37 0%, #141c25 100%);
+  border: 1.5px solid #37485c;
+  border-radius: 5px;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+  cursor: default;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.gantry-brand-arrow {
+  display: block;
+  flex-shrink: 0;
+}
+
+.gantry-brand-title {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* Left Wing: Quantum Starfighter Radar Emblem */
+.gantry-radar-emblem {
+  width: 36px;
+  height: 32px;
+  background: #0c141d;
+  border: 1.2px solid #1c2b3a;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.gantry-radar-emblem svg {
+  filter: drop-shadow(0 0 4px #00f0ff);
+}
+
+/* Angled Transition Brackets with Dual Vents */
+.gantry-bracket {
+  width: 44px;
+  height: 46px;
+  flex-shrink: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.gantry-bracket svg {
+  display: block;
+  width: 44px;
+  height: 46px;
+}
+
+.gantry-bracket-left {
+  margin-right: -1px;
+}
+
+.gantry-bracket-right {
+  margin-left: -1px;
+}
+
+/* --- GANTRY CONDUIT BRIDGES (Left & Right) --- */
+.gantry-bridge {
+  flex: 1;
+  min-width: 60px;
+  height: 22px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(180deg, #445464 0%, #354351 30%, #26323e 70%, #17212b 100%);
+  border-top: 1.5px solid #5d7184;
+  border-bottom: 2px solid #080d14;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 10px rgba(0, 0, 0, 0.5);
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+.gantry-bridge-left {
+  justify-content: flex-end;
+}
+
+.gantry-bridge-right {
+  justify-content: flex-start;
+}
+
+.bridge-rail-track {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.bridge-rail-groove {
+  width: 100%;
+  height: 2px;
+  background: #0c131a;
+  box-shadow: 0 1px 0 #5b6f82;
+}
+
+.bridge-dock-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.bridge-hash-ticks {
+  display: flex;
+  gap: 3px;
+  height: 12px;
+  align-items: center;
+}
+
+.bridge-hash-ticks span {
+  width: 1.5px;
+  height: 100%;
+  background: #1a2530;
+  box-shadow: 1px 0 0 #506477;
+  border-radius: 0.5px;
+}
+
+.bridge-access-plate {
+  width: 28px;
+  height: 14px;
+  background: #253340;
+  border: 1px solid #141c24;
+  border-radius: 2px;
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.bridge-access-plate .rivet {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #0a0e14;
+  box-shadow: 0.5px 0.5px 0 rgba(255, 255, 255, 0.25);
+}
+
+.bridge-access-plate .r-tl { top: 1.5px; left: 1.5px; }
+.bridge-access-plate .r-tr { top: 1.5px; right: 1.5px; }
+.bridge-access-plate .r-bl { bottom: 1.5px; left: 1.5px; }
+.bridge-access-plate .r-br { bottom: 1.5px; right: 1.5px; }
+
+.bridge-chevron-interface {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 16px;
+  filter: drop-shadow(0 0 6px #10b981);
+  flex-shrink: 0;
+}
+
+/* --- CENTER HERO MULTIPLIER CONSOLE --- */
+.gantry-center-console {
+  position: relative;
+  width: 240px;
+  height: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  z-index: 3;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.gantry-next-chip {
+  position: absolute;
+  top: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 16px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, #0e5246 0%, #063028 100%);
+  border: 1.5px solid #10b981;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  clip-path: polygon(7% 0%, 93% 0%, 100% 100%, 0% 100%);
+  box-shadow:
+    0 0 10px rgba(16, 185, 129, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gantry-next-chip span {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #a7f3d0;
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gantry-console-screen {
+  position: relative;
+  width: 234px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #374656 0%, #253341 50%, #151f29 100%);
+  border: 2px solid #080d14;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1.5px 0 #5f7488,
+    0 6px 16px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.gantry-screen-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.gantry-screen-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+.gantry-flank-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 16px;
+  filter: drop-shadow(0 0 4px #10b981);
+}
+
+.gantry-multiplier-readout {
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 900;
+  color: #e0faff;
+  text-shadow:
+    0 0 16px rgba(0, 240, 255, 0.85),
+    0 0 4px #00f0ff,
+    0 2px 0 #000000;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  flex: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.gantry-status-capsule {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 15px;
+  padding: 0 12px;
+  background: #070e16;
+  border: 1px solid #162230;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 4;
+  white-space: nowrap;
+  max-width: 90%;
+}
+
+.gantry-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  flex-shrink: 0;
+  animation: gantryPulse 2s infinite ease-in-out;
+}
+
+@keyframes gantryPulse {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+    box-shadow: 0 0 10px #10b981, 0 0 14px rgba(16, 185, 129, 0.6);
+  }
+}
+
+.gantry-status-text {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+/* --- RIGHT WING BUTTONS & BALANCE --- */
+.gantry-btn-cluster {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.gantry-icon-btn {
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #243140 0%, #17202a 100%);
+  border: 1.5px solid #37485c;
+  border-radius: 5px;
+  color: #cbd5e1;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.gantry-icon-btn:hover {
+  background: linear-gradient(180deg, #2d3d4f 0%, #1e2a37 100%);
+  color: #ffffff;
+  border-color: #4b627d;
+}
+
+.gantry-icon-btn.active {
+  color: #38bdf8;
+  border-color: #0284c7;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+.gantry-icon-btn .btn-glyph {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.gantry-divider {
+  width: 1px;
+  height: 18px;
+  background: #2b3947;
+  margin: 0 1px;
+  flex-shrink: 0;
+}
+
+.gantry-pill-btn {
+  height: 21px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.gantry-pill-btn.green {
+  background: #142822;
+  border: 1.5px solid #10b981;
+  color: #34d399;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 6px rgba(16, 185, 129, 0.3);
+}
+
+.gantry-pill-btn.green:hover {
+  background: #19382f;
+  color: #6ee7b7;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.gantry-pill-btn.blue {
+  background: #152238;
+  border: 1.5px solid #2563eb;
+  color: #60a5fa;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 6px rgba(37, 99, 235, 0.3);
+}
+
+.gantry-pill-btn.blue:hover {
+  background: #1c3052;
+  color: #93c5fd;
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+}
+
+.gantry-balance-capsule {
+  height: 33px;
+  padding: 2px 8px;
+  background: linear-gradient(180deg, #101822 0%, #070c12 100%);
+  border: 1.8px solid #233140;
+  border-radius: 5px;
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+  min-width: 84px;
+  flex-shrink: 0;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.gantry-balance-capsule:hover {
+  border-color: #3b526b;
+}
+
+.gantry-balance-label {
+  font-family: var(--font-sans);
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #64748b;
+  line-height: 1;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.gantry-balance-value {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  font-variant-numeric: tabular-nums;
 }
 
 .brand-telemetry-stack {
