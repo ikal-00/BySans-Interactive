@@ -101,16 +101,16 @@ export function createControlsUI(
         return closest;
     }
 
-    // 1. PRODUCTION TOP UNIFIED CYBER-AVIONICS GANTRY HUD (Exact Continuous Metallic Cockpit Console)
+    // 1. PRODUCTION TOP UNIFIED CYBER-AVIONICS GANTRY HUD (3x Thicker Armored Canopy)
     topHeader.innerHTML = `
       <div class="top-gantry-hud" id="top-gantry-hud">
         <!-- ZONE 1: LEFT WING + CONDUIT BRIDGE (1fr) -->
         <div class="gantry-zone gantry-zone-left">
-          <!-- Left Wing -->
+          <!-- Left Wing (3x Height) -->
           <div class="gantry-wing gantry-wing-left">
             <!-- Brand Button -->
             <div class="gantry-brand-btn" title="Endless Descent">
-              <svg class="gantry-brand-arrow" width="9" height="9" viewBox="0 0 24 24" fill="#93c5fd">
+              <svg class="gantry-brand-arrow" width="14" height="14" viewBox="0 0 24 24" fill="#93c5fd">
                 <polygon points="12 4 22 20 2 20"/>
               </svg>
               <span class="gantry-brand-title">${t.gameTitle}</span>
@@ -118,38 +118,42 @@ export function createControlsUI(
 
             <!-- Quantum Starfighter Radar Hologram -->
             <div class="gantry-radar-emblem" title="Quantum Radar Telemetry">
-              <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-                <circle cx="16" cy="16" r="13" stroke="#00f0ff" stroke-width="0.8" stroke-dasharray="2,3" opacity="0.35"/>
-                <circle cx="16" cy="16" r="8" stroke="#00f0ff" stroke-width="0.8" opacity="0.25"/>
-                <circle cx="8" cy="12" r="1.5" fill="#00f0ff" opacity="0.9"/>
-                <circle cx="24" cy="9" r="1.2" fill="#38bdf8" opacity="0.8"/>
-                <circle cx="23" cy="23" r="1.4" fill="#00f0ff" opacity="0.85"/>
-                <path d="M23 11 L17 16 L23 21 L19 21 L14 17.5 L8 17.5 L6 19.5 L6 12.5 L8 14.5 L14 14.5 L19 11 Z" fill="#38bdf8" stroke="#00f0ff" stroke-width="1.2" stroke-linejoin="round"/>
+              <svg width="44" height="44" viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="28" stroke="#00f0ff" stroke-width="1.2" stroke-dasharray="3,4" opacity="0.35"/>
+                <circle cx="32" cy="32" r="18" stroke="#00f0ff" stroke-width="1" opacity="0.25"/>
+                <circle cx="32" cy="32" r="8" stroke="#00f0ff" stroke-width="0.8" opacity="0.2"/>
+                <circle cx="14" cy="22" r="2.5" fill="#00f0ff" opacity="0.9"/>
+                <circle cx="50" cy="18" r="2" fill="#38bdf8" opacity="0.8"/>
+                <circle cx="46" cy="48" r="2.2" fill="#00f0ff" opacity="0.85"/>
+                <path d="M46 22 L34 32 L46 42 L38 42 L28 35 L16 35 L12 39 L12 25 L16 29 L28 29 L38 22 Z" fill="#38bdf8" stroke="#00f0ff" stroke-width="2" stroke-linejoin="round"/>
               </svg>
             </div>
 
-            <!-- Left Angled Transition Bracket with Dual Vent Slits -->
+            <!-- Left Angled Transition Bracket with Dual Vent Slits (84px Height) -->
             <div class="gantry-bracket gantry-bracket-left">
-              <svg width="44" height="46" viewBox="0 0 44 46" fill="none">
-                <polygon points="0,0 16,0 44,12 44,34 16,46 0,46" fill="url(#gantry-steel-grad)" stroke="#080d14" stroke-width="2" stroke-linejoin="round"/>
-                <line x1="0" y1="1" x2="16" y2="1" stroke="#5d7184" stroke-width="1.5"/>
-                <line x1="16" y1="1" x2="44" y2="13" stroke="#5d7184" stroke-width="1.5"/>
-                <line x1="0" y1="45" x2="16" y2="45" stroke="#0a0f16" stroke-width="1.5"/>
-                <line x1="16" y1="45" x2="44" y2="33" stroke="#0a0f16" stroke-width="1.5"/>
-                <line x1="8" y1="5" x2="13" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="14" y1="5" x2="19" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="20" y1="5" x2="25" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="8" y1="41" x2="13" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
-                <line x1="14" y1="41" x2="19" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
-                <line x1="20" y1="41" x2="25" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+              <svg width="52" height="84" viewBox="0 0 52 84" fill="none">
+                <polygon points="0,0 18,0 52,22 52,62 18,84 0,84" fill="url(#gantry-steel-grad)" stroke="#080d14" stroke-width="2.6" stroke-linejoin="round"/>
+                <line x1="0" y1="2" x2="18" y2="2" stroke="#5d7184" stroke-width="2.2"/>
+                <line x1="18" y1="2" x2="52" y2="23.5" stroke="#5d7184" stroke-width="2.2"/>
+                <line x1="0" y1="82" x2="18" y2="82" stroke="#0a0f16" stroke-width="2.2"/>
+                <line x1="18" y1="82" x2="52" y2="60.5" stroke="#0a0f16" stroke-width="2.2"/>
+                <!-- Upper 3 Cyan Slits -->
+                <line x1="10" y1="9" x2="20" y2="19" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+                <line x1="20" y1="9" x2="30" y2="19" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+                <line x1="30" y1="9" x2="40" y2="19" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+                <!-- Lower 3 Emerald Slits -->
+                <line x1="10" y1="75" x2="20" y2="65" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                <line x1="20" y1="75" x2="30" y2="65" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                <line x1="30" y1="75" x2="40" y2="65" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
               </svg>
             </div>
           </div>
 
-          <!-- Left Bridge Conduit Rail -->
+          <!-- Left Bridge Conduit Rail (3x Thicker Rail) -->
           <div class="gantry-bridge gantry-bridge-left">
             <div class="bridge-rail-track">
-              <div class="bridge-rail-groove"></div>
+              <div class="bridge-rail-groove top-groove"></div>
+              <div class="bridge-rail-groove bottom-groove"></div>
             </div>
             <div class="bridge-dock-group">
               <div class="bridge-hash-ticks">
@@ -162,15 +166,15 @@ export function createControlsUI(
                 <span class="rivet r-br"></span>
               </div>
               <div class="bridge-chevron-interface right-pointing">
-                <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
-                  <path d="M3 2L9 8L3 14" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <svg width="18" height="24" viewBox="0 0 18 24" fill="none">
+                  <path d="M4 3L14 12L4 21" stroke="#10b981" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ZONE 2: CENTER HERO MULTIPLIER CONSOLE (Dead-Center Column) -->
+        <!-- ZONE 2: CENTER HERO MULTIPLIER CONSOLE (Dead-Center Column, 3x Scale) -->
         <div class="gantry-center-console" id="mult-hero-wrap">
           <!-- Top Hex/Trapezoid Chip -->
           <div class="gantry-next-chip">
@@ -179,25 +183,25 @@ export function createControlsUI(
 
           <!-- Main Console Cockpit Display Frame -->
           <div class="gantry-console-screen">
-            <svg class="gantry-screen-svg" viewBox="0 0 240 44" preserveAspectRatio="none">
-              <polygon points="12,2 228,2 238,12 238,32 228,42 12,42 2,32 2,12" fill="url(#gantry-screen-grad)" stroke="#00f0ff" stroke-width="1.6" opacity="0.85"/>
+            <svg class="gantry-screen-svg" viewBox="0 0 400 76" preserveAspectRatio="none">
+              <polygon points="16,3 384,3 397,16 397,60 384,73 16,73 3,60 3,16" fill="url(#gantry-screen-grad)" stroke="#00f0ff" stroke-width="2.2" opacity="0.9"/>
             </svg>
 
             <!-- Screen Content -->
             <div class="gantry-screen-body">
               <!-- Flank Inward Chevrons -->
               <div class="gantry-flank-chevron left">
-                <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
-                  <path d="M3 2L8 7L3 12" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                <svg width="16" height="22" viewBox="0 0 16 22" fill="none">
+                  <path d="M4 3L12 11L4 19" stroke="#10b981" stroke-width="3.2" stroke-linecap="round"/>
                 </svg>
               </div>
 
-              <!-- Hero Multiplier Value -->
+              <!-- Giant Hero Multiplier Value -->
               <div class="gantry-multiplier-readout" id="mult-hero-value">1.00x</div>
 
               <div class="gantry-flank-chevron right">
-                <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
-                  <path d="M7 2L2 7L7 12" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
+                <svg width="16" height="22" viewBox="0 0 16 22" fill="none">
+                  <path d="M12 3L4 11L12 19" stroke="#10b981" stroke-width="3.2" stroke-linecap="round"/>
                 </svg>
               </div>
             </div>
@@ -212,12 +216,12 @@ export function createControlsUI(
 
         <!-- ZONE 3: CONDUIT BRIDGE + RIGHT WING (1fr) -->
         <div class="gantry-zone gantry-zone-right">
-          <!-- Right Bridge Conduit Rail -->
+          <!-- Right Bridge Conduit Rail (3x Thicker Rail) -->
           <div class="gantry-bridge gantry-bridge-right">
             <div class="bridge-dock-group">
               <div class="bridge-chevron-interface left-pointing">
-                <svg width="12" height="16" viewBox="0 0 12 16" fill="none">
-                  <path d="M9 2L3 8L9 14" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <svg width="18" height="24" viewBox="0 0 18 24" fill="none">
+                  <path d="M14 3L4 12L14 21" stroke="#10b981" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
               <div class="bridge-access-plate">
@@ -231,33 +235,36 @@ export function createControlsUI(
               </div>
             </div>
             <div class="bridge-rail-track">
-              <div class="bridge-rail-groove"></div>
+              <div class="bridge-rail-groove top-groove"></div>
+              <div class="bridge-rail-groove bottom-groove"></div>
             </div>
           </div>
 
-          <!-- Right Wing -->
+          <!-- Right Wing (3x Height) -->
           <div class="gantry-wing gantry-wing-right">
-            <!-- Right Angled Transition Bracket with Dual Vent Slits -->
+            <!-- Right Angled Transition Bracket with Dual Vent Slits (84px Height) -->
             <div class="gantry-bracket gantry-bracket-right">
-              <svg width="44" height="46" viewBox="0 0 44 46" fill="none">
-                <polygon points="44,0 28,0 0,12 0,34 28,46 44,46" fill="url(#gantry-steel-grad)" stroke="#080d14" stroke-width="2" stroke-linejoin="round"/>
-                <line x1="44" y1="1" x2="28" y2="1" stroke="#5d7184" stroke-width="1.5"/>
-                <line x1="28" y1="1" x2="0" y2="13" stroke="#5d7184" stroke-width="1.5"/>
-                <line x1="44" y1="45" x2="28" y2="45" stroke="#0a0f16" stroke-width="1.5"/>
-                <line x1="28" y1="45" x2="0" y2="33" stroke="#0a0f16" stroke-width="1.5"/>
-                <line x1="36" y1="5" x2="31" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="30" y1="5" x2="25" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="24" y1="5" x2="19" y2="10" stroke="#00f0ff" stroke-width="2" stroke-linecap="round"/>
-                <line x1="36" y1="41" x2="31" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
-                <line x1="30" y1="41" x2="25" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
-                <line x1="24" y1="41" x2="19" y2="36" stroke="#10b981" stroke-width="2" stroke-linecap="round"/>
+              <svg width="52" height="84" viewBox="0 0 52 84" fill="none">
+                <polygon points="52,0 34,0 0,22 0,62 34,84 52,84" fill="url(#gantry-steel-grad)" stroke="#080d14" stroke-width="2.6" stroke-linejoin="round"/>
+                <line x1="52" y1="2" x2="34" y2="2" stroke="#5d7184" stroke-width="2.2"/>
+                <line x1="34" y1="2" x2="0" y2="23.5" stroke="#5d7184" stroke-width="2.2"/>
+                <line x1="52" y1="82" x2="34" y2="82" stroke="#0a0f16" stroke-width="2.2"/>
+                <line x1="34" y1="82" x2="0" y2="60.5" stroke="#0a0f16" stroke-width="2.2"/>
+                <!-- Upper 3 Cyan Slits -->
+                <line x1="42" y1="9" x2="32" y2="19" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+                <line x1="32" y1="9" x2="22" y2="19" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+                <line x1="22" y1="9" x2="12" y2="19" stroke="#00f0ff" stroke-width="3" stroke-linecap="round"/>
+                <!-- Lower 3 Emerald Slits -->
+                <line x1="42" y1="75" x2="32" y2="65" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                <line x1="32" y1="75" x2="22" y2="65" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+                <line x1="22" y1="75" x2="12" y2="65" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
               </svg>
             </div>
 
-            <!-- Action Button Cluster -->
+            <!-- Action Button Cluster (3x Scale) -->
             <div class="gantry-btn-cluster">
               <button class="gantry-icon-btn" id="btn-settings" type="button" title="Ajustes">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="3"/>
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                 </svg>
@@ -268,13 +275,13 @@ export function createControlsUI(
               </button>
               <div class="gantry-divider"></div>
               <button class="gantry-icon-btn active" id="btn-audio" type="button" title="${t.soundToggleTitle}">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
                 <span id="audio-label" class="sr-only">${lang === 'es' ? 'Sonido' : 'Sound'}</span>
               </button>
               <button class="gantry-icon-btn" id="btn-stats" type="button" title="Historial / Estadísticas">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                 </svg>
               </button>
@@ -282,7 +289,7 @@ export function createControlsUI(
               <button class="gantry-pill-btn blue" id="btn-dev-modal-toggle" type="button" title="Panel Developer (Atajo: D)">+DEV</button>
             </div>
 
-            <!-- Recessed Avionics Balance Display Screen -->
+            <!-- Recessed Avionics Balance Display Screen (3x Scale) -->
             <div class="gantry-balance-capsule balance-pill" title="${t.balanceLabel}">
               <div class="gantry-balance-label" id="balance-title-label">${isReplay ? t.replayBadge : (lang === 'es' ? 'SALDO' : 'BALANCE')}</div>
               <div class="gantry-balance-value" id="hud-balance">${stakeRGS.formatCurrency(isReplay && stakeRGS.session.replayParams ? stakeRGS.session.replayParams.amount : engine.balance)}</div>
@@ -294,9 +301,9 @@ export function createControlsUI(
         <svg width="0" height="0" style="position: absolute; pointer-events: none;" aria-hidden="true">
           <defs>
             <linearGradient id="gantry-steel-grad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#3a4857"/>
-              <stop offset="50%" stop-color="#273442"/>
-              <stop offset="100%" stop-color="#17222d"/>
+              <stop offset="0%" stop-color="#3e4d5d"/>
+              <stop offset="50%" stop-color="#283543"/>
+              <stop offset="100%" stop-color="#18232e"/>
             </linearGradient>
             <linearGradient id="gantry-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stop-color="#0e1722"/>
