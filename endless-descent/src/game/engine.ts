@@ -52,7 +52,7 @@ export class GameEngine {
     public serverSeed: string = '';
     public clientSeed: string = '';
     public previousServerSeed: string = '';
-    public nonce: number = 0;
+    public nonce: number = 1;
 
     // Round state tracking
     public currentPicks: RoundPick[] = [];
@@ -87,7 +87,9 @@ export class GameEngine {
             }
             const savedNonce = localStorage.getItem('endless_descent_nonce');
             if (savedNonce) {
-                this.nonce = parseInt(savedNonce, 10) || 0;
+                this.nonce = Math.max(1, parseInt(savedNonce, 10) || 1);
+            } else {
+                this.nonce = 1;
             }
         } catch {
             // Ignore in headless/Node environments
@@ -221,7 +223,6 @@ export class GameEngine {
         this.lastCrashedLane = null;
         this.currentPicks = [];
         this.alienDestroyedRows.clear();
-        this.nonce++;
         this.persistState();
 
         // Deduct base wager from balance
@@ -390,6 +391,8 @@ export class GameEngine {
 
         this.previousServerSeed = this.serverSeed;
         this.serverSeed = generateServerSeed();
+        this.nonce++;
+        this.persistState();
 
         this.stepListeners.forEach((fn) => fn(pick, this));
         this.emitStateChange(GameState.CRASHED);
@@ -467,6 +470,8 @@ export class GameEngine {
 
         this.previousServerSeed = this.serverSeed;
         this.serverSeed = generateServerSeed();
+        this.nonce++;
+        this.persistState();
 
         this.emitStateChange(GameState.WON);
         this.emitHistoryUpdate();

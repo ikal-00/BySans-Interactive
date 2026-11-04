@@ -87,7 +87,7 @@ export function createSeedModal(_container: HTMLElement, engine: GameEngine) {
                         </div>
                         <div>
                             <label class="text-[10px] text-[#8ea4b8] font-extrabold uppercase block mb-1">Nonce</label>
-                            <input type="number" id="audit-nonce" class="w-full bg-[#1a2c38] border border-[#2f4553] rounded p-2 text-xs font-mono text-white outline-none tabular-nums" value="${Math.max(1, engine.nonce)}" min="1" />
+                            <input type="number" id="audit-nonce" class="w-full bg-[#1a2c38] border border-[#2f4553] rounded p-2 text-xs font-mono text-white outline-none tabular-nums" value="${engine.recentSummaries[0]?.nonce ?? Math.max(1, engine.nonce)}" min="1" />
                         </div>
                         <div>
                             <label class="text-[10px] text-[#8ea4b8] font-extrabold uppercase block mb-1">Fila (Row)</label>
