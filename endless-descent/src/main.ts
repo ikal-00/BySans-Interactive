@@ -91,12 +91,3 @@ if (new URLSearchParams(window.location.search).has('shield')) {
     engine.shieldPurchased = true;
     renderer.ship.setShieldActive(true, false);
 }
-
-if (new URLSearchParams(window.location.search).has('test_impact')) {
-    engine.shieldPurchased = true;
-    renderer.ship.setShieldActive(true, false);
-    setTimeout(() => {
-        renderer.ship.triggerShieldImpact(0, 0.9, 0);
-        (renderer as any).vfx.spawnShieldDeflect3D(0, 0.9, 0);
-    }, 150);
-}

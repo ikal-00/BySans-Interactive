@@ -1452,6 +1452,7 @@ body {
   display: flex;
   flex-direction: column;
   z-index: 25;
+  pointer-events: none;
   box-shadow: none;
   filter: drop-shadow(0 -8px 26px rgba(0, 0, 0, 0.72));
   transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), filter 0.24s ease;
@@ -1475,6 +1476,7 @@ body {
 .betting-panel-main-row {
   position: relative;
   z-index: 2;
+  pointer-events: auto;
   display: grid;
   grid-template-columns: minmax(250px, 1.24fr) minmax(205px, 0.96fr) minmax(146px, 0.68fr) minmax(250px, 1.16fr);
   gap: 18px;
@@ -3764,6 +3766,7 @@ body.rules-modal-open #rules-modal-overlay {
   justify-content: space-between;
   gap: 18px;
   width: 100%;
+  pointer-events: auto;
   padding: 12px 20px;
   background: rgba(15, 23, 42, 0.78);
   backdrop-filter: blur(12px);

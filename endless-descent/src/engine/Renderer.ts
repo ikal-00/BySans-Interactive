@@ -20,7 +20,7 @@ const STAR_PARTICLE_COUNT = 2200;
 const PLANET_COUNT = 6;
 const RING_ASTEROIDS_PER_PLANET = 48; // Lightweight optimized 3D ring asteroids (clean 60+ FPS)
 const SHOOTING_STAR_COUNT = 14;
-const HOVER_DEBOUNCE_MS = 90;
+const HOVER_DEBOUNCE_MS = 50;
 const SHIP_FLIGHT_Y = 2.1;
 
 interface FloatingMultiplierCard3D {
@@ -1204,8 +1204,8 @@ export class PixiRenderer {
      * Builds the 3D Cel-Shaded Floating Cardboard Mystery Boxes, Mini Sun, and ACME Cartoon Naval Bombs
      */
     private buildFloatingMultiplierCardsPool() {
-        // Tall stationary hitbox covers both resting crate AND lifted bonus crate (Y = -0.85..+5.95)
-        const hitboxGeo = new THREE.BoxGeometry(4.32, 6.8, 3.8);
+        // Tightly bounded hitbox matching the cardboard crate and its vertical lift trajectory (Y = 0.0..+4.4)
+        const hitboxGeo = new THREE.BoxGeometry(2.5, 4.4, 2.3);
         const hitboxMat = new THREE.MeshBasicMaterial({
             transparent: true,
             opacity: 0,
@@ -1348,9 +1348,9 @@ export class PixiRenderer {
                 const visualGroup = new THREE.Group();
                 group.add(visualGroup);
 
-                // 1. Stationary Oversized Invisible Hitbox (Covers both resting & lifted bonus crates 100%!)
+                // 1. Stationary Clean Hitbox (Centered to wrap both resting crate & lifted bonus crate)
                 const hitboxMesh = new THREE.Mesh(hitboxGeo, hitboxMat);
-                hitboxMesh.position.set(0, 2.55, 0);
+                hitboxMesh.position.set(0, 2.2, 0);
                 hitboxMesh.userData = { isVaultPlatform: true, slotIndex: s, lane };
                 group.add(hitboxMesh);
                 this.interactiveHitboxMeshes.push(hitboxMesh);
@@ -2114,26 +2114,11 @@ export class PixiRenderer {
             return;
         }
 
-        // Sticky Hysteresis: If we are already hovering a lane on the active row,
-        // keep it stably locked while the cursor stays within column vicinity
-        if (this.hoveredLane !== null && this.hoveredRow === currentRow) {
-            const slotIdx = (currentRow - 1) % VISIBLE_ROW_SLOTS;
-            const currentCard = this.rowSlots[slotIdx]?.[this.hoveredLane];
-            if (currentCard && currentCard.group.visible) {
-                const distNdc = Math.hypot(ndcX - this.lastHoverNdc.x, ndcY - this.lastHoverNdc.y);
-                if (distNdc < 0.24) {
-                    this.lastValidHoverTime = now;
-                    this.canvas.style.cursor = 'pointer';
-                    return;
-                }
-            }
-        }
-
-        const cursorDelta = Math.hypot(ndcX - this.lastHoverNdc.x, ndcY - this.lastHoverNdc.y);
+        // Brief anti-flicker grace period so moving across subpixel ray boundaries never chatters
         if (
             this.hoveredLane !== null &&
             this.hoveredRow === currentRow &&
-            (now - this.lastValidHoverTime < HOVER_DEBOUNCE_MS || cursorDelta < 0.085)
+            now - this.lastValidHoverTime < HOVER_DEBOUNCE_MS
         ) {
             this.canvas.style.cursor = 'pointer';
             return;
