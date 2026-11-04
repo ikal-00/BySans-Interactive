@@ -21,6 +21,7 @@ export interface RowSpecialConfig {
     alienLane: number | null;
     alienBoost: number;
     alienSkipRows: number;
+    catLane?: number | null;
 }
 
 export interface BonusConfig {

@@ -44,6 +44,7 @@ export interface PBRTexturePack {
     ufoSaucerTex: THREE.CanvasTexture;
     ufoBellyTex: THREE.CanvasTexture;
     ufoCollarTex: THREE.CanvasTexture;
+    catFurTex: THREE.CanvasTexture;
 }
 
 // =============================================================================
@@ -1790,6 +1791,55 @@ export function createPBRTexturePack(): PBRTexturePack {
     ufoCollarTex.wrapS = THREE.RepeatWrapping;
     ufoCollarTex.colorSpace = THREE.SRGBColorSpace;
 
+    // =========================================================================
+    // 5D. SATIN COMIC BLACK CAT TEXTURE (Matching media_1793758160382_981c78d1.jpg)
+    // =========================================================================
+    function createCatFurCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        ctx.fillStyle = '#16171d';
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Comic fur hatching in dark slate
+        ctx.strokeStyle = '#282b37';
+        ctx.lineWidth = 2.5;
+        for (let i = 0; i < 350; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const len = 10 + Math.random() * 16;
+            const ang = 0.35 + (Math.random() - 0.5) * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+            ctx.stroke();
+        }
+
+        // Cool bluish fur sheen
+        ctx.strokeStyle = 'rgba(100, 116, 139, 0.35)';
+        ctx.lineWidth = 1.6;
+        for (let i = 0; i < 180; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const len = 8 + Math.random() * 12;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + len, y + len * 0.4);
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+    const catFurCanvas = createCatFurCanvas();
+    const catFurTex = new THREE.CanvasTexture(catFurCanvas);
+    catFurTex.wrapS = THREE.RepeatWrapping;
+    catFurTex.wrapT = THREE.RepeatWrapping;
+    catFurTex.repeat.set(2, 2);
+    catFurTex.colorSpace = THREE.SRGBColorSpace;
+
     // Upgrade synchronously-initialized canvas textures with the extracted reference PNG assets
     if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
         const texLoader = new THREE.TextureLoader();
@@ -1904,7 +1954,8 @@ export function createPBRTexturePack(): PBRTexturePack {
         ufoDomeTex,
         ufoSaucerTex,
         ufoBellyTex,
-        ufoCollarTex
+        ufoCollarTex,
+        catFurTex
     };
 }
 

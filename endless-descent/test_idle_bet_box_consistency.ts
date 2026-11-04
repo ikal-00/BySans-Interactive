@@ -49,6 +49,17 @@ for (let round = 1; round <= 5; round++) {
             playingSpecials.goldenBoost === idleSpecials[r - 1].goldenBoost,
             `Row ${r} goldenBoost must match!`
         );
+        assert(
+            playingSpecials.catLane === idleSpecials[r - 1].catLane,
+            `Row ${r} catLane must match! IDLE: ${idleSpecials[r - 1].catLane}, PLAYING: ${playingSpecials.catLane}`
+        );
+        if (playingSpecials.catLane !== null) {
+            assert(
+                playingSpecials.catLane !== playingSpecials.goldenLane &&
+                playingSpecials.catLane !== playingSpecials.alienLane,
+                `Row ${r} catLane must be on a normal box only!`
+            );
+        }
     }
     console.log(`✅ Boxes on rows 1..5 are 100% IDENTICAL before and after clicking Bet!`);
 

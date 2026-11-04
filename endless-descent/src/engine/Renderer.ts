@@ -58,6 +58,13 @@ interface FloatingMultiplierCard3D {
     alienRelicRing: THREE.Mesh;
     mineGroup: THREE.Group;
 
+    // 3D Comic Black Cat (Sitting on top of normal crates licking its paws)
+    catGroup: THREE.Group;
+    catElbowPivot: THREE.Group;
+    catHeadPivot: THREE.Group;
+    catTongue: THREE.Mesh;
+    catTailSegments: THREE.Group[];
+
     badgeCanvas: HTMLCanvasElement;
     badgeTex: THREE.CanvasTexture;
     badgeSprite: THREE.Sprite;
@@ -1414,6 +1421,301 @@ export class PixiRenderer {
             blending: THREE.AdditiveBlending
         });
 
+        // =====================================================================
+        // 3D COMIC BLACK CAT ASSET (Matching media_1793758160382_981c78d1.jpg)
+        // =====================================================================
+        const catFurMat = new THREE.MeshStandardMaterial({
+            map: this.textures.catFurTex,
+            color: 0x181920,
+            roughness: 0.65,
+            metalness: 0.05
+        });
+        const catInnerEarMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
+        const catEyeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+        const catPupilMat = new THREE.MeshBasicMaterial({ color: 0x050608 });
+        const catHighlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const catTongueMat = new THREE.MeshBasicMaterial({ color: 0xfb7185 });
+        const catClawMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+
+        const catTorsoGeo = new THREE.SphereGeometry(0.36, 16, 12);
+        const catBibGeo = new THREE.ConeGeometry(0.24, 0.32, 10);
+        const catHaunchGeo = new THREE.SphereGeometry(0.28, 12, 10);
+        const catRearPawGeo = new THREE.SphereGeometry(0.10, 8, 6);
+        const catClawGeo = new THREE.ConeGeometry(0.018, 0.06, 4);
+        const catArmGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.42, 8);
+        const catFrontPawGeo = new THREE.SphereGeometry(0.11, 8, 6);
+        const catHeadGeo = new THREE.SphereGeometry(0.26, 16, 12);
+        const catCheekGeo = new THREE.ConeGeometry(0.13, 0.24, 6);
+        const catMuzzleGeo = new THREE.SphereGeometry(0.13, 10, 8);
+        const catNoseGeo = new THREE.ConeGeometry(0.03, 0.028, 3);
+        const catEarGeo = new THREE.ConeGeometry(0.12, 0.28, 4);
+        const catEarInnerGeo = new THREE.ConeGeometry(0.075, 0.22, 4);
+        const catEyeMeshGeo = new THREE.SphereGeometry(0.08, 12, 8);
+        const catPupilMeshGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.11, 6);
+        const catSpec1MeshGeo = new THREE.SphereGeometry(0.022, 6, 6);
+        const catSpec2MeshGeo = new THREE.SphereGeometry(0.012, 6, 6);
+        const catTongueGeo = new THREE.SphereGeometry(0.052, 8, 6);
+        const catUpperArmGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.26, 8);
+        const catLickForearmGeo = new THREE.CylinderGeometry(0.065, 0.07, 0.24, 8);
+        const catLickPawGeo = new THREE.SphereGeometry(0.095, 10, 8);
+        const catPadGeo = new THREE.SphereGeometry(0.036, 6, 6);
+        const catTailSegGeo = new THREE.CylinderGeometry(0.045, 0.060, 0.14, 8);
+
+        const buildCatForCrate = () => {
+            const catGroup = new THREE.Group();
+            catGroup.position.set(-0.05, 1.92, -0.05);
+            catGroup.scale.setScalar(1.15);
+            catGroup.visible = false;
+
+            const catRoot = new THREE.Group();
+            catGroup.add(catRoot);
+
+            // 1. Reclining Body Torso
+            const torsoGroup = new THREE.Group();
+            torsoGroup.position.set(0.0, 0.22, 0.0);
+            catRoot.add(torsoGroup);
+
+            const torsoMesh = new THREE.Mesh(catTorsoGeo, catFurMat);
+            torsoMesh.scale.set(0.85, 0.62, 1.45);
+            torsoMesh.rotation.set(0.08, -0.42, -0.06);
+            const torsoOutline = this.createOutline(catTorsoGeo, 0.04, torsoMesh.position, torsoMesh.rotation);
+            torsoOutline.scale.copy(torsoMesh.scale);
+            torsoGroup.add(torsoMesh, torsoOutline);
+
+            const bibMesh = new THREE.Mesh(catBibGeo, catFurMat);
+            bibMesh.position.set(-0.12, 0.02, 0.38);
+            bibMesh.rotation.set(1.3, -0.2, 0.3);
+            const bibOutline = this.createOutline(catBibGeo, 0.035, bibMesh.position, bibMesh.rotation);
+            torsoGroup.add(bibMesh, bibOutline);
+
+            // 2. Hindquarters & Haunches (resting folded on crate surface)
+            const rightHaunch = new THREE.Mesh(catHaunchGeo, catFurMat);
+            rightHaunch.scale.set(0.85, 0.72, 1.2);
+            rightHaunch.position.set(0.32, -0.02, -0.25);
+            rightHaunch.rotation.set(0.12, -0.3, 0.15);
+            const rightHaunchOutline = this.createOutline(catHaunchGeo, 0.038, rightHaunch.position, rightHaunch.rotation);
+            rightHaunchOutline.scale.copy(rightHaunch.scale);
+            torsoGroup.add(rightHaunch, rightHaunchOutline);
+
+            const leftHaunch = new THREE.Mesh(catHaunchGeo, catFurMat);
+            leftHaunch.scale.set(0.75, 0.65, 1.15);
+            leftHaunch.position.set(-0.16, -0.03, -0.34);
+            leftHaunch.rotation.set(0.1, 0.25, -0.15);
+            const leftHaunchOutline = this.createOutline(catHaunchGeo, 0.038, leftHaunch.position, leftHaunch.rotation);
+            leftHaunchOutline.scale.copy(leftHaunch.scale);
+            torsoGroup.add(leftHaunch, leftHaunchOutline);
+
+            const rearPaw = new THREE.Mesh(catRearPawGeo, catFurMat);
+            rearPaw.scale.set(0.85, 0.5, 1.35);
+            rearPaw.position.set(0.36, -0.15, -0.05);
+            torsoGroup.add(rearPaw);
+
+            for (let c = 0; c < 3; c++) {
+                const claw = new THREE.Mesh(catClawGeo, catClawMat);
+                claw.position.set(0.34 + c * 0.032, -0.16, 0.06);
+                claw.rotation.x = Math.PI / 2;
+                torsoGroup.add(claw);
+            }
+
+            // 3. Right Front Extended Arm (stretched flat forward on crate)
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(-0.22, -0.05, 0.28);
+            torsoGroup.add(rightArmGroup);
+
+            const rightArmMesh = new THREE.Mesh(catArmGeo, catFurMat);
+            rightArmMesh.position.set(-0.14, -0.05, 0.16);
+            rightArmMesh.rotation.set(0.85, -0.3, 0.5);
+            const rightArmOutline = this.createOutline(catArmGeo, 0.032, rightArmMesh.position, rightArmMesh.rotation);
+            rightArmGroup.add(rightArmMesh, rightArmOutline);
+
+            const frontRightPaw = new THREE.Mesh(catFrontPawGeo, catFurMat);
+            frontRightPaw.scale.set(1.0, 0.5, 1.35);
+            frontRightPaw.position.set(-0.25, -0.16, 0.35);
+            rightArmGroup.add(frontRightPaw);
+
+            for (let c = 0; c < 3; c++) {
+                const claw = new THREE.Mesh(catClawGeo, catClawMat);
+                claw.position.set(-0.29 + c * 0.038, -0.16, 0.46);
+                claw.rotation.x = Math.PI / 2;
+                rightArmGroup.add(claw);
+            }
+
+            // 4. Cat Head & Face (Expressive, large golden eyes, slit pupils)
+            const headPivot = new THREE.Group();
+            headPivot.position.set(-0.14, 0.26, 0.46);
+            torsoGroup.add(headPivot);
+
+            const headMesh = new THREE.Mesh(catHeadGeo, catFurMat);
+            headMesh.scale.set(1.18, 0.94, 1.0);
+            const headOutline = this.createOutline(catHeadGeo, 0.038, headMesh.position);
+            headOutline.scale.copy(headMesh.scale);
+            headPivot.add(headMesh, headOutline);
+
+            const leftCheek = new THREE.Mesh(catCheekGeo, catFurMat);
+            leftCheek.position.set(-0.26, -0.06, 0.06);
+            leftCheek.rotation.set(0, 0, 1.45);
+            const rightCheek = new THREE.Mesh(catCheekGeo, catFurMat);
+            rightCheek.position.set(0.26, -0.06, 0.06);
+            rightCheek.rotation.set(0, 0, -1.45);
+            headPivot.add(leftCheek, rightCheek);
+
+            const muzzleMesh = new THREE.Mesh(catMuzzleGeo, catFurMat);
+            muzzleMesh.scale.set(1.22, 0.75, 1.0);
+            muzzleMesh.position.set(0.0, -0.08, 0.20);
+            const muzzleOutline = this.createOutline(catMuzzleGeo, 0.03, muzzleMesh.position);
+            muzzleOutline.scale.copy(muzzleMesh.scale);
+            headPivot.add(muzzleMesh, muzzleOutline);
+
+            const noseMesh = new THREE.Mesh(catNoseGeo, catInnerEarMat);
+            noseMesh.position.set(0.0, -0.05, 0.32);
+            noseMesh.rotation.x = Math.PI / 2;
+            noseMesh.rotation.z = Math.PI;
+            headPivot.add(noseMesh);
+
+            const leftEar = new THREE.Mesh(catEarGeo, catFurMat);
+            leftEar.position.set(-0.16, 0.23, 0.02);
+            leftEar.rotation.set(-0.08, 0.1, 0.28);
+            const leftEarOutline = this.createOutline(catEarGeo, 0.032, leftEar.position, leftEar.rotation);
+            const leftEarInner = new THREE.Mesh(catEarInnerGeo, catInnerEarMat);
+            leftEarInner.position.set(-0.15, 0.22, 0.05);
+            leftEarInner.rotation.copy(leftEar.rotation);
+            headPivot.add(leftEar, leftEarOutline, leftEarInner);
+
+            const rightEar = new THREE.Mesh(catEarGeo, catFurMat);
+            rightEar.position.set(0.17, 0.23, 0.02);
+            rightEar.rotation.set(-0.08, -0.1, -0.28);
+            const rightEarOutline = this.createOutline(catEarGeo, 0.032, rightEar.position, rightEar.rotation);
+            const rightEarInner = new THREE.Mesh(catEarInnerGeo, catInnerEarMat);
+            rightEarInner.position.set(0.16, 0.22, 0.05);
+            rightEarInner.rotation.copy(rightEar.rotation);
+            headPivot.add(rightEar, rightEarOutline, rightEarInner);
+
+            const buildCatEye = (isLeft: boolean) => {
+                const eyeGroup = new THREE.Group();
+                const sign = isLeft ? -1 : 1;
+                eyeGroup.position.set(sign * 0.115, 0.035, 0.21);
+                eyeGroup.rotation.set(-0.06, sign * -0.22, sign * 0.15);
+
+                const blackRing = new THREE.Mesh(catEyeMeshGeo, catPupilMat);
+                blackRing.scale.set(1.24, 1.44, 0.6);
+
+                const iris = new THREE.Mesh(catEyeMeshGeo, catEyeMat);
+                iris.scale.set(1.16, 1.35, 0.55);
+                iris.position.z = 0.012;
+
+                const pupil = new THREE.Mesh(catPupilMeshGeo, catPupilMat);
+                pupil.position.set(0, 0, 0.045);
+                pupil.scale.set(0.38, 1.3, 0.38);
+
+                const s1 = new THREE.Mesh(catSpec1MeshGeo, catHighlightMat);
+                s1.position.set(0.026, 0.036, 0.06);
+                const s2 = new THREE.Mesh(catSpec2MeshGeo, catHighlightMat);
+                s2.position.set(-0.022, -0.028, 0.06);
+
+                eyeGroup.add(blackRing, iris, pupil, s1, s2);
+                return eyeGroup;
+            };
+
+            headPivot.add(buildCatEye(true), buildCatEye(false));
+
+            // Whiskers
+            const whiskerMat = new THREE.LineBasicMaterial({ color: 0xf8fafc, linewidth: 2 });
+            for (let side = -1; side <= 1; side += 2) {
+                for (let w = 0; w < 3; w++) {
+                    const ang = (w - 1) * 0.22;
+                    const whiskerGeo = new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(side * 0.11, -0.07, 0.24),
+                        new THREE.Vector3(side * (0.34 + Math.abs(ang) * 0.08), -0.05 + ang * 0.12, 0.26 + Math.cos(ang) * 0.06)
+                    ]);
+                    const whisker = new THREE.Line(whiskerGeo, whiskerMat);
+                    headPivot.add(whisker);
+                }
+            }
+
+            // Pink Tongue
+            const tongueMesh = new THREE.Mesh(catTongueGeo, catTongueMat);
+            tongueMesh.scale.set(0.85, 0.32, 1.25);
+            tongueMesh.position.set(0.03, -0.12, 0.24);
+            tongueMesh.rotation.set(0.25, 0.25, -0.15);
+            headPivot.add(tongueMesh);
+
+            // 5. Left Front Arm & Curled Licking Paw
+            const lickShoulder = new THREE.Group();
+            lickShoulder.position.set(0.12, -0.02, 0.30);
+            torsoGroup.add(lickShoulder);
+
+            const upperArmMesh = new THREE.Mesh(catUpperArmGeo, catFurMat);
+            upperArmMesh.position.set(-0.02, 0.08, 0.02);
+            upperArmMesh.rotation.set(-0.5, -0.25, -0.35);
+            const upperArmOutline = this.createOutline(catUpperArmGeo, 0.03, upperArmMesh.position, upperArmMesh.rotation);
+            lickShoulder.add(upperArmMesh, upperArmOutline);
+
+            const catElbowPivot = new THREE.Group();
+            catElbowPivot.position.set(-0.06, 0.16, 0.08);
+            lickShoulder.add(catElbowPivot);
+
+            const lickForearmMesh = new THREE.Mesh(catLickForearmGeo, catFurMat);
+            lickForearmMesh.position.set(-0.04, 0.06, 0.06);
+            lickForearmMesh.rotation.set(0.9, 0.25, 0.5);
+            const lickForearmOutline = this.createOutline(catLickForearmGeo, 0.03, lickForearmMesh.position, lickForearmMesh.rotation);
+            catElbowPivot.add(lickForearmMesh, lickForearmOutline);
+
+            const lickPawMesh = new THREE.Mesh(catLickPawGeo, catFurMat);
+            lickPawMesh.scale.set(1.0, 0.7, 1.2);
+            lickPawMesh.position.set(-0.08, 0.15, 0.12);
+            lickPawMesh.rotation.set(0.65, 0.35, 0.4);
+            const lickPawOutline = this.createOutline(catLickPawGeo, 0.03, lickPawMesh.position);
+            lickPawOutline.scale.copy(lickPawMesh.scale);
+            catElbowPivot.add(lickPawMesh, lickPawOutline);
+
+            const padMesh = new THREE.Mesh(catPadGeo, catInnerEarMat);
+            padMesh.scale.set(1.1, 0.4, 1.0);
+            padMesh.position.set(-0.08, 0.16, 0.10);
+            padMesh.rotation.copy(lickPawMesh.rotation);
+            catElbowPivot.add(padMesh);
+
+            for (let c = 0; c < 3; c++) {
+                const claw = new THREE.Mesh(catClawGeo, catClawMat);
+                claw.position.set(-0.11 + c * 0.026, 0.20, 0.15);
+                claw.rotation.set(-0.7, 0.25, -0.2);
+                catElbowPivot.add(claw);
+            }
+
+            // 6. Long Tail Sweeping to the Right in S-Curve
+            const tailGroup = new THREE.Group();
+            tailGroup.position.set(0.20, -0.06, -0.42);
+            torsoGroup.add(tailGroup);
+
+            const catTailSegments: THREE.Group[] = [];
+            let parentJoint = tailGroup;
+            const segmentCount = 9;
+            for (let i = 0; i < segmentCount; i++) {
+                const joint = new THREE.Group();
+                joint.position.set(0.08, 0.01, 0.05);
+                parentJoint.add(joint);
+
+                const segMesh = new THREE.Mesh(catTailSegGeo, catFurMat);
+                const s = 1.0 - i * 0.06;
+                segMesh.scale.set(s, s, s);
+                segMesh.rotation.z = -Math.PI / 2.8;
+                segMesh.position.set(0.04, 0.02, 0.02);
+                const segOutline = this.createOutline(catTailSegGeo, 0.02, segMesh.position, segMesh.rotation);
+                segOutline.scale.copy(segMesh.scale);
+                joint.add(segMesh, segOutline);
+
+                catTailSegments.push(joint);
+                parentJoint = joint;
+            }
+
+            return {
+                catGroup,
+                catElbowPivot,
+                catHeadPivot: headPivot,
+                catTongue: tongueMesh,
+                catTailSegments
+            };
+        };
+
         for (let s = 0; s < VISIBLE_ROW_SLOTS; s++) {
             const slotRow: FloatingMultiplierCard3D[] = [];
             for (let lane = 0; lane < LANE_COUNT; lane++) {
@@ -1453,6 +1755,11 @@ export class PixiRenderer {
                 lidRight.add(lidFlapR, lidOutlineR);
 
                 mysteryBoxGroup.add(lidLeft, lidRight);
+
+                // Add 3D Comic Black Cat to the top of the mystery crate
+                const catData = buildCatForCrate();
+                mysteryBoxGroup.add(catData.catGroup);
+
                 visualGroup.add(mysteryBoxGroup);
 
                 // 3. Diffuse Atmospheric Background Glow (Integrated with cosmic space, NO separate floating aura or floor circle)
@@ -1624,6 +1931,11 @@ export class PixiRenderer {
                     alienRelicUfo,
                     alienRelicRing,
                     mineGroup,
+                    catGroup: catData.catGroup,
+                    catElbowPivot: catData.catElbowPivot,
+                    catHeadPivot: catData.catHeadPivot,
+                    catTongue: catData.catTongue,
+                    catTailSegments: catData.catTailSegments,
                     badgeCanvas,
                     badgeTex,
                     badgeSprite,
@@ -2642,6 +2954,7 @@ export class PixiRenderer {
                     plat.mineGroup.visible = false;
                     plat.diffuseHazeSprite.visible = false;
                     plat.badgeSprite.visible = false;
+                    plat.catGroup.visible = false;
                 }
                 plat.group.visible = true;
 
@@ -2769,6 +3082,42 @@ export class PixiRenderer {
                             plat.alienRelicUfo.rotation.z = Math.sin(this.elapsed * 3.2) * 0.08;
                         }
                         if (plat.alienRelicRing) plat.alienRelicRing.rotation.z = this.elapsed * 2.8;
+                    }
+                }
+
+                // 3D Comic Black Cat Presence & Animation (Max 1 per row, normal crates only)
+                const isCatBox = boxType === 'normal' && rowSpecials.catLane === lane;
+                const shouldShowCat = isCatBox && plat.mysteryBoxGroup.visible && !plat.isShattered;
+                plat.catGroup.visible = shouldShowCat;
+
+                if (shouldShowCat) {
+                    // 1. Rhythmic paw licking motion
+                    const lickCycle = Math.sin(this.elapsed * 5.4 + lane * 1.5 + rowNumber);
+                    plat.catElbowPivot.rotation.x = lickCycle * 0.18;
+                    plat.catElbowPivot.rotation.z = Math.cos(this.elapsed * 5.4 + lane * 1.5 + rowNumber) * 0.10;
+
+                    // 2. Head nod / tilt (looks up curiously towards camera if hovered!)
+                    if (isHovered) {
+                        plat.catHeadPivot.rotation.x = 0.16 + Math.sin(this.elapsed * 3.5) * 0.04;
+                        plat.catHeadPivot.rotation.y = 0.0;
+                        plat.catHeadPivot.rotation.z = 0.0;
+                    } else {
+                        plat.catHeadPivot.rotation.x = 0.06 + Math.sin(this.elapsed * 5.4 + lane * 1.5 + rowNumber + 0.35) * 0.08;
+                        plat.catHeadPivot.rotation.y = 0.14 + Math.cos(this.elapsed * 2.7 + lane) * 0.09;
+                        plat.catHeadPivot.rotation.z = -0.05 + Math.sin(this.elapsed * 5.4 + lane) * 0.04;
+                    }
+
+                    // 3. Pink tongue flickers in sync with the lick
+                    const tongueP = Math.max(0, Math.sin(this.elapsed * 5.4 + lane * 1.5 + rowNumber + 0.45));
+                    plat.catTongue.scale.set(0.85 + tongueP * 0.4, 0.32, 1.15 + tongueP * 0.65);
+                    plat.catTongue.position.z = 0.24 + tongueP * 0.05;
+
+                    // 4. Tail S-curve wave along crate
+                    for (let i = 0; i < plat.catTailSegments.length; i++) {
+                        const seg = plat.catTailSegments[i];
+                        const wave = Math.sin(this.elapsed * 2.2 - i * 0.42 + lane);
+                        seg.rotation.y = wave * 0.20 + 0.18;
+                        seg.rotation.x = Math.cos(this.elapsed * 1.8 - i * 0.35 + rowNumber) * 0.08;
                     }
                 }
 
