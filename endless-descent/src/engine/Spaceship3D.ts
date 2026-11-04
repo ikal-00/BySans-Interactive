@@ -866,9 +866,10 @@ export class Spaceship3D {
         frameMesh.scale.set(0.85, 1.25, 0.85);
         canopyGroup.add(frameMesh);
 
-        // Cockpit Astronaut sitting in cockpit
+        // Cockpit Astronaut (Ejected during cinematic roulette sequence, hidden during normal flight)
         this.cockpitAstronaut = new THREE.Group();
         this.cockpitAstronaut.position.set(0, 0.32, 0.08);
+        this.cockpitAstronaut.visible = false;
         shipAssembly.add(this.cockpitAstronaut);
 
         const astroGeo = new THREE.PlaneGeometry(0.75, 0.95);
@@ -910,7 +911,7 @@ export class Spaceship3D {
         }
         if (this.cockpitAstronaut) {
             gsap.killTweensOf(this.cockpitAstronaut.position);
-            this.cockpitAstronaut.visible = true;
+            this.cockpitAstronaut.visible = false;
             this.cockpitAstronaut.position.set(0, 0.32, 0.08);
         }
     }

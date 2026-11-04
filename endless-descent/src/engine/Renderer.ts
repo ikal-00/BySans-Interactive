@@ -59,6 +59,9 @@ interface FloatingMultiplierCard3D {
     alienRelicRing: THREE.Mesh;
     miniWheelPropGroup: THREE.Group;
     miniWheelMesh: THREE.Mesh;
+    wheelStandGroup: THREE.Group;
+    wheelStandDisc: THREE.Mesh;
+    wheelStandFlapper: THREE.Group;
     mineGroup: THREE.Group;
 
     // 3D Comic Black Cat (Sitting on top of normal crates licking its paws)
@@ -162,7 +165,15 @@ export class PixiRenderer {
     private giantWheelDisc!: THREE.Group;
     private giantWheelFlapper!: THREE.Group;
     private floatingAstronautGroup!: THREE.Group;
-    private floatingAstroMesh!: THREE.Mesh;
+    private astro3D!: {
+        root: THREE.Group;
+        helmet: THREE.Group;
+        backpack: THREE.Group;
+        leftArm: THREE.Group;
+        rightArm: THREE.Group;
+        leftLeg: THREE.Group;
+        rightLeg: THREE.Group;
+    };
     public isRouletteActive = false;
     public isWheelSpinning = false;
     private wheelCurrentAngle = 0;
@@ -1479,45 +1490,51 @@ export class PixiRenderer {
         // =====================================================================
         const catFurMat = new THREE.MeshStandardMaterial({
             map: this.textures.catFurTex,
-            color: 0x181920,
-            roughness: 0.65,
-            metalness: 0.05
+            color: 0x222634,
+            roughness: 0.38,
+            metalness: 0.18
         });
         const catInnerEarMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
-        const catEyeMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+        const catEyeMat = new THREE.MeshStandardMaterial({
+            color: 0xfacc15,
+            emissive: 0xfacc15,
+            emissiveIntensity: 0.90,
+            roughness: 0.1,
+            metalness: 0.05
+        });
         const catPupilMat = new THREE.MeshBasicMaterial({ color: 0x050608 });
         const catHighlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const catTongueMat = new THREE.MeshBasicMaterial({ color: 0xfb7185 });
         const catClawMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
 
-        const catTorsoGeo = new THREE.SphereGeometry(0.36, 16, 12);
-        const catBibGeo = new THREE.ConeGeometry(0.24, 0.32, 10);
-        const catHaunchGeo = new THREE.SphereGeometry(0.28, 12, 10);
-        const catRearPawGeo = new THREE.SphereGeometry(0.10, 8, 6);
-        const catClawGeo = new THREE.ConeGeometry(0.018, 0.06, 4);
-        const catArmGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.42, 8);
-        const catFrontPawGeo = new THREE.SphereGeometry(0.11, 8, 6);
-        const catHeadGeo = new THREE.SphereGeometry(0.26, 16, 12);
-        const catCheekGeo = new THREE.ConeGeometry(0.13, 0.24, 6);
-        const catMuzzleGeo = new THREE.SphereGeometry(0.13, 10, 8);
-        const catNoseGeo = new THREE.ConeGeometry(0.03, 0.028, 3);
-        const catEarGeo = new THREE.ConeGeometry(0.12, 0.28, 4);
-        const catEarInnerGeo = new THREE.ConeGeometry(0.075, 0.22, 4);
-        const catEyeMeshGeo = new THREE.SphereGeometry(0.08, 12, 8);
-        const catPupilMeshGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.11, 6);
-        const catSpec1MeshGeo = new THREE.SphereGeometry(0.022, 6, 6);
-        const catSpec2MeshGeo = new THREE.SphereGeometry(0.012, 6, 6);
-        const catTongueGeo = new THREE.SphereGeometry(0.052, 8, 6);
-        const catUpperArmGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.26, 8);
-        const catLickForearmGeo = new THREE.CylinderGeometry(0.065, 0.07, 0.24, 8);
-        const catLickPawGeo = new THREE.SphereGeometry(0.095, 10, 8);
-        const catPadGeo = new THREE.SphereGeometry(0.036, 6, 6);
-        const catTailSegGeo = new THREE.CylinderGeometry(0.045, 0.060, 0.14, 8);
+        const catTorsoGeo = new THREE.SphereGeometry(0.38, 16, 12);
+        const catBibGeo = new THREE.ConeGeometry(0.26, 0.35, 10);
+        const catHaunchGeo = new THREE.SphereGeometry(0.30, 12, 10);
+        const catRearPawGeo = new THREE.SphereGeometry(0.12, 8, 6);
+        const catClawGeo = new THREE.ConeGeometry(0.022, 0.07, 4);
+        const catArmGeo = new THREE.CylinderGeometry(0.08, 0.09, 0.46, 8);
+        const catFrontPawGeo = new THREE.SphereGeometry(0.13, 8, 6);
+        const catHeadGeo = new THREE.SphereGeometry(0.30, 16, 12);
+        const catCheekGeo = new THREE.ConeGeometry(0.16, 0.28, 6);
+        const catMuzzleGeo = new THREE.SphereGeometry(0.16, 10, 8);
+        const catNoseGeo = new THREE.ConeGeometry(0.04, 0.035, 3);
+        const catEarGeo = new THREE.ConeGeometry(0.18, 0.44, 4);
+        const catEarInnerGeo = new THREE.ConeGeometry(0.13, 0.36, 4);
+        const catEyeMeshGeo = new THREE.SphereGeometry(0.12, 14, 10);
+        const catPupilMeshGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.18, 8);
+        const catSpec1MeshGeo = new THREE.SphereGeometry(0.03, 6, 6);
+        const catSpec2MeshGeo = new THREE.SphereGeometry(0.016, 6, 6);
+        const catTongueGeo = new THREE.SphereGeometry(0.065, 8, 6);
+        const catUpperArmGeo = new THREE.CylinderGeometry(0.08, 0.09, 0.30, 8);
+        const catLickForearmGeo = new THREE.CylinderGeometry(0.075, 0.08, 0.28, 8);
+        const catLickPawGeo = new THREE.SphereGeometry(0.115, 10, 8);
+        const catPadGeo = new THREE.SphereGeometry(0.045, 6, 6);
+        const catTailSegGeo = new THREE.CylinderGeometry(0.05, 0.07, 0.16, 8);
 
         const buildCatForCrate = () => {
             const catGroup = new THREE.Group();
-            catGroup.position.set(-0.05, 1.92, -0.05);
-            catGroup.scale.setScalar(1.15);
+            catGroup.position.set(0.0, 1.98, 0.08);
+            catGroup.scale.setScalar(1.85);
             catGroup.visible = false;
 
             const catRoot = new THREE.Group();
@@ -1595,7 +1612,8 @@ export class PixiRenderer {
 
             // 4. Cat Head & Face (Expressive, large golden eyes, slit pupils)
             const headPivot = new THREE.Group();
-            headPivot.position.set(-0.14, 0.26, 0.46);
+            headPivot.position.set(-0.16, 0.32, 0.48);
+            headPivot.rotation.set(-0.25, 0.15, 0.06);
             torsoGroup.add(headPivot);
 
             const headMesh = new THREE.Mesh(catHeadGeo, catFurMat);
@@ -1766,6 +1784,136 @@ export class PixiRenderer {
                 catHeadPivot: headPivot,
                 catTongue: tongueMesh,
                 catTailSegments
+            };
+        };
+
+        // 3D Comic Prize Wheel on Wooden Stand (Matching Ruleta.jpeg)
+        const basePlankGeo = new THREE.BoxGeometry(2.35, 0.22, 0.44);
+        const woodMat = new THREE.MeshStandardMaterial({
+            color: 0x92400e,
+            roughness: 0.55,
+            metalness: 0.08
+        });
+        const boltGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.24, 8);
+        const boltMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.8 });
+        const legGeo = new THREE.BoxGeometry(0.20, 2.35, 0.20);
+        const crossGeo = new THREE.BoxGeometry(1.65, 0.18, 0.20);
+        const rimGeo = new THREE.TorusGeometry(1.38, 0.14, 12, 32);
+        const rimMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.5, metalness: 0.15 });
+        const studGeo = new THREE.SphereGeometry(0.042, 8, 8);
+        const studMat = new THREE.MeshStandardMaterial({
+            color: 0xfde047,
+            emissive: 0xd97706,
+            emissiveIntensity: 0.35,
+            roughness: 0.2,
+            metalness: 0.9
+        });
+        const wheelDiscGeo = new THREE.CylinderGeometry(1.34, 1.34, 0.10, 32);
+        wheelDiscGeo.rotateX(Math.PI / 2);
+        const hubGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.14, 16);
+        hubGeo.rotateX(Math.PI / 2);
+        const hubMat = new THREE.MeshStandardMaterial({
+            color: 0xfacc15,
+            emissive: 0xb45309,
+            emissiveIntensity: 0.3,
+            roughness: 0.2,
+            metalness: 0.85
+        });
+
+        const flapperShape = new THREE.Shape();
+        flapperShape.moveTo(-0.14, 0.18);
+        flapperShape.lineTo(0.14, 0.18);
+        flapperShape.lineTo(0.0, -0.38);
+        flapperShape.closePath();
+        const flapperGeo = new THREE.ExtrudeGeometry(flapperShape, {
+            depth: 0.08,
+            bevelEnabled: true,
+            bevelSegments: 1,
+            steps: 1,
+            bevelSize: 0.02,
+            bevelThickness: 0.02
+        });
+        const flapperMat = new THREE.MeshStandardMaterial({
+            color: 0xdc2626,
+            emissive: 0x991b1b,
+            emissiveIntensity: 0.45,
+            roughness: 0.2,
+            metalness: 0.6
+        });
+
+        const buildWheelStandForTile = () => {
+            const wheelStandGroup = new THREE.Group();
+            wheelStandGroup.position.set(0, 0, 0);
+            wheelStandGroup.visible = false;
+
+            // 1. Base Footing Plank
+            const basePlankMesh = new THREE.Mesh(basePlankGeo, woodMat);
+            basePlankMesh.position.set(0, 0.11, 0);
+            const baseOutline = this.createOutline(basePlankGeo, 0.04, basePlankMesh.position);
+            wheelStandGroup.add(basePlankMesh, baseOutline);
+
+            for (const bx of [-0.95, -0.65, 0.65, 0.95]) {
+                const bolt = new THREE.Mesh(boltGeo, boltMat);
+                bolt.position.set(bx, 0.12, 0);
+                wheelStandGroup.add(bolt);
+            }
+
+            // 2. Upright Legs (A-frame)
+            const leftLeg = new THREE.Mesh(legGeo, woodMat);
+            leftLeg.position.set(-0.54, 1.18, -0.05);
+            leftLeg.rotation.z = -0.21;
+            const leftLegOutline = this.createOutline(legGeo, 0.038, leftLeg.position, leftLeg.rotation);
+            wheelStandGroup.add(leftLeg, leftLegOutline);
+
+            const rightLeg = new THREE.Mesh(legGeo, woodMat);
+            rightLeg.position.set(0.54, 1.18, -0.05);
+            rightLeg.rotation.z = 0.21;
+            const rightLegOutline = this.createOutline(legGeo, 0.038, rightLeg.position, rightLeg.rotation);
+            wheelStandGroup.add(rightLeg, rightLegOutline);
+
+            // 3. Crossbeam
+            const crossMesh = new THREE.Mesh(crossGeo, woodMat);
+            crossMesh.position.set(0, 0.72, -0.04);
+            const crossOutline = this.createOutline(crossGeo, 0.035, crossMesh.position);
+            wheelStandGroup.add(crossMesh, crossOutline);
+
+            // 4. Circular Wooden Rim with golden studs
+            const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+            rimMesh.position.set(0, 1.95, 0.08);
+            const rimOutline = this.createOutline(rimGeo, 0.035, rimMesh.position);
+            wheelStandGroup.add(rimMesh, rimOutline);
+
+            for (let i = 0; i < 12; i++) {
+                const ang = (i * Math.PI * 2) / 12;
+                const stud = new THREE.Mesh(studGeo, studMat);
+                stud.position.set(Math.cos(ang) * 1.38, 1.95 + Math.sin(ang) * 1.38, 0.21);
+                wheelStandGroup.add(stud);
+            }
+
+            // 5. Rotating Wheel Disc
+            const wheelDiscMesh = new THREE.Mesh(wheelDiscGeo, miniWheelMats);
+            wheelDiscMesh.position.set(0, 1.95, 0.08);
+            const wheelDiscOutline = this.createOutline(wheelDiscGeo, 0.035);
+            wheelDiscMesh.add(wheelDiscOutline);
+            wheelStandGroup.add(wheelDiscMesh);
+
+            const hubMesh = new THREE.Mesh(hubGeo, hubMat);
+            hubMesh.position.set(0, 0, 0.08);
+            wheelDiscMesh.add(hubMesh);
+
+            // 6. Flapper pointer at 12 o'clock
+            const flapperGroup = new THREE.Group();
+            flapperGroup.position.set(0, 3.42, 0.18);
+            const flapperMesh = new THREE.Mesh(flapperGeo, flapperMat);
+            flapperMesh.position.z = -0.04;
+            const flapperOutline = this.createOutline(flapperGeo, 0.03);
+            flapperGroup.add(flapperMesh, flapperOutline);
+            wheelStandGroup.add(flapperGroup);
+
+            return {
+                wheelStandGroup,
+                wheelStandDisc: wheelDiscMesh,
+                wheelStandFlapper: flapperGroup
             };
         };
 
@@ -1965,6 +2113,10 @@ export class PixiRenderer {
                 miniWheelPropGroup.add(miniWheelMesh, miniWheelOutline);
                 mysteryBoxGroup.add(miniWheelPropGroup);
 
+                // Standalone 3D Comic Prize Wheel on Wooden Stand (Tile asset matching Ruleta.jpeg)
+                const wheelStandData = buildWheelStandForTile();
+                visualGroup.add(wheelStandData.wheelStandGroup);
+
                 this.scene.add(group);
                 slotRow.push({
                     group,
@@ -1994,6 +2146,9 @@ export class PixiRenderer {
                     alienRelicRing,
                     miniWheelPropGroup,
                     miniWheelMesh,
+                    wheelStandGroup: wheelStandData.wheelStandGroup,
+                    wheelStandDisc: wheelStandData.wheelStandDisc,
+                    wheelStandFlapper: wheelStandData.wheelStandFlapper,
                     mineGroup,
                     catGroup: catData.catGroup,
                     catElbowPivot: catData.catElbowPivot,
@@ -2494,24 +2649,328 @@ export class PixiRenderer {
         wheelGlowLight.position.set(0, 2.5, 3.2);
         this.giantRouletteGroup.add(wheelGlowLight);
 
-        // Floating Astronaut Zero-G Representation (seen from behind AEspaldas.jpeg)
+        // Volumetric 3D Hero Astronaut floating in zero-G void (Matching AEspaldas.jpeg & Flotando.jpeg)
         this.floatingAstronautGroup = new THREE.Group();
         this.floatingAstronautGroup.visible = false;
         this.scene.add(this.floatingAstronautGroup);
 
-        const astroGeo = new THREE.PlaneGeometry(3.2, 3.9);
-        const astroMat = new THREE.MeshBasicMaterial({
-            map: this.textures.astronautBackTex,
-            transparent: true,
-            side: THREE.DoubleSide
-        });
-        this.floatingAstroMesh = new THREE.Mesh(astroGeo, astroMat);
-        this.floatingAstroMesh.position.set(0, 0, 0);
-        this.floatingAstronautGroup.add(this.floatingAstroMesh);
+        this.astro3D = this.buildVolumetric3DAstronaut();
+        this.floatingAstronautGroup.add(this.astro3D.root);
 
-        const astroThrusterLight = new THREE.PointLight(0x38bdf8, 1.8, 8.0, 1.5);
-        astroThrusterLight.position.set(0, -0.6, 0.4);
+        const astroThrusterLight = new THREE.PointLight(0x38bdf8, 2.2, 8.0, 1.5);
+        astroThrusterLight.position.set(0, -0.4, 0.6);
         this.floatingAstronautGroup.add(astroThrusterLight);
+    }
+
+    /**
+     * Constructs a true volumetric 3D Astronaut model for the zero-G void scene.
+     * Based on AEspaldas.jpeg and Flotando.jpeg:
+     * - Sculpted helmet with glossy cyan visor bubble and collar ring.
+     * - Bulky Primary Life Support System (PLSS) backpack with rear telemetry monitor and LED gauges.
+     * - 4 flexible ribbed umbilical hoses (blue, red, cyan, yellow collars) looping to waist.
+     * - Dual RCS thruster nozzles emitting ion glow.
+     * - Segmented arms with articulated EVA gloves and dark grip pads.
+     * - Floating legs in natural zero-G relaxation posture with heavy lunar boots and tread soles.
+     */
+    private buildVolumetric3DAstronaut(): {
+        root: THREE.Group;
+        helmet: THREE.Group;
+        backpack: THREE.Group;
+        leftArm: THREE.Group;
+        rightArm: THREE.Group;
+        leftLeg: THREE.Group;
+        rightLeg: THREE.Group;
+    } {
+        const root = new THREE.Group();
+        root.scale.setScalar(0.95);
+
+        const suitMat = new THREE.MeshStandardMaterial({
+            color: 0xf8fafc,
+            roughness: 0.40,
+            metalness: 0.12
+        });
+        const suitDarkMat = new THREE.MeshStandardMaterial({
+            color: 0x334155,
+            roughness: 0.50,
+            metalness: 0.35
+        });
+        const visorMat = new THREE.MeshStandardMaterial({
+            color: 0x0ea5e9,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.35,
+            roughness: 0.12,
+            metalness: 0.85
+        });
+        const packMat = new THREE.MeshStandardMaterial({
+            color: 0xe2e8f0,
+            roughness: 0.38,
+            metalness: 0.22
+        });
+        const panelMat = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            roughness: 0.60,
+            metalness: 0.45
+        });
+        const rubberMat = new THREE.MeshStandardMaterial({
+            color: 0x0f172a,
+            roughness: 0.85
+        });
+
+        // 1. Torso Suit Body
+        const torsoGroup = new THREE.Group();
+        root.add(torsoGroup);
+
+        const torsoGeo = new THREE.CylinderGeometry(0.68, 0.58, 1.25, 18);
+        const torsoMesh = new THREE.Mesh(torsoGeo, suitMat);
+        torsoMesh.position.set(0, 0, 0);
+        const torsoOutline = this.createOutline(torsoGeo, 0.045, torsoMesh.position);
+        torsoGroup.add(torsoMesh, torsoOutline);
+
+        // Chest/Back Harness Straps
+        const beltGeo = new THREE.TorusGeometry(0.64, 0.05, 8, 20);
+        const beltMesh = new THREE.Mesh(beltGeo, suitDarkMat);
+        beltMesh.rotation.x = Math.PI / 2;
+        beltMesh.position.set(0, -0.45, 0);
+        torsoGroup.add(beltMesh);
+
+        // 2. Helmet & Visor
+        const helmetGroup = new THREE.Group();
+        helmetGroup.position.set(0, 1.05, 0.02);
+        root.add(helmetGroup);
+
+        const domeGeo = new THREE.SphereGeometry(0.68, 24, 20);
+        const domeMesh = new THREE.Mesh(domeGeo, suitMat);
+        const domeOutline = this.createOutline(domeGeo, 0.045);
+        helmetGroup.add(domeMesh, domeOutline);
+
+        // Front Visor Bubble (facing towards giant wheel, -Z)
+        const visorGeo = new THREE.SphereGeometry(0.56, 20, 16);
+        const visorMesh = new THREE.Mesh(visorGeo, visorMat);
+        visorMesh.position.set(0, 0.04, -0.20);
+        visorMesh.scale.set(0.92, 0.85, 0.75);
+        helmetGroup.add(visorMesh);
+
+        // Collar Ring
+        const collarGeo = new THREE.TorusGeometry(0.54, 0.075, 10, 24);
+        const collarMesh = new THREE.Mesh(collarGeo, suitDarkMat);
+        collarMesh.rotation.x = Math.PI / 2;
+        collarMesh.position.set(0, -0.42, 0);
+        helmetGroup.add(collarMesh);
+
+        // Side Ear Communication Pods
+        const earPodGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.18, 12);
+        earPodGeo.rotateZ(Math.PI / 2);
+        for (const ex of [-0.64, 0.64]) {
+            const earPod = new THREE.Mesh(earPodGeo, suitDarkMat);
+            earPod.position.set(ex, 0, 0);
+            const led = new THREE.Mesh(
+                new THREE.SphereGeometry(0.04, 6, 6),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+            );
+            led.position.set(ex * 1.1, 0, 0.08);
+            helmetGroup.add(earPod, led);
+        }
+
+        // 3. Life-Support Backpack (PLSS) - Seen from behind!
+        const backpackGroup = new THREE.Group();
+        backpackGroup.position.set(0, 0.15, 0.52);
+        root.add(backpackGroup);
+
+        const packGeo = new THREE.BoxGeometry(1.30, 1.45, 0.55);
+        const packMesh = new THREE.Mesh(packGeo, packMat);
+        const packOutline = this.createOutline(packGeo, 0.042);
+        backpackGroup.add(packMesh, packOutline);
+
+        // Rear Service Console / Telemetry Panel (facing camera)
+        const panelGeo = new THREE.BoxGeometry(0.85, 0.95, 0.08);
+        const panelMesh = new THREE.Mesh(panelGeo, panelMat);
+        panelMesh.position.set(0, 0.06, 0.28);
+        backpackGroup.add(panelMesh);
+
+        // Telemetry Screen (Green data screen)
+        const screenGeo = new THREE.BoxGeometry(0.36, 0.24, 0.03);
+        const screenMesh = new THREE.Mesh(
+            screenGeo,
+            new THREE.MeshBasicMaterial({ color: 0x10b981 })
+        );
+        screenMesh.position.set(-0.18, 0.26, 0.33);
+        backpackGroup.add(screenMesh);
+
+        // Status Gauges & Dials (Amber, Red, Blue LEDs)
+        const ledColors = [0xf59e0b, 0xef4444, 0x38bdf8, 0xeab308];
+        const ledGeo = new THREE.SphereGeometry(0.035, 6, 6);
+        for (let i = 0; i < 4; i++) {
+            const led = new THREE.Mesh(
+                ledGeo,
+                new THREE.MeshBasicMaterial({ color: ledColors[i] })
+            );
+            led.position.set(0.18 + (i % 2) * 0.12, 0.32 - Math.floor(i / 2) * 0.12, 0.33);
+            backpackGroup.add(led);
+        }
+
+        // 4 Curved Flexible Life-Support Conduits / Umbilical Hoses
+        const hoseDefs = [
+            { angStart: 0, sign: -1, y: 0.12, color: 0x0284c7 },
+            { angStart: 0.2, sign: -1, y: -0.28, color: 0xef4444 },
+            { angStart: 0, sign: 1, y: 0.12, color: 0x06b6d4 },
+            { angStart: 0.2, sign: 1, y: -0.28, color: 0xeab308 }
+        ];
+        for (const h of hoseDefs) {
+            const hoseGeo = new THREE.TorusGeometry(0.42, 0.055, 8, 16, Math.PI * 0.58);
+            const hoseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+            const hoseMesh = new THREE.Mesh(hoseGeo, hoseMat);
+            hoseMesh.position.set(h.sign * 0.42, h.y, 0.15);
+            hoseMesh.rotation.y = h.sign * Math.PI * 0.42;
+            hoseMesh.rotation.z = h.sign * 0.15;
+
+            const collar = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.10, 8),
+                new THREE.MeshStandardMaterial({ color: h.color, roughness: 0.3 })
+            );
+            collar.position.set(h.sign * 0.62, h.y + 0.06, 0.22);
+            backpackGroup.add(hoseMesh, collar);
+        }
+
+        // Dual RCS Ion Thruster Nozzles on backpack corners
+        const thrusterGeo = new THREE.ConeGeometry(0.11, 0.22, 12);
+        thrusterGeo.rotateX(Math.PI);
+        const thrusterMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, metalness: 0.8 });
+        for (const tx of [-0.58, 0.58]) {
+            const thruster = new THREE.Mesh(thrusterGeo, thrusterMat);
+            thruster.position.set(tx, 0.68, 0.22);
+            thruster.rotation.z = (tx < 0 ? 1 : -1) * 0.24;
+            backpackGroup.add(thruster);
+        }
+
+        // 4. Arms & EVA Space Gloves (Natural Zero-G floating pose)
+        const leftArmGroup = new THREE.Group();
+        leftArmGroup.position.set(-0.82, 0.42, 0.05);
+        root.add(leftArmGroup);
+
+        const shoulderPadGeo = new THREE.SphereGeometry(0.24, 12, 10);
+        const leftShoulder = new THREE.Mesh(shoulderPadGeo, suitMat);
+        leftArmGroup.add(leftShoulder);
+
+        const armUpperGeo = new THREE.CylinderGeometry(0.18, 0.16, 0.55, 10);
+        const leftUpperArm = new THREE.Mesh(armUpperGeo, suitMat);
+        leftUpperArm.position.set(-0.18, -0.28, -0.08);
+        leftUpperArm.rotation.set(0.22, 0, 0.45);
+        const leftUpperOutline = this.createOutline(armUpperGeo, 0.038, leftUpperArm.position, leftUpperArm.rotation);
+        leftArmGroup.add(leftUpperArm, leftUpperOutline);
+
+        const armLowerGeo = new THREE.CylinderGeometry(0.16, 0.14, 0.50, 10);
+        const leftLowerArm = new THREE.Mesh(armLowerGeo, suitMat);
+        leftLowerArm.position.set(-0.35, -0.68, -0.18);
+        leftLowerArm.rotation.set(0.48, 0, 0.65);
+        const leftLowerOutline = this.createOutline(armLowerGeo, 0.035, leftLowerArm.position, leftLowerArm.rotation);
+        leftArmGroup.add(leftLowerArm, leftLowerOutline);
+
+        const gloveGeo = new THREE.BoxGeometry(0.22, 0.28, 0.18);
+        const leftGlove = new THREE.Mesh(gloveGeo, suitMat);
+        leftGlove.position.set(-0.48, -0.96, -0.26);
+        leftGlove.rotation.copy(leftLowerArm.rotation);
+        const leftPalmGrip = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.22, 0.03),
+            rubberMat
+        );
+        leftPalmGrip.position.set(0, 0, -0.09);
+        leftGlove.add(leftPalmGrip);
+        leftArmGroup.add(leftGlove);
+
+        // Right Arm Group
+        const rightArmGroup = new THREE.Group();
+        rightArmGroup.position.set(0.82, 0.42, 0.05);
+        root.add(rightArmGroup);
+
+        const rightShoulder = new THREE.Mesh(shoulderPadGeo, suitMat);
+        rightArmGroup.add(rightShoulder);
+
+        const rightUpperArm = new THREE.Mesh(armUpperGeo, suitMat);
+        rightUpperArm.position.set(0.18, -0.28, -0.08);
+        rightUpperArm.rotation.set(0.22, 0, -0.45);
+        const rightUpperOutline = this.createOutline(armUpperGeo, 0.038, rightUpperArm.position, rightUpperArm.rotation);
+        rightArmGroup.add(rightUpperArm, rightUpperOutline);
+
+        const rightLowerArm = new THREE.Mesh(armLowerGeo, suitMat);
+        rightLowerArm.position.set(0.35, -0.68, -0.18);
+        rightLowerArm.rotation.set(0.48, 0, -0.65);
+        const rightLowerOutline = this.createOutline(armLowerGeo, 0.035, rightLowerArm.position, rightLowerArm.rotation);
+        rightArmGroup.add(rightLowerArm, rightLowerOutline);
+
+        const rightGlove = new THREE.Mesh(gloveGeo, suitMat);
+        rightGlove.position.set(0.48, -0.96, -0.26);
+        rightGlove.rotation.copy(rightLowerArm.rotation);
+        const rightPalmGrip = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.22, 0.03),
+            rubberMat
+        );
+        rightPalmGrip.position.set(0, 0, -0.09);
+        rightGlove.add(rightPalmGrip);
+        rightArmGroup.add(rightGlove);
+
+        // 5. Legs & Lunar Space Boots
+        const leftLegGroup = new THREE.Group();
+        leftLegGroup.position.set(-0.35, -0.65, 0.04);
+        root.add(leftLegGroup);
+
+        const thighGeo = new THREE.CylinderGeometry(0.24, 0.20, 0.70, 12);
+        const leftThigh = new THREE.Mesh(thighGeo, suitMat);
+        leftThigh.position.set(-0.08, -0.35, -0.08);
+        leftThigh.rotation.set(0.32, 0, 0.12);
+        const leftThighOutline = this.createOutline(thighGeo, 0.04, leftThigh.position, leftThigh.rotation);
+        leftLegGroup.add(leftThigh, leftThighOutline);
+
+        const calfGeo = new THREE.CylinderGeometry(0.21, 0.18, 0.65, 12);
+        const leftCalf = new THREE.Mesh(calfGeo, suitMat);
+        leftCalf.position.set(-0.12, -0.92, 0.04);
+        leftCalf.rotation.set(-0.18, 0, 0.08);
+        const leftCalfOutline = this.createOutline(calfGeo, 0.038, leftCalf.position, leftCalf.rotation);
+        leftLegGroup.add(leftCalf, leftCalfOutline);
+
+        const bootGeo = new THREE.BoxGeometry(0.36, 0.32, 0.58);
+        const leftBoot = new THREE.Mesh(bootGeo, suitMat);
+        leftBoot.position.set(-0.14, -1.35, 0.12);
+        leftBoot.rotation.set(0.25, 0, 0.08);
+        const soleGeo = new THREE.BoxGeometry(0.40, 0.10, 0.64);
+        const leftSole = new THREE.Mesh(soleGeo, rubberMat);
+        leftSole.position.set(0, -0.16, 0);
+        leftBoot.add(leftSole);
+        leftLegGroup.add(leftBoot);
+
+        // Right Leg Group
+        const rightLegGroup = new THREE.Group();
+        rightLegGroup.position.set(0.35, -0.65, 0.04);
+        root.add(rightLegGroup);
+
+        const rightThigh = new THREE.Mesh(thighGeo, suitMat);
+        rightThigh.position.set(0.08, -0.35, -0.08);
+        rightThigh.rotation.set(0.28, 0, -0.12);
+        const rightThighOutline = this.createOutline(thighGeo, 0.04, rightThigh.position, rightThigh.rotation);
+        rightLegGroup.add(rightThigh, rightThighOutline);
+
+        const rightCalf = new THREE.Mesh(calfGeo, suitMat);
+        rightCalf.position.set(0.12, -0.92, 0.04);
+        rightCalf.rotation.set(-0.14, 0, -0.08);
+        const rightCalfOutline = this.createOutline(calfGeo, 0.038, rightCalf.position, rightCalf.rotation);
+        rightLegGroup.add(rightCalf, rightCalfOutline);
+
+        const rightBoot = new THREE.Mesh(bootGeo, suitMat);
+        rightBoot.position.set(0.14, -1.35, 0.12);
+        rightBoot.rotation.set(0.22, 0, -0.08);
+        const rightSole = new THREE.Mesh(soleGeo, rubberMat);
+        rightSole.position.set(0, -0.16, 0);
+        rightBoot.add(rightSole);
+        rightLegGroup.add(rightBoot);
+
+        return {
+            root,
+            helmet: helmetGroup,
+            backpack: backpackGroup,
+            leftArm: leftArmGroup,
+            rightArm: rightArmGroup,
+            leftLeg: leftLegGroup,
+            rightLeg: rightLegGroup
+        };
     }
 
     /**
@@ -2537,7 +2996,7 @@ export class PixiRenderer {
             duration: 0.36,
             ease: 'power2.out',
             onComplete: () => {
-                // 2. Mini-Wheel vanishes with golden pop effect
+                // 2. 3D Prize Wheel stand vanishes with golden pop burst
                 const hitCard = this.rowSlots
                     .flat()
                     .find(
@@ -2545,12 +3004,12 @@ export class PixiRenderer {
                             Math.abs(c.group.position.z - worldZ) < 1.2 &&
                             Math.abs(c.group.position.x - worldX) < 1.2
                     );
-                if (hitCard && hitCard.miniWheelPropGroup) {
+                if (hitCard && hitCard.wheelStandGroup) {
                     audioController.playWheelPop();
-                    this.vfx.spawnShockwave3D(worldX, 1.25, worldZ, 0xfacc15, 6.0, 0.35);
+                    this.vfx.spawnShockwave3D(worldX, 1.95, worldZ, 0xfacc15, 6.0, 0.35);
                     this.vfx.spawnGpuParticleCloud(
                         worldX,
-                        1.3,
+                        1.95,
                         worldZ,
                         90,
                         [0xfde047, 0xfacc15, 0xeab308, 0xffffff],
@@ -2558,14 +3017,14 @@ export class PixiRenderer {
                         20,
                         0.55
                     );
-                    gsap.to(hitCard.miniWheelPropGroup.scale, {
-                        x: 1.8,
-                        y: 1.8,
-                        z: 1.8,
-                        duration: 0.12,
+                    gsap.to(hitCard.wheelStandGroup.scale, {
+                        x: 1.6,
+                        y: 1.6,
+                        z: 1.6,
+                        duration: 0.14,
                         ease: 'back.out(2)',
                         onComplete: () => {
-                            hitCard.miniWheelPropGroup.visible = false;
+                            hitCard.wheelStandGroup.visible = false;
                         }
                     });
                 }
@@ -2594,6 +3053,8 @@ export class PixiRenderer {
                 );
 
                 // 4. Astronaut ejects into zero-G void
+                this.ship.cockpitAstronaut.visible = true;
+                this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
                 gsap.to(this.ship.cockpitAstronaut.position, {
                     y: 2.4,
                     z: 0.7,
@@ -2621,13 +3082,13 @@ export class PixiRenderer {
                         this.floatingAstronautGroup.visible = true;
                         this.floatingAstronautGroup.position.set(
                             worldX,
-                            SHIP_FLIGHT_Y - 0.45,
+                            SHIP_FLIGHT_Y - 0.70,
                             worldZ - 1.5
                         );
                         gsap.fromTo(
                             this.floatingAstronautGroup.position,
-                            { y: SHIP_FLIGHT_Y + 2.4 },
-                            { y: SHIP_FLIGHT_Y - 0.45, duration: 0.65, ease: 'power2.out' }
+                            { y: SHIP_FLIGHT_Y + 1.8 },
+                            { y: SHIP_FLIGHT_Y - 0.70, duration: 0.65, ease: 'power2.out' }
                         );
 
                         // Signal UI that yellow GIRAR button is now active!
@@ -2750,7 +3211,7 @@ export class PixiRenderer {
 
     public finishRouletteSequence(onComplete?: () => void) {
         gsap.to(this.floatingAstronautGroup.position, {
-            y: SHIP_FLIGHT_Y + 2.4,
+            y: SHIP_FLIGHT_Y + 1.8,
             duration: 0.50,
             ease: 'power2.in',
             onComplete: () => {
@@ -2759,7 +3220,9 @@ export class PixiRenderer {
                 this.ship.cockpitAstronaut.visible = true;
                 this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
 
-                this.ship.closeCockpitCanopy(0.38);
+                this.ship.closeCockpitCanopy(0.38, () => {
+                    this.ship.cockpitAstronaut.visible = false;
+                });
 
                 gsap.to(this.giantRouletteGroup.position, {
                     y: this.giantRouletteGroup.position.y + 18,
@@ -2829,6 +3292,9 @@ export class PixiRenderer {
                 this.giantRouletteGroup.visible = false;
                 this.floatingAstronautGroup.visible = false;
                 this.ship.resetCockpit();
+                this.rowSlots.flat().forEach(slot => {
+                    slot.wheelStandGroup.scale.set(1, 1, 1);
+                });
             } else if (state === GameState.IDLE) {
                 this.vfx.clearGraffitiTags();
                 this.ship.vel.set(0, 0, 0);
@@ -2845,6 +3311,9 @@ export class PixiRenderer {
                 this.giantRouletteGroup.visible = false;
                 this.floatingAstronautGroup.visible = false;
                 this.ship.resetCockpit();
+                this.rowSlots.flat().forEach(slot => {
+                    slot.wheelStandGroup.scale.set(1, 1, 1);
+                });
             } else if (state === GameState.CRASHED || state === GameState.WON) {
                 this.ship.setShieldActive(false, true);
             }
@@ -3234,12 +3703,19 @@ export class PixiRenderer {
             this.ship.setTargetPosition(targetShipX, SHIP_FLIGHT_Y, targetShipZ);
         }
 
-        // Zero-G cosmic void drift for floating astronaut facing the giant prize wheel
-        if (this.isRouletteActive && this.floatingAstronautGroup.visible) {
-            const bob = Math.sin(this.elapsed * 2.2) * 0.12;
-            const roll = Math.cos(this.elapsed * 1.6) * 0.05;
-            this.floatingAstroMesh.position.y = bob;
-            this.floatingAstroMesh.rotation.z = roll;
+        // Zero-G cosmic void drift for 3D volumetric astronaut facing the giant prize wheel
+        if (this.isRouletteActive && this.floatingAstronautGroup.visible && this.astro3D) {
+            const bob = Math.sin(this.elapsed * 1.8) * 0.10;
+            const roll = Math.cos(this.elapsed * 1.4) * 0.04;
+            const pitch = Math.sin(this.elapsed * 1.6) * 0.03;
+            this.astro3D.root.position.y = bob;
+            this.astro3D.root.rotation.z = roll;
+            this.astro3D.root.rotation.x = pitch;
+
+            this.astro3D.leftArm.rotation.z = -0.38 + Math.sin(this.elapsed * 1.5) * 0.04;
+            this.astro3D.rightArm.rotation.z = 0.38 - Math.sin(this.elapsed * 1.5 + 0.4) * 0.04;
+            this.astro3D.leftLeg.rotation.x = 0.20 + Math.sin(this.elapsed * 1.3) * 0.03;
+            this.astro3D.rightLeg.rotation.x = 0.16 + Math.sin(this.elapsed * 1.3 + 0.5) * 0.03;
         }
 
         const hitStopX =
@@ -3454,6 +3930,8 @@ export class PixiRenderer {
                     plat.lidRight.rotation.z = 0;
                     plat.visualGroup.position.y = 0;
                     plat.mysteryBoxGroup.visible = true;
+                    plat.wheelStandGroup.visible = false;
+                    plat.wheelStandGroup.scale.set(1, 1, 1);
                     plat.miniSunGroup.visible = false;
                     plat.alienPortalGroup.visible = false;
                     plat.miniWheelPropGroup.visible = false;
@@ -3505,21 +3983,22 @@ export class PixiRenderer {
                 plat.group.position.set(laneX, 0, rowZ);
                 plat.group.scale.setScalar(this.cardLayoutScale);
 
+                // Stable rock-solid resting position - ZERO jitter, ZERO trembling, ZERO oscillation!
                 const targetHoverLift = isHitStopTarget
-                    ? 0.45
+                    ? 0.38
                     : isHovered
-                      ? 0.28
-                      : Math.sin(this.elapsed * 3.2 + lane * 0.8 + rowNumber * 0.5) * 0.08;
+                      ? 0.22
+                      : 0;
 
                 plat.visualGroup.position.y = THREE.MathUtils.lerp(
                     plat.visualGroup.position.y,
                     targetHoverLift,
-                    Math.min(1, dt * 26)
+                    Math.min(1, dt * 14)
                 );
 
-                const targetScale = isHitStopTarget ? 1.08 : isHovered ? 1.05 : 1.0;
+                const targetScale = isHitStopTarget ? 1.06 : isHovered ? 1.03 : 1.0;
                 plat.visualGroup.scale.setScalar(
-                    THREE.MathUtils.lerp(plat.visualGroup.scale.x, targetScale, Math.min(1, dt * 26))
+                    THREE.MathUtils.lerp(plat.visualGroup.scale.x, targetScale, Math.min(1, dt * 14))
                 );
 
                 // Upward Box Lift & Flap Opening Animation
@@ -3562,30 +4041,33 @@ export class PixiRenderer {
                     const pulse = 0.24 + 0.08 * Math.sin(this.elapsed * 3.2 + lane * 0.9);
                     plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
                     plat.miniWheelPropGroup.visible = false;
+                    plat.wheelStandGroup.visible = false;
                 } else if (boxType === 'alien') {
                     plat.diffuseHazeSprite.visible = true;
                     plat.diffuseHazeMat.color.setHex(0x2563eb);
                     const pulse = 0.24 + 0.08 * Math.sin(this.elapsed * 3.2 + lane * 0.9 + 1.2);
                     plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
                     plat.miniWheelPropGroup.visible = false;
+                    plat.wheelStandGroup.visible = false;
                 } else if (boxType === 'wheel') {
                     plat.diffuseHazeSprite.visible = true;
                     plat.diffuseHazeMat.color.setHex(0xfacc15);
                     const pulse = 0.32 + 0.12 * Math.sin(this.elapsed * 3.6 + lane);
                     plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.55, pulse * 1.5) : pulse;
-                    if (
-                        plat.mysteryBoxGroup.visible &&
+                    plat.miniWheelPropGroup.visible = false;
+                    plat.mysteryBoxGroup.visible = false; // Strictly hide cardboard box on wheel tile!
+
+                    const shouldShowWheelStand =
                         !plat.isShattered &&
-                        (!this.isRouletteActive || engine.currentRow !== rowNumber)
-                    ) {
-                        plat.miniWheelPropGroup.visible = true;
-                        plat.miniWheelMesh.rotation.z = this.elapsed * 2.0;
-                    } else {
-                        plat.miniWheelPropGroup.visible = false;
+                        (!this.isRouletteActive || engine.currentRow !== rowNumber);
+                    plat.wheelStandGroup.visible = shouldShowWheelStand;
+                    if (shouldShowWheelStand) {
+                        plat.wheelStandDisc.rotation.z = this.elapsed * 1.2;
                     }
                 } else {
                     plat.diffuseHazeSprite.visible = false;
                     plat.miniWheelPropGroup.visible = false;
+                    plat.wheelStandGroup.visible = false;
                 }
 
                 // Underneath Content Reveal Logic:
@@ -3684,12 +4166,14 @@ export class PixiRenderer {
                     if (isPicked) {
                         if (pickForRow.isSafe) {
                             // SAFE IMPACT: Cell is completely destroyed, clean & empty!
-                            // Except during active roulette sequence where wheel crate stays visible until astronaut ejects!
+                            // Except during active roulette sequence where wheel stand stays visible until astronaut ejects!
                             if (pickForRow.specialType === 'WHEEL' && this.isRouletteActive) {
-                                plat.mysteryBoxGroup.visible = !this.floatingAstronautGroup.visible;
+                                plat.mysteryBoxGroup.visible = false;
+                                plat.wheelStandGroup.visible = !this.floatingAstronautGroup.visible;
                             } else {
                                 plat.mysteryBoxGroup.visible = false;
                                 plat.miniWheelPropGroup.visible = false;
+                                plat.wheelStandGroup.visible = false;
                             }
                             plat.miniSunGroup.visible = false;
                             plat.alienPortalGroup.visible = false;
@@ -3700,6 +4184,7 @@ export class PixiRenderer {
                             // Fatal mine detonation
                             plat.mysteryBoxGroup.visible = false;
                             plat.miniWheelPropGroup.visible = false;
+                            plat.wheelStandGroup.visible = false;
                             plat.miniSunGroup.visible = false;
                             plat.alienPortalGroup.visible = false;
                             plat.mineGroup.visible = true;
@@ -3711,25 +4196,30 @@ export class PixiRenderer {
                         // Round finished: show hazard bombs in unpicked lanes
                         plat.mysteryBoxGroup.visible = false;
                         plat.miniWheelPropGroup.visible = false;
+                        plat.wheelStandGroup.visible = false;
                         plat.mineGroup.visible = true;
                         plat.mineGroup.rotation.y = this.elapsed * 2.5;
                     } else {
                         // Unpicked safe lanes on already played rows stay clean
-                        plat.mysteryBoxGroup.visible = !isTraversedOrSkipped && rowNumber >= engine.currentRow;
+                        const canShow = !isTraversedOrSkipped && rowNumber >= engine.currentRow;
+                        plat.mysteryBoxGroup.visible = canShow && boxType !== 'wheel';
+                        plat.wheelStandGroup.visible = canShow && boxType === 'wheel';
                     }
                 } else if (rowNumber < engine.currentRow) {
                     // Row was skipped or bypassed by alien abduction warp!
                     // MUST BE COMPLETELY CLEAN - NO BOXES, NO RESIDUAL CLUTTER!
                     plat.mysteryBoxGroup.visible = false;
                     plat.miniWheelPropGroup.visible = false;
+                    plat.wheelStandGroup.visible = false;
                     plat.miniSunGroup.visible = false;
                     plat.alienPortalGroup.visible = false;
                     plat.mineGroup.visible = false;
                     plat.diffuseHazeSprite.visible = false;
                     plat.badgeSprite.visible = false;
                 } else {
-                    // Current and future unpicked rows: ALL BOXES ARE 100% VISIBLE!
-                    plat.mysteryBoxGroup.visible = true;
+                    // Current and future unpicked rows: ALL BOXES ARE 100% VISIBLE EXCEPT WHEEL TILE!
+                    plat.mysteryBoxGroup.visible = boxType !== 'wheel';
+                    plat.wheelStandGroup.visible = boxType === 'wheel';
                 }
 
                 // Guaranteed cleanliness for avatar landing tile, alien landing row, and all passed rows:
@@ -3746,6 +4236,7 @@ export class PixiRenderer {
                 ) {
                     plat.mysteryBoxGroup.visible = false;
                     plat.miniWheelPropGroup.visible = false;
+                    plat.wheelStandGroup.visible = false;
                     plat.miniSunGroup.visible = false;
                     plat.alienPortalGroup.visible = false;
                     plat.mineGroup.visible = false;

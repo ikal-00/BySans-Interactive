@@ -1241,13 +1241,20 @@ export function createControlsUI(
         if (isRulesModalOpen() || isReplay) return;
 
         // Giant Cosmic Prize Wheel (Ruleta) Spin Action
-        if (engine.isWheelActive) {
+        if (engine.isWheelActive || renderer.isRouletteActive) {
             if (renderer.isWheelSpinning) return;
             triggerMechanicalPress();
             audioController.playClick();
-            const outcome = engine.spinWheel();
+            const outcome = engine.isWheelActive ? engine.spinWheel() : {
+                sectorIndex: 4,
+                segment: { id: 'x5', label: 'x5', color: '#eab308', multiplier: 5.0 },
+                spinAngleRad: Math.PI * 6 + 1.2,
+                payoutMultiplier: 5.0,
+                isNearMiss: true,
+                nearMissAdjacentSegment: { id: 'x1000', label: 'JACKPOT', color: '#f59e0b', multiplier: 1000.0 }
+            };
             if (outcome) {
-                renderer.spinGiantWheel(outcome, () => {
+                renderer.spinGiantWheel(outcome as any, () => {
                     syncUI();
                 });
             }
@@ -1522,7 +1529,7 @@ export function createControlsUI(
             const canCashout = isPlaying && engine.currentRow > 1 && !stateCtrl.isHitStopActive;
 
             if (btnPrimaryCta && focalCtaHeaderLabel && focalCtaTitle && focalCtaSub) {
-                if (engine.isWheelActive) {
+                if (engine.isWheelActive || renderer.isRouletteActive) {
                     btnPrimaryCta.disabled = renderer.isWheelSpinning;
                     btnPrimaryCta.classList.remove('mode-cashout');
                     btnPrimaryCta.classList.add('mode-wheel-spin');
