@@ -48,13 +48,14 @@ interface FloatingMultiplierCard3D {
     diffuseHazeSprite: THREE.Sprite;
     diffuseHazeMat: THREE.SpriteMaterial;
 
-    // Contents inside/underneath the box
+    // Contents inside/underneath the box (Faceted 3D Comic Relics)
     miniSunGroup: THREE.Group;
-    miniSunCore: THREE.Mesh;
-    miniSunCorona: THREE.Sprite;
+    solarRelicCrystal: THREE.Mesh;
+    solarRelicRing1: THREE.Mesh;
+    solarRelicRing2: THREE.Mesh;
     alienPortalGroup: THREE.Group;
-    alienCoreMesh: THREE.Mesh;
-    alienRingMesh: THREE.Mesh;
+    alienRelicUfo: THREE.Group;
+    alienRelicRing: THREE.Mesh;
     mineGroup: THREE.Group;
 
     badgeCanvas: HTMLCanvasElement;
@@ -141,7 +142,9 @@ export class PixiRenderer {
 
     // 3D Alien UFO Abduction System
     private alienUfoGroup!: THREE.Group;
+    private alienUfoBody!: THREE.Group;
     private alienTractorBeam!: THREE.Mesh;
+    private alienTractorRings: THREE.Mesh[] = [];
     public isAbductionActive = false;
 
     private starfieldGeo!: THREE.BufferGeometry;
@@ -1216,9 +1219,6 @@ export class PixiRenderer {
         const boxBodyGeo = new THREE.BoxGeometry(2.02, 1.92, 1.92);
         const flapGeo = new THREE.BoxGeometry(1.01, 0.05, 1.92);
 
-        // 3D Mini Sun Geometries
-        const sunCoreGeo = new THREE.SphereGeometry(0.52, 16, 14);
-
         // Classic ACME Cartoon Naval Bomb Geometries
         const bombSphereGeo = new THREE.SphereGeometry(0.68, 24, 20);
         const bombBandGeo = new THREE.CylinderGeometry(0.69, 0.69, 0.22, 24, 1, true);
@@ -1323,19 +1323,92 @@ export class PixiRenderer {
             color: 0xfde047
         });
 
-        // Shared Geometries & Materials for Alien Core (Underneath Alien Box - NO ground circle)
-        const alienCoreGeo = new THREE.OctahedronGeometry(0.5, 0);
-        const alienRingGeo = new THREE.TorusGeometry(0.75, 0.04, 8, 24);
-
-        const alienCoreMat = new THREE.MeshStandardMaterial({
-            color: 0x06b6d4,
-            emissive: 0xa855f7,
+        // 3D Comic Solar Relic Geometries & Materials (Faceted Octahedron + Dual Inclined Rings)
+        const solarCrystalGeo = new THREE.OctahedronGeometry(0.68, 0);
+        const solarCrystalMat = new THREE.MeshStandardMaterial({
+            color: 0xf59e0b,
+            emissive: 0xfbbf24,
             emissiveIntensity: 0.75,
-            roughness: 0.15,
-            metalness: 0.85
+            roughness: 0.12,
+            metalness: 0.2
         });
-        const alienRingMat = new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
+        const solarCoreGeo = new THREE.SphereGeometry(0.32, 12, 10);
+        const solarCoreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const solarRingGeo1 = new THREE.TorusGeometry(1.08, 0.048, 8, 28);
+        const solarRingMat1 = new THREE.MeshStandardMaterial({
+            color: 0xfef08a,
+            emissive: 0xf59e0b,
+            emissiveIntensity: 0.85
+        });
+        const solarRingGeo2 = new THREE.TorusGeometry(1.15, 0.040, 8, 28);
+        const solarRingMat2 = new THREE.MeshStandardMaterial({
+            color: 0xfde047,
+            emissive: 0xd97706,
+            emissiveIntensity: 0.65
+        });
+        const solarNodeGeo = new THREE.SphereGeometry(0.10, 8, 6);
+        const solarNodeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        // 3D Comic Mini-UFO Geometries & Materials (Matching reference drawing)
+        const miniUfoDomeGeo = new THREE.SphereGeometry(1.35, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.52);
+        const miniUfoDomeMat = new THREE.MeshStandardMaterial({
+            map: this.textures.ufoDomeTex,
+            roughness: 0.12,
+            metalness: 0.08,
+            transparent: true,
+            opacity: 0.95,
+            emissive: 0x10b981,
+            emissiveIntensity: 0.25
+        });
+        const miniUfoCollarGeo = new THREE.CylinderGeometry(1.40, 1.54, 0.32, 20, 1, false);
+        const miniUfoCollarMat = new THREE.MeshStandardMaterial({
+            map: this.textures.ufoCollarTex,
+            roughness: 0.3,
+            metalness: 0.65
+        });
+        const miniUfoFlangePoints = [
+            new THREE.Vector2(1.50, 0.12),
+            new THREE.Vector2(1.85, 0.04),
+            new THREE.Vector2(2.25, -0.14),
+            new THREE.Vector2(2.55, -0.32),
+            new THREE.Vector2(2.62, -0.42),
+            new THREE.Vector2(2.58, -0.52),
+            new THREE.Vector2(2.50, -0.52),
+            new THREE.Vector2(2.20, -0.18),
+            new THREE.Vector2(1.80, 0.0),
+            new THREE.Vector2(1.48, 0.08)
+        ];
+        const miniUfoFlangeGeo = new THREE.LatheGeometry(miniUfoFlangePoints, 24);
+        const miniUfoFlangeMat = new THREE.MeshStandardMaterial({
+            map: this.textures.ufoSaucerTex,
+            roughness: 0.25,
+            metalness: 0.35,
+            side: THREE.DoubleSide
+        });
+        const miniUfoBellyPoints = [
+            new THREE.Vector2(2.58, -0.52),
+            new THREE.Vector2(2.25, -0.75),
+            new THREE.Vector2(1.75, -1.02),
+            new THREE.Vector2(1.15, -1.22),
+            new THREE.Vector2(0.70, -1.30),
+            new THREE.Vector2(0.68, -1.24),
+            new THREE.Vector2(1.12, -1.16),
+            new THREE.Vector2(1.70, -0.96),
+            new THREE.Vector2(2.20, -0.70),
+            new THREE.Vector2(2.52, -0.48)
+        ];
+        const miniUfoBellyGeo = new THREE.LatheGeometry(miniUfoBellyPoints, 24);
+        const miniUfoBellyMat = new THREE.MeshStandardMaterial({
+            map: this.textures.ufoBellyTex,
+            roughness: 0.35,
+            metalness: 0.55,
+            side: THREE.DoubleSide
+        });
+        const miniUfoRimRingGeo = new THREE.TorusGeometry(2.60, 0.052, 6, 24);
+        const miniUfoRimRingMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+        const miniUfoEnergyRingGeo = new THREE.TorusGeometry(0.72, 0.038, 6, 20);
+        const miniUfoEnergyRingMat = new THREE.MeshBasicMaterial({
+            color: 0x00f0ff,
             transparent: true,
             opacity: 0.85,
             blending: THREE.AdditiveBlending
@@ -1397,49 +1470,84 @@ export class PixiRenderer {
                 diffuseHazeSprite.visible = false;
                 visualGroup.add(diffuseHazeSprite);
 
-                // 4. Hand-Drawn Comic Sun (Image 5: Revealed underneath Orange Bonus Box)
-                const miniSunGroup = new THREE.Group();
-                miniSunGroup.position.set(0, 1.05, 0);
+                // 4. 3D Comic Solar Power Crystal (Revealed underneath Orange/Solar Bonus Box)
+                const solarRelicGroup = new THREE.Group();
+                solarRelicGroup.position.set(0, 1.05, 0);
 
-                const miniSunMat = new THREE.MeshBasicMaterial({ color: 0xfff08a, transparent: true, opacity: 0 });
-                const miniSunCore = new THREE.Mesh(sunCoreGeo, miniSunMat);
-                miniSunCore.visible = false;
+                const solarRelicCrystal = new THREE.Mesh(solarCrystalGeo, solarCrystalMat);
+                solarRelicCrystal.scale.set(0.85, 1.35, 0.85);
+                const crystalOutline = this.createOutline(solarCrystalGeo, 0.055);
+                crystalOutline.scale.copy(solarRelicCrystal.scale);
+                solarRelicGroup.add(solarRelicCrystal, crystalOutline);
 
-                const sunCoronaMat = new THREE.SpriteMaterial({
-                    map: this.textures.miniSunTex,
-                    blending: THREE.NormalBlending,
-                    transparent: true,
-                    opacity: 1.0
-                });
-                const miniSunCorona = new THREE.Sprite(sunCoronaMat);
-                miniSunCorona.scale.set(2.35, 2.35, 1.0);
-                miniSunGroup.add(miniSunCore, miniSunCorona);
-                miniSunGroup.visible = false;
-                visualGroup.add(miniSunGroup);
+                const solarCore = new THREE.Mesh(solarCoreGeo, solarCoreMat);
+                solarRelicGroup.add(solarCore);
 
-                // 5. Hand-Drawn Comic Blue Plasma Symbol (Revealed underneath Blue/Alien Bonus Box - matches Image 5 style!)
-                const alienPortalGroup = new THREE.Group();
-                alienPortalGroup.position.set(0, 1.05, 0);
+                const solarRelicRing1 = new THREE.Mesh(solarRingGeo1, solarRingMat1);
+                solarRelicRing1.rotation.x = Math.PI * 0.38;
+                solarRelicRing1.rotation.z = Math.PI * 0.15;
+                solarRelicGroup.add(solarRelicRing1);
 
-                const alienCoreMesh = new THREE.Mesh(alienCoreGeo, alienCoreMat);
-                alienCoreMesh.visible = false;
+                const solarRelicRing2 = new THREE.Mesh(solarRingGeo2, solarRingMat2);
+                solarRelicRing2.rotation.x = -Math.PI * 0.32;
+                solarRelicRing2.rotation.z = -Math.PI * 0.22;
+                solarRelicGroup.add(solarRelicRing2);
 
-                const alienRingMesh = new THREE.Mesh(alienRingGeo, alienRingMat);
-                alienRingMesh.rotation.x = Math.PI * 0.25;
-                alienRingMesh.visible = false;
+                for (let n = 0; n < 3; n++) {
+                    const ang = (n * Math.PI * 2) / 3;
+                    const nodeMesh = new THREE.Mesh(solarNodeGeo, solarNodeMat);
+                    nodeMesh.position.set(
+                        Math.cos(ang) * 1.08,
+                        Math.sin(ang) * 1.08 * Math.cos(Math.PI * 0.38),
+                        Math.sin(ang) * 1.08 * Math.sin(Math.PI * 0.38)
+                    );
+                    solarRelicGroup.add(nodeMesh);
+                }
+                solarRelicGroup.visible = false;
+                visualGroup.add(solarRelicGroup);
 
-                const alienComicSymbolMat = new THREE.SpriteMaterial({
-                    map: this.textures.alienSymbolTex,
-                    blending: THREE.NormalBlending,
-                    transparent: true,
-                    opacity: 1.0
-                });
-                const alienGlowSprite = new THREE.Sprite(alienComicSymbolMat);
-                alienGlowSprite.scale.set(2.35, 2.35, 1.0);
+                // 5. 3D Comic Mini-UFO Relic (Revealed underneath Blue/Alien Bonus Box)
+                const alienRelicGroup = new THREE.Group();
+                alienRelicGroup.position.set(0, 1.05, 0);
 
-                alienPortalGroup.add(alienCoreMesh, alienRingMesh, alienGlowSprite);
-                alienPortalGroup.visible = false;
-                visualGroup.add(alienPortalGroup);
+                const alienRelicUfo = new THREE.Group();
+                alienRelicUfo.scale.setScalar(0.36);
+
+                const miniDome = new THREE.Mesh(miniUfoDomeGeo, miniUfoDomeMat);
+                miniDome.scale.set(1.0, 1.18, 1.0);
+                miniDome.position.y = 0.32;
+                miniDome.rotation.y = -Math.PI * 0.42;
+                const miniDomeOutline = this.createOutline(miniUfoDomeGeo, 0.055, miniDome.position, miniDome.rotation);
+                miniDomeOutline.scale.copy(miniDome.scale);
+                alienRelicUfo.add(miniDome, miniDomeOutline);
+
+                const miniCollar = new THREE.Mesh(miniUfoCollarGeo, miniUfoCollarMat);
+                miniCollar.position.y = 0.22;
+                const miniCollarOutline = this.createOutline(miniUfoCollarGeo, 0.045, miniCollar.position);
+                alienRelicUfo.add(miniCollar, miniCollarOutline);
+
+                const miniFlange = new THREE.Mesh(miniUfoFlangeGeo, miniUfoFlangeMat);
+                const miniFlangeOutline = this.createOutline(miniUfoFlangeGeo, 0.045);
+                alienRelicUfo.add(miniFlange, miniFlangeOutline);
+
+                const miniBelly = new THREE.Mesh(miniUfoBellyGeo, miniUfoBellyMat);
+                const miniBellyOutline = this.createOutline(miniUfoBellyGeo, 0.045);
+                alienRelicUfo.add(miniBelly, miniBellyOutline);
+
+                const miniRimRing = new THREE.Mesh(miniUfoRimRingGeo, miniUfoRimRingMat);
+                miniRimRing.rotation.x = Math.PI / 2;
+                miniRimRing.position.y = -0.42;
+                alienRelicUfo.add(miniRimRing);
+
+                alienRelicGroup.add(alienRelicUfo);
+
+                const alienRelicRing = new THREE.Mesh(miniUfoEnergyRingGeo, miniUfoEnergyRingMat);
+                alienRelicRing.rotation.x = Math.PI / 2;
+                alienRelicRing.position.y = -0.38;
+                alienRelicGroup.add(alienRelicRing);
+
+                alienRelicGroup.visible = false;
+                visualGroup.add(alienRelicGroup);
 
                 // 6. Hazard Prop: Classic 3D ACME Cartoon Naval Bomb with Inverted Hull Ink Outlines
                 const mineGroup = new THREE.Group();
@@ -1508,12 +1616,13 @@ export class PixiRenderer {
                     boxMatAlien,
                     diffuseHazeSprite,
                     diffuseHazeMat,
-                    miniSunGroup,
-                    miniSunCore,
-                    miniSunCorona,
-                    alienPortalGroup,
-                    alienCoreMesh,
-                    alienRingMesh,
+                    miniSunGroup: solarRelicGroup,
+                    solarRelicCrystal,
+                    solarRelicRing1,
+                    solarRelicRing2,
+                    alienPortalGroup: alienRelicGroup,
+                    alienRelicUfo,
+                    alienRelicRing,
                     mineGroup,
                     badgeCanvas,
                     badgeTex,
@@ -1550,61 +1659,180 @@ export class PixiRenderer {
     }
 
     /**
-     * Builds the 3D Looney Tunes Styled Alien UFO Saucer with Tractor Beam
+     * Builds the 3D Comic Flying Saucer UFO Mothership based on media_1793752521015_e3b6a340.jpg
      */
     private buildAlienUfoSaucer() {
         this.alienUfoGroup = new THREE.Group();
         this.alienUfoGroup.visible = false;
         this.scene.add(this.alienUfoGroup);
 
-        const saucerBodyGeo = new THREE.CylinderGeometry(1.4, 2.5, 0.44, 24);
-        const saucerMat = new THREE.MeshStandardMaterial({
-            color: 0x1e293b,
-            roughness: 0.22,
-            metalness: 0.88
-        });
-        const saucerMesh = new THREE.Mesh(saucerBodyGeo, saucerMat);
-        this.alienUfoGroup.add(saucerMesh, this.createOutline(saucerBodyGeo, 0.08));
+        const ufoBody = new THREE.Group();
+        this.alienUfoBody = ufoBody;
+        this.alienUfoGroup.add(ufoBody);
 
-        // Glass Cockpit Dome with Cel-Shaded Cyan Tint (Standard material avoids costly dual-pass transmission lag!)
-        const domeGeo = new THREE.SphereGeometry(0.88, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        // 1. MINT-GREEN GLASS DOME (Taller, bulbous egg/bell shape matching reference drawing)
+        const domeGeo = new THREE.SphereGeometry(1.35, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.52);
         const domeMat = new THREE.MeshStandardMaterial({
-            color: 0x38bdf8,
-            emissive: 0x00f0ff,
-            emissiveIntensity: 0.35,
-            roughness: 0.18,
-            metalness: 0.25,
+            map: this.textures.ufoDomeTex,
+            roughness: 0.12,
+            metalness: 0.08,
             transparent: true,
-            opacity: 0.86
+            opacity: 0.95,
+            emissive: 0x10b981,
+            emissiveIntensity: 0.25,
+            side: THREE.FrontSide
         });
         const domeMesh = new THREE.Mesh(domeGeo, domeMat);
-        domeMesh.position.y = 0.22;
-        this.alienUfoGroup.add(domeMesh, this.createOutline(domeGeo, 0.07, domeMesh.position));
+        domeMesh.scale.set(1.0, 1.18, 1.0);
+        domeMesh.position.y = 0.32;
+        domeMesh.rotation.y = -Math.PI * 0.42;
+        const domeOutline = this.createOutline(domeGeo, 0.055, domeMesh.position, domeMesh.rotation);
+        domeOutline.scale.copy(domeMesh.scale);
+        ufoBody.add(domeMesh, domeOutline);
 
-        // Perimeter glowing alien lights
-        for (let i = 0; i < 8; i++) {
-            const angle = (i * Math.PI) / 4;
-            const lightGeo = new THREE.SphereGeometry(0.12, 12, 8);
-            const lightColor = i % 2 === 0 ? 0x00f0ff : 0xa855f7;
-            const lightMat = new THREE.MeshBasicMaterial({ color: lightColor });
-            const lightMesh = new THREE.Mesh(lightGeo, lightMat);
-            lightMesh.position.set(Math.cos(angle) * 2.3, 0, Math.sin(angle) * 2.3);
-            this.alienUfoGroup.add(lightMesh);
+        // Cockpit interior: glowing alien pilot orb / eye
+        const pilotCoreGeo = new THREE.SphereGeometry(0.44, 16, 12);
+        const pilotCoreMat = new THREE.MeshBasicMaterial({ color: 0x064e3b });
+        const pilotMesh = new THREE.Mesh(pilotCoreGeo, pilotCoreMat);
+        pilotMesh.position.set(0, 0.68, 0);
+        ufoBody.add(pilotMesh);
+
+        const eyeGeo = new THREE.SphereGeometry(0.18, 12, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+        const eyeMesh = new THREE.Mesh(eyeGeo, eyeMat);
+        eyeMesh.position.set(0, 0.74, 0.35);
+        ufoBody.add(eyeMesh);
+
+        // 2. RIVETED METALLIC COLLAR RING
+        const collarGeo = new THREE.CylinderGeometry(1.40, 1.54, 0.32, 32, 1, false);
+        const collarMat = new THREE.MeshStandardMaterial({
+            map: this.textures.ufoCollarTex,
+            roughness: 0.3,
+            metalness: 0.65
+        });
+        const collarMesh = new THREE.Mesh(collarGeo, collarMat);
+        collarMesh.position.y = 0.22;
+        const collarOutline = this.createOutline(collarGeo, 0.045, collarMesh.position);
+        ufoBody.add(collarMesh, collarOutline);
+
+        // Discrete 3D Rivet Hemispheres
+        for (let i = 0; i < 12; i++) {
+            const ang = (i * Math.PI * 2) / 12;
+            const rRivet = 1.48;
+            const rivetGeo = new THREE.SphereGeometry(0.075, 8, 6);
+            const rivetMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.2, metalness: 0.9 });
+            const rivetMesh = new THREE.Mesh(rivetGeo, rivetMat);
+            rivetMesh.position.set(Math.cos(ang) * rRivet, 0.22, Math.sin(ang) * rRivet);
+            ufoBody.add(rivetMesh);
         }
 
-        // Abduction Tractor Beam Cone
-        const beamGeo = new THREE.CylinderGeometry(0.35, 2.6, 9.5, 20, 1, true);
-        const beamMat = new THREE.MeshBasicMaterial({
+        // 3. UPPER BLUE SAUCER FLANGE (Curved Lathe Profile matching reference)
+        const flangePoints = [
+            new THREE.Vector2(1.50, 0.12),
+            new THREE.Vector2(1.85, 0.04),
+            new THREE.Vector2(2.25, -0.14),
+            new THREE.Vector2(2.55, -0.32),
+            new THREE.Vector2(2.62, -0.42),
+            new THREE.Vector2(2.58, -0.52),
+            new THREE.Vector2(2.50, -0.52),
+            new THREE.Vector2(2.20, -0.18),
+            new THREE.Vector2(1.80, 0.0),
+            new THREE.Vector2(1.48, 0.08)
+        ];
+        const flangeGeo = new THREE.LatheGeometry(flangePoints, 36);
+        const flangeMat = new THREE.MeshStandardMaterial({
+            map: this.textures.ufoSaucerTex,
+            roughness: 0.25,
+            metalness: 0.35,
+            side: THREE.DoubleSide
+        });
+        const flangeMesh = new THREE.Mesh(flangeGeo, flangeMat);
+        const flangeOutline = this.createOutline(flangeGeo, 0.045);
+        ufoBody.add(flangeMesh, flangeOutline);
+
+        // 4. SEGMENTED METALLIC BELLY (LOWER HULL)
+        const bellyPoints = [
+            new THREE.Vector2(2.58, -0.52),
+            new THREE.Vector2(2.25, -0.75),
+            new THREE.Vector2(1.75, -1.02),
+            new THREE.Vector2(1.15, -1.22),
+            new THREE.Vector2(0.70, -1.30),
+            new THREE.Vector2(0.68, -1.24),
+            new THREE.Vector2(1.12, -1.16),
+            new THREE.Vector2(1.70, -0.96),
+            new THREE.Vector2(2.20, -0.70),
+            new THREE.Vector2(2.52, -0.48)
+        ];
+        const bellyGeo = new THREE.LatheGeometry(bellyPoints, 36);
+        const bellyMat = new THREE.MeshStandardMaterial({
+            map: this.textures.ufoBellyTex,
+            roughness: 0.35,
+            metalness: 0.55,
+            side: THREE.DoubleSide
+        });
+        const bellyMesh = new THREE.Mesh(bellyGeo, bellyMat);
+        const bellyOutline = this.createOutline(bellyGeo, 0.045);
+        ufoBody.add(bellyMesh, bellyOutline);
+
+        // 5. CENTRAL TRACTOR EMITTER APERTURE (BOTTOM CENTER)
+        const emitterGeo = new THREE.CylinderGeometry(0.70, 0.50, 0.16, 24);
+        const emitterMat = new THREE.MeshStandardMaterial({
             color: 0x00f0ff,
+            emissive: 0x34d399,
+            emissiveIntensity: 0.85,
+            roughness: 0.1
+        });
+        const emitterMesh = new THREE.Mesh(emitterGeo, emitterMat);
+        emitterMesh.position.y = -1.34;
+        const emitterOutline = this.createOutline(emitterGeo, 0.04, emitterMesh.position);
+        ufoBody.add(emitterMesh, emitterOutline);
+
+        // Glowing emitter lens
+        const lensGeo = new THREE.CircleGeometry(0.48, 20);
+        const lensMat = new THREE.MeshBasicMaterial({ color: 0x6ee7b7, side: THREE.DoubleSide });
+        const lensMesh = new THREE.Mesh(lensGeo, lensMat);
+        lensMesh.rotation.x = Math.PI / 2;
+        lensMesh.position.y = -1.43;
+        ufoBody.add(lensMesh);
+
+        // Outer rim bold comic ink edge band ring
+        const rimRingGeo = new THREE.TorusGeometry(2.60, 0.052, 8, 36);
+        const rimRingMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+        const rimRing = new THREE.Mesh(rimRingGeo, rimRingMat);
+        rimRing.rotation.x = Math.PI / 2;
+        rimRing.position.y = -0.42;
+        ufoBody.add(rimRing);
+
+        // 6. STYLIZED CEL-SHADED TRACTOR BEAM WITH CONCENTRIC CARTOON RINGS
+        const beamConeGeo = new THREE.CylinderGeometry(0.65, 3.8, 10.5, 24, 1, true);
+        const beamConeMat = new THREE.MeshBasicMaterial({
+            color: 0x38bdf8,
             transparent: true,
-            opacity: 0.55,
+            opacity: 0.45,
             blending: THREE.AdditiveBlending,
             side: THREE.DoubleSide,
             depthWrite: false
         });
-        this.alienTractorBeam = new THREE.Mesh(beamGeo, beamMat);
-        this.alienTractorBeam.position.y = -4.75;
+        this.alienTractorBeam = new THREE.Mesh(beamConeGeo, beamConeMat);
+        this.alienTractorBeam.position.y = -6.7;
         this.alienUfoGroup.add(this.alienTractorBeam);
+
+        // Concentric Cartoon Energy Rings descending along the beam
+        this.alienTractorRings = [];
+        for (let i = 0; i < 4; i++) {
+            const ringTorusGeo = new THREE.TorusGeometry(1.2 + i * 0.65, 0.048, 8, 28);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: 0x34d399,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending
+            });
+            const ringMesh = new THREE.Mesh(ringTorusGeo, ringMat);
+            ringMesh.rotation.x = Math.PI / 2;
+            ringMesh.position.y = -2.5 - i * 2.2;
+            this.alienTractorRings.push(ringMesh);
+            this.alienUfoGroup.add(ringMesh);
+        }
     }
 
     /**
@@ -1663,58 +1891,66 @@ export class PixiRenderer {
             destCard.boxLiftY = 0;
         }
 
-        // 2. Explode with vibrant purple cosmic particles of the alien box's color
+        // 2. Explode with vibrant cyan & mint comic energy particles matching the new UFO asset!
         this.vfx.spawnVolumetricCardboardShatter3D(worldX, 0.95, worldZ, 'alien');
         this.vfx.spawnGpuParticleCloud(
             worldX,
             1.0,
             worldZ,
             80,
-            [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
+            [0x34d399, 0x5eead4, 0x00f0ff, 0x2563eb, 0xffffff],
             12,
             28,
             0.55
         );
 
         gsap.killTweensOf(this.alienUfoGroup.position);
+        gsap.killTweensOf(this.alienUfoGroup.rotation);
         gsap.killTweensOf(this.alienTractorBeam.scale);
         gsap.killTweensOf(this.ship.pos);
         this.ship.vel.set(0, 0, 0);
 
-        // 3. UFO swoops down rapidly from deep space (Snappy anime pacing)
+        // 3. UFO swoops down rapidly from deep space with authentic comic banking tilt
+        this.alienUfoGroup.rotation.set(0.36, 0, -0.12);
         gsap.to(this.alienUfoGroup.position, {
-            y: 8.0,
-            duration: 0.12,
-            ease: 'back.out(1.5)',
+            y: 5.8,
+            duration: 0.22,
+            ease: 'back.out(1.4)',
             onComplete: () => {
                 // Tractor beam activates and expands
                 gsap.to(this.alienTractorBeam.scale, {
                     x: 1.0,
                     z: 1.0,
-                    duration: 0.08,
+                    duration: 0.10,
                     ease: 'power2.out'
                 });
 
                 // Ship lifts upward into the beam smoothly
                 gsap.to(this.ship.pos, {
-                    y: 4.8,
-                    duration: 0.14,
+                    y: 3.4,
+                    duration: 0.18,
                     ease: 'power2.inOut',
                     onUpdate: () => {
                         this.ship.vel.set(0, 0, 0);
                         this.ship.targetPos.copy(this.ship.pos);
                     },
                     onComplete: () => {
-                        // Smooth cosmic warp glide across the skipped rows
-                        this.vfx.spawnShockwave3D(worldX, 0.4, destinationZ, 0xa855f7, 11.0, 0.35);
+                        // Smooth comic warp glide across the skipped rows with mint shockwave
+                        this.vfx.spawnShockwave3D(worldX, 0.4, destinationZ, 0x34d399, 12.0, 0.42);
+                        gsap.to(this.alienUfoGroup.rotation, {
+                            z: 0.18,
+                            x: 0.35,
+                            duration: 0.24,
+                            ease: 'power2.inOut'
+                        });
                         gsap.to(this.alienUfoGroup.position, {
                             z: destinationZ,
-                            duration: 0.18,
+                            duration: 0.24,
                             ease: 'power2.inOut'
                         });
                         gsap.to(this.ship.pos, {
                             z: destinationZ,
-                            duration: 0.18,
+                            duration: 0.24,
                             ease: 'power2.inOut',
                             onUpdate: () => {
                                 this.ship.vel.set(0, 0, 0);
@@ -1726,7 +1962,7 @@ export class PixiRenderer {
                                     1.2,
                                     destinationZ,
                                     80,
-                                    [0xa855f7, 0xc084fc, 0x00f0ff, 0x8b5cf6, 0xffffff],
+                                    [0x34d399, 0x5eead4, 0x00f0ff, 0x2563eb, 0xffffff],
                                     11,
                                     24,
                                     0.45
@@ -1736,7 +1972,7 @@ export class PixiRenderer {
                                 // Lower ship safely onto the clean track
                                 gsap.to(this.ship.pos, {
                                     y: SHIP_FLIGHT_Y,
-                                    duration: 0.14,
+                                    duration: 0.16,
                                     ease: 'back.out(1.2)',
                                     onUpdate: () => {
                                         this.ship.vel.set(0, 0, 0);
@@ -1746,13 +1982,20 @@ export class PixiRenderer {
                                         this.ship.vel.set(0, 0, 0);
                                         this.ship.targetPos.set(worldX, SHIP_FLIGHT_Y, destinationZ);
                                         this.isAbductionActive = false;
-                                        // UFO ascends and vanishes into hyperspace
+                                        // UFO ascends with comic recoil squash & zips into hyperspace
+                                        gsap.to(this.alienUfoGroup.rotation, {
+                                            x: -0.35,
+                                            z: 0,
+                                            duration: 0.22,
+                                            ease: 'power2.in'
+                                        });
                                         gsap.to(this.alienUfoGroup.position, {
-                                            y: 30,
-                                            duration: 0.16,
+                                            y: 32,
+                                            duration: 0.22,
                                             ease: 'power2.in',
                                             onComplete: () => {
                                                 this.alienUfoGroup.visible = false;
+                                                this.alienUfoGroup.rotation.set(0, 0, 0);
                                             }
                                         });
                                     }
@@ -2239,6 +2482,7 @@ export class PixiRenderer {
         this.dirLight.target.position.set(this.ship.pos.x, 0, this.ship.pos.z - 12);
 
         this.updateFloatingMultiplierCards(dt, theme.primaryHex);
+        this.updateAlienUfo(dt);
         this.updateDeepSpaceEnvironment(dt);
         this.updateTrajectoryArc(isPlaying, isHitStop, theme.primaryHex);
 
@@ -2249,6 +2493,36 @@ export class PixiRenderer {
             this.gameState.hitStopProgress,
             this.ship.pos
         );
+    }
+
+    /**
+     * Animates the 3D Comic UFO Mothership and Cel-Shaded Abduction Rings
+     */
+    private updateAlienUfo(_dt: number) {
+        if (!this.alienUfoGroup || !this.alienUfoGroup.visible) return;
+
+        // Hover wobble & cartoon breathing bobbing on ufoBody
+        if (this.alienUfoBody) {
+            this.alienUfoBody.position.y = Math.sin(this.elapsed * 5.5) * 0.12;
+            this.alienUfoBody.rotation.z = Math.sin(this.elapsed * 3.8) * 0.05;
+            this.alienUfoBody.rotation.x = Math.cos(this.elapsed * 3.2) * 0.04;
+        }
+
+        // Concentric cartoon energy rings streaming downwards along the tractor beam
+        const ringCount = this.alienTractorRings.length;
+        const totalTravel = 8.0;
+        const baseSpeed = 4.2;
+        for (let i = 0; i < ringCount; i++) {
+            const ring = this.alienTractorRings[i];
+            const cycleProgress = ((this.elapsed * baseSpeed + (i * totalTravel) / ringCount) % totalTravel) / totalTravel;
+            ring.position.y = -2.2 - cycleProgress * totalTravel;
+            // Flare ring scale outwards as it expands down the beam
+            const s = 0.8 + cycleProgress * 0.75;
+            ring.scale.set(s, s, 1);
+            // Smooth fade at ends
+            const ringOpacity = Math.sin(cycleProgress * Math.PI) * 0.85;
+            (ring.material as THREE.MeshBasicMaterial).opacity = ringOpacity;
+        }
     }
 
     /**
@@ -2484,10 +2758,17 @@ export class PixiRenderer {
                     if (boxType === 'orange') {
                         plat.miniSunGroup.visible = true;
                         plat.miniSunGroup.position.y = 1.05 + Math.sin(this.elapsed * 3.6 + lane) * 0.08;
-                        plat.miniSunCorona.material.rotation = Math.sin(this.elapsed * 1.8 + lane) * 0.08;
+                        if (plat.solarRelicCrystal) plat.solarRelicCrystal.rotation.y = this.elapsed * 1.8;
+                        if (plat.solarRelicRing1) plat.solarRelicRing1.rotation.z = this.elapsed * 2.2;
+                        if (plat.solarRelicRing2) plat.solarRelicRing2.rotation.z = -this.elapsed * 1.8;
                     } else if (boxType === 'alien') {
                         plat.alienPortalGroup.visible = true;
                         plat.alienPortalGroup.position.y = 1.05 + Math.sin(this.elapsed * 3.6 + lane) * 0.08;
+                        if (plat.alienRelicUfo) {
+                            plat.alienRelicUfo.rotation.y = this.elapsed * 2.0;
+                            plat.alienRelicUfo.rotation.z = Math.sin(this.elapsed * 3.2) * 0.08;
+                        }
+                        if (plat.alienRelicRing) plat.alienRelicRing.rotation.z = this.elapsed * 2.8;
                     }
                 }
 

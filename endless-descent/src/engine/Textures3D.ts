@@ -40,6 +40,10 @@ export interface PBRTexturePack {
     hdrEnvEquirectTex: THREE.CanvasTexture;
     toonGradientMap: THREE.DataTexture;
     shieldHexTex: THREE.Texture;
+    ufoDomeTex: THREE.CanvasTexture;
+    ufoSaucerTex: THREE.CanvasTexture;
+    ufoBellyTex: THREE.CanvasTexture;
+    ufoCollarTex: THREE.CanvasTexture;
 }
 
 // =============================================================================
@@ -1589,6 +1593,203 @@ export function createPBRTexturePack(): PBRTexturePack {
     const shieldHexTex = new THREE.CanvasTexture(shieldCanvas);
     shieldHexTex.colorSpace = THREE.SRGBColorSpace;
 
+    // =========================================================================
+    // 5C. COMIC ALIEN UFO PROCEDURAL TEXTURES (Matching media_1793752521015_e3b6a340.jpg)
+    // =========================================================================
+    function createUfoDomeCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        const grad = ctx.createLinearGradient(0, 512, 0, 0);
+        grad.addColorStop(0.0, '#10b981');
+        grad.addColorStop(0.25, '#34d399');
+        grad.addColorStop(0.65, '#5eead4');
+        grad.addColorStop(0.90, '#6ee7b7');
+        grad.addColorStop(1.0, '#baf1d2');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 512);
+
+        ctx.fillStyle = 'rgba(5, 150, 105, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(320, 360, 260, 140, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(560, 180);
+        ctx.rotate(-0.18);
+
+        ctx.fillStyle = 'rgba(209, 250, 229, 0.9)';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 190, 120, 0.32, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(-10, -5, 160, 95, 0.32, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.ellipse(135, 140, 44, 30, 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#059669';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.ellipse(512, 70, 340, 55, 0, Math.PI * 0.85, Math.PI * 0.15);
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    function createUfoSaucerCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0.0, '#60a5fa');
+        grad.addColorStop(0.18, '#2563eb');
+        grad.addColorStop(0.65, '#1d4ed8');
+        grad.addColorStop(1.0, '#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 256);
+
+        ctx.strokeStyle = '#93c5fd';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(80, 60);
+        ctx.bezierCurveTo(300, 38, 700, 38, 960, 60);
+        ctx.stroke();
+
+        ctx.strokeStyle = '#090d16';
+        ctx.lineWidth = 9;
+        for (let x = 64; x < 1024; x += 128) {
+            ctx.beginPath();
+            ctx.moveTo(x, 10);
+            ctx.lineTo(x + 10, 246);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#090d16';
+            ctx.lineWidth = 7;
+            ctx.fillStyle = '#1e40af';
+            ctx.fillRect(x - 52, 90, 42, 60);
+            ctx.strokeRect(x - 52, 90, 42, 60);
+
+            ctx.strokeStyle = '#93c5fd';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(x - 50, 93);
+            ctx.lineTo(x - 12, 93);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#090d16';
+            ctx.fillStyle = '#0f172a';
+            ctx.lineWidth = 4;
+            ctx.fillRect(x - 44, 126, 26, 12);
+            ctx.strokeRect(x - 44, 126, 26, 12);
+        }
+
+        ctx.strokeStyle = '#090d16';
+        ctx.lineWidth = 16;
+        ctx.beginPath();
+        ctx.moveTo(0, 248);
+        ctx.lineTo(1024, 248);
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    function createUfoBellyCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0.0, '#475569');
+        grad.addColorStop(0.45, '#64748b');
+        grad.addColorStop(0.85, '#94a3b8');
+        grad.addColorStop(1.0, '#334155');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 256);
+
+        ctx.strokeStyle = '#090d16';
+        ctx.lineWidth = 8;
+        for (let x = 0; x < 1024; x += 128) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x + 8, 256);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(9, 13, 22, 0.75)';
+            ctx.lineWidth = 3.5;
+            for (let h = 0; h < 7; h++) {
+                ctx.beginPath();
+                ctx.moveTo(x + 15 + h * 12, 140);
+                ctx.lineTo(x + 35 + h * 12, 245);
+                ctx.stroke();
+            }
+        }
+
+        return canvas;
+    }
+
+    function createUfoCollarCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d')!;
+
+        const grad = ctx.createLinearGradient(0, 0, 0, 128);
+        grad.addColorStop(0.0, '#cbd5e1');
+        grad.addColorStop(0.4, '#94a3b8');
+        grad.addColorStop(1.0, '#64748b');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1024, 128);
+
+        ctx.strokeStyle = '#090d16';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(0, 5);
+        ctx.lineTo(1024, 5);
+        ctx.moveTo(0, 123);
+        ctx.lineTo(1024, 123);
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    const ufoDomeCanvas = createUfoDomeCanvas();
+    const ufoDomeTex = new THREE.CanvasTexture(ufoDomeCanvas);
+    ufoDomeTex.colorSpace = THREE.SRGBColorSpace;
+
+    const ufoSaucerCanvas = createUfoSaucerCanvas();
+    const ufoSaucerTex = new THREE.CanvasTexture(ufoSaucerCanvas);
+    ufoSaucerTex.wrapS = THREE.RepeatWrapping;
+    ufoSaucerTex.colorSpace = THREE.SRGBColorSpace;
+
+    const ufoBellyCanvas = createUfoBellyCanvas();
+    const ufoBellyTex = new THREE.CanvasTexture(ufoBellyCanvas);
+    ufoBellyTex.wrapS = THREE.RepeatWrapping;
+    ufoBellyTex.colorSpace = THREE.SRGBColorSpace;
+
+    const ufoCollarCanvas = createUfoCollarCanvas();
+    const ufoCollarTex = new THREE.CanvasTexture(ufoCollarCanvas);
+    ufoCollarTex.wrapS = THREE.RepeatWrapping;
+    ufoCollarTex.colorSpace = THREE.SRGBColorSpace;
+
     // Upgrade synchronously-initialized canvas textures with the extracted reference PNG assets
     if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
         const texLoader = new THREE.TextureLoader();
@@ -1699,7 +1900,11 @@ export function createPBRTexturePack(): PBRTexturePack {
         planetRingTex,
         hdrEnvEquirectTex,
         toonGradientMap,
-        shieldHexTex
+        shieldHexTex,
+        ufoDomeTex,
+        ufoSaucerTex,
+        ufoBellyTex,
+        ufoCollarTex
     };
 }
 
