@@ -90,14 +90,17 @@ export class GameStateController {
      */
     public selectLaneWithHitStop(laneIndex: number, isAutoPlay = false): Promise<RoundPick | null> {
         if (this.engine.state !== GameState.PLAYING) return Promise.resolve(null);
-        if (this.isHitStopActive) return Promise.resolve(null);
+        if (this.isHitStopActive || this.engine.isWheelActive) return Promise.resolve(null);
         if (laneIndex < 0 || laneIndex > 4) return Promise.resolve(null);
 
         const targetRow = this.engine.currentRow;
         const specials = this.engine.getSpecialsForRow(targetRow);
-        const isSpecialBox = laneIndex === specials.alienLane || laneIndex === specials.goldenLane;
-        // Optimized snappy arcade pacing: 75ms standard, 160ms for specials
-        const baseDuration = isSpecialBox ? 160 : 75;
+        const isSpecialBox =
+            laneIndex === specials.alienLane ||
+            laneIndex === specials.goldenLane ||
+            laneIndex === specials.wheelLane;
+        // Optimized snappy arcade pacing: 75ms standard, 180ms for specials
+        const baseDuration = isSpecialBox ? 180 : 75;
         const durationMs = this.turboMode
             ? Math.round(baseDuration * 0.45)
             : isAutoPlay

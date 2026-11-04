@@ -51,7 +51,7 @@ resizeObs.observe(stageContainer);
 // 5. Wire 3D Floating Card Pointer & Mobile Touch Interactions
 canvas.addEventListener('pointerdown', (e) => {
     if (isRulesModalOpen()) return;
-    if (engine.state !== GameState.PLAYING || gameState.isHitStopActive) return;
+    if (engine.state !== GameState.PLAYING || gameState.isHitStopActive || engine.isWheelActive) return;
 
     const target = renderer.getClickTarget(e.clientX, e.clientY, engine.currentRow);
     if (!target) return;
@@ -67,7 +67,7 @@ canvas.addEventListener('pointerdown', (e) => {
 canvas.addEventListener('pointermove', (e) => {
     if (isRulesModalOpen()) return;
     if (e.pointerType === 'touch') return;
-    if (engine.state === GameState.PLAYING && !gameState.isHitStopActive) {
+    if (engine.state === GameState.PLAYING && !gameState.isHitStopActive && !engine.isWheelActive) {
         renderer.updateHover(e.clientX, e.clientY, engine.currentRow);
     } else if (renderer.hoveredLane !== null) {
         renderer.clearHover();

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { GameState } from '../math/types';
+import { GameState, type RoundPick, type WheelSpinOutcome } from '../math/types';
 import { calculateNextStepMultiplier } from '../math/multipliers';
 import { GameStateController } from './GameState';
 import { VFXManager } from './VFX_Manager';
@@ -39,10 +39,11 @@ interface FloatingMultiplierCard3D {
     lidOutlineL: THREE.Mesh;
     lidOutlineR: THREE.Mesh;
 
-    // Materials for the 3 types of boxes (6-face array: [+X, -X, +Y Top, -Y Bottom, +Z Front, -Z Back])
+    // Materials for the mystery boxes (6-face array: [+X, -X, +Y Top, -Y Bottom, +Z Front, -Z Back])
     boxMatNormal: THREE.MeshStandardMaterial[];
     boxMatOrange: THREE.MeshStandardMaterial[];
     boxMatAlien: THREE.MeshStandardMaterial[];
+    boxMatWheel: THREE.MeshStandardMaterial[];
 
     // Soft Diffuse Background Atmospheric Glow (Integrated with cosmic space, NO separate floating aura or floor circle)
     diffuseHazeSprite: THREE.Sprite;
@@ -56,6 +57,8 @@ interface FloatingMultiplierCard3D {
     alienPortalGroup: THREE.Group;
     alienRelicUfo: THREE.Group;
     alienRelicRing: THREE.Mesh;
+    miniWheelPropGroup: THREE.Group;
+    miniWheelMesh: THREE.Mesh;
     mineGroup: THREE.Group;
 
     // 3D Comic Black Cat (Sitting on top of normal crates licking its paws)
@@ -71,7 +74,7 @@ interface FloatingMultiplierCard3D {
     badgeMat: THREE.SpriteMaterial;
     lastBadgeSignature: string;
 
-    boxType: 'normal' | 'orange' | 'alien';
+    boxType: 'normal' | 'orange' | 'alien' | 'wheel';
     lidOpenProgress: number; // 0 = closed, 1 = fully open
     boxLiftY: number;        // Smooth upward lift for revealing contents underneath
     isShattered: boolean;
@@ -154,6 +157,17 @@ export class PixiRenderer {
     private alienTractorRings: THREE.Mesh[] = [];
     public isAbductionActive = false;
 
+    // 3D Giant Comic Prize Wheel (Ruleta) & Floating Astronaut Zero-G Scene
+    private giantRouletteGroup!: THREE.Group;
+    private giantWheelDisc!: THREE.Group;
+    private giantWheelFlapper!: THREE.Group;
+    private floatingAstronautGroup!: THREE.Group;
+    private floatingAstroMesh!: THREE.Mesh;
+    public isRouletteActive = false;
+    public isWheelSpinning = false;
+    private wheelCurrentAngle = 0;
+    private lastFlapperPegIndex = -1;
+
     private starfieldGeo!: THREE.BufferGeometry;
     private starfieldPositions!: Float32Array;
 
@@ -225,6 +239,7 @@ export class PixiRenderer {
         this.buildFloatingMultiplierCardsPool();
         this.buildTrajectoryPredictor();
         this.buildAlienUfoSaucer();
+        this.buildGiantPrizeWheelAndAstronaut();
 
         // Build 3D AAA [SPACE-OVERDRIVE V4] Starfighter (Floats freely in the open cosmic void)
         this.ship = new Spaceship3D(this.scene, this.textures);
@@ -1299,6 +1314,44 @@ export class PixiRenderer {
             boxMatAlienSide
         ];
 
+        const boxMatWheelSide = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardWheelBoxTex,
+            emissive: 0x581c87,
+            emissiveIntensity: 0.16,
+            roughness: 0.75,
+            metalness: 0.08
+        });
+        const boxMatWheelTop = new THREE.MeshStandardMaterial({
+            map: this.textures.cardboardWheelBoxTopTex,
+            emissive: 0x581c87,
+            emissiveIntensity: 0.16,
+            roughness: 0.75,
+            metalness: 0.08
+        });
+        const boxMatWheel: THREE.MeshStandardMaterial[] = [
+            boxMatWheelSide,
+            boxMatWheelSide,
+            boxMatWheelTop,
+            boxMatWheelSide,
+            boxMatWheelSide,
+            boxMatWheelSide
+        ];
+
+        // 3D Mini Prize Wheel prop on crate front
+        const miniWheelGeo = new THREE.CylinderGeometry(0.52, 0.52, 0.08, 24);
+        miniWheelGeo.rotateX(Math.PI / 2);
+        const miniWheelFaceMat = new THREE.MeshStandardMaterial({
+            map: this.textures.miniWheelTex,
+            roughness: 0.25,
+            metalness: 0.2
+        });
+        const miniWheelRimMat = new THREE.MeshStandardMaterial({
+            color: 0xeab308,
+            roughness: 0.3,
+            metalness: 0.75
+        });
+        const miniWheelMats = [miniWheelRimMat, miniWheelFaceMat, miniWheelFaceMat];
+
         // Classic Cartoon Bomb Materials
         const cartoonBombMat = new THREE.MeshStandardMaterial({
             color: 0x111827,
@@ -1904,6 +1957,14 @@ export class PixiRenderer {
                 badgeSprite.visible = false;
                 visualGroup.add(badgeSprite);
 
+                const miniWheelPropGroup = new THREE.Group();
+                miniWheelPropGroup.position.set(0, 1.15, 1.05);
+                miniWheelPropGroup.visible = false;
+                const miniWheelMesh = new THREE.Mesh(miniWheelGeo, miniWheelMats);
+                const miniWheelOutline = this.createOutline(miniWheelGeo, 0.04);
+                miniWheelPropGroup.add(miniWheelMesh, miniWheelOutline);
+                mysteryBoxGroup.add(miniWheelPropGroup);
+
                 this.scene.add(group);
                 slotRow.push({
                     group,
@@ -1921,6 +1982,7 @@ export class PixiRenderer {
                     boxMatNormal,
                     boxMatOrange,
                     boxMatAlien,
+                    boxMatWheel,
                     diffuseHazeSprite,
                     diffuseHazeMat,
                     miniSunGroup: solarRelicGroup,
@@ -1930,6 +1992,8 @@ export class PixiRenderer {
                     alienPortalGroup: alienRelicGroup,
                     alienRelicUfo,
                     alienRelicRing,
+                    miniWheelPropGroup,
+                    miniWheelMesh,
                     mineGroup,
                     catGroup: catData.catGroup,
                     catElbowPivot: catData.catElbowPivot,
@@ -2321,6 +2385,398 @@ export class PixiRenderer {
     }
 
     /**
+     * Builds the 3D Giant Comic Prize Wheel (Ruleta) matching Ruleta.jpeg with 12 prize sectors,
+     * golden bevel rim, perimeter pegs, mechanical flapper pointer, and the floating zero-G astronaut.
+     */
+    private buildGiantPrizeWheelAndAstronaut() {
+        this.giantRouletteGroup = new THREE.Group();
+        this.giantRouletteGroup.visible = false;
+        this.scene.add(this.giantRouletteGroup);
+
+        this.giantWheelDisc = new THREE.Group();
+        this.giantRouletteGroup.add(this.giantWheelDisc);
+
+        const wheelGeo = new THREE.CylinderGeometry(4.6, 4.6, 0.38, 48);
+        wheelGeo.rotateX(Math.PI / 2);
+
+        const wheelRimMat = new THREE.MeshStandardMaterial({
+            color: 0x78350f,
+            roughness: 0.32,
+            metalness: 0.28
+        });
+        const wheelFaceMat = new THREE.MeshStandardMaterial({
+            map: this.textures.wheelFaceTex,
+            roughness: 0.22,
+            metalness: 0.12
+        });
+        const wheelBackMat = new THREE.MeshStandardMaterial({
+            color: 0x451a03,
+            roughness: 0.65,
+            metalness: 0.05
+        });
+
+        const wheelMesh = new THREE.Mesh(wheelGeo, [wheelRimMat, wheelFaceMat, wheelBackMat]);
+        const wheelOutline = this.createOutline(wheelGeo, 0.065);
+        this.giantWheelDisc.add(wheelMesh, wheelOutline);
+
+        // 12 Outer 3D Golden Pegs around perimeter
+        const pegGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.28, 12);
+        pegGeo.rotateX(Math.PI / 2);
+        const pegMat = new THREE.MeshStandardMaterial({
+            color: 0xfde047,
+            emissive: 0xd97706,
+            emissiveIntensity: 0.25,
+            roughness: 0.15,
+            metalness: 0.95
+        });
+        for (let i = 0; i < 12; i++) {
+            const angle = -Math.PI / 2 + (i + 0.5) * (Math.PI * 2 / 12);
+            const px = Math.cos(angle) * 4.25;
+            const py = Math.sin(angle) * 4.25;
+            const pegMesh = new THREE.Mesh(pegGeo, pegMat);
+            pegMesh.position.set(px, py, 0.22);
+            this.giantWheelDisc.add(pegMesh);
+        }
+
+        // Center 3D Golden Boss Stud (compact radius matching Ruleta.jpeg)
+        const bossGeo = new THREE.SphereGeometry(0.48, 24, 16, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        bossGeo.rotateX(Math.PI / 2);
+        const bossMat = new THREE.MeshStandardMaterial({
+            color: 0xfacc15,
+            emissive: 0xb45309,
+            emissiveIntensity: 0.35,
+            roughness: 0.18,
+            metalness: 0.85
+        });
+        const bossMesh = new THREE.Mesh(bossGeo, bossMat);
+        bossMesh.position.set(0, 0, 0.20);
+        this.giantWheelDisc.add(bossMesh);
+
+        // Top Flapper / Pointer Assembly at 12 o'clock (matching crimson teardrop pointer of Ruleta.jpeg)
+        this.giantWheelFlapper = new THREE.Group();
+        this.giantWheelFlapper.position.set(0, 4.62, 0.32);
+        this.giantRouletteGroup.add(this.giantWheelFlapper);
+
+        const flapperShape = new THREE.Shape();
+        flapperShape.moveTo(-0.24, 0.28);
+        flapperShape.lineTo(0.24, 0.28);
+        flapperShape.lineTo(0.0, -0.65);
+        flapperShape.closePath();
+
+        const flapperExtrude = new THREE.ExtrudeGeometry(flapperShape, {
+            depth: 0.12,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.03,
+            bevelThickness: 0.03
+        });
+        const flapperMat = new THREE.MeshStandardMaterial({
+            color: 0xdc2626,
+            emissive: 0x991b1b,
+            emissiveIntensity: 0.45,
+            roughness: 0.2,
+            metalness: 0.7
+        });
+        const flapperMesh = new THREE.Mesh(flapperExtrude, flapperMat);
+        flapperMesh.position.z = -0.06;
+        const flapperOutline = this.createOutline(flapperExtrude, 0.04);
+        this.giantWheelFlapper.add(flapperMesh, flapperOutline);
+
+        const bracketGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.22, 16);
+        bracketGeo.rotateX(Math.PI / 2);
+        const bracketMat = new THREE.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.4, metalness: 0.7 });
+        const bracketMesh = new THREE.Mesh(bracketGeo, bracketMat);
+        bracketMesh.position.set(0, 0.26, 0);
+        this.giantWheelFlapper.add(bracketMesh);
+
+        const wheelGlowLight = new THREE.PointLight(0xfef08a, 1.4, 24.0, 1.4);
+        wheelGlowLight.position.set(0, 2.5, 3.2);
+        this.giantRouletteGroup.add(wheelGlowLight);
+
+        // Floating Astronaut Zero-G Representation (seen from behind AEspaldas.jpeg)
+        this.floatingAstronautGroup = new THREE.Group();
+        this.floatingAstronautGroup.visible = false;
+        this.scene.add(this.floatingAstronautGroup);
+
+        const astroGeo = new THREE.PlaneGeometry(3.2, 3.9);
+        const astroMat = new THREE.MeshBasicMaterial({
+            map: this.textures.astronautBackTex,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        this.floatingAstroMesh = new THREE.Mesh(astroGeo, astroMat);
+        this.floatingAstroMesh.position.set(0, 0, 0);
+        this.floatingAstronautGroup.add(this.floatingAstroMesh);
+
+        const astroThrusterLight = new THREE.PointLight(0x38bdf8, 1.8, 8.0, 1.5);
+        astroThrusterLight.position.set(0, -0.6, 0.4);
+        this.floatingAstronautGroup.add(astroThrusterLight);
+    }
+
+    /**
+     * Cinematic Roulette Sequence:
+     * 1. Starfighter approaches and brakes smoothly right before touching the crate.
+     * 2. Small roulette on the crate vanishes with golden pop effect.
+     * 3. Astronaut opens cockpit canopy, pressurized smoke vents, and he jumps into the void.
+     * 4. Cosmic void scene: astronaut floats from behind facing Giant 3D Prize Wheel.
+     * 5. Activates Yellow "GIRAR" button.
+     */
+    public triggerRouletteSequence(worldX: number, worldZ: number, _pick: RoundPick) {
+        this.isRouletteActive = true;
+        this.isWheelSpinning = false;
+        this.lastFlapperPegIndex = -1;
+
+        // 1. Starfighter approaches and brakes smoothly right before the box
+        gsap.killTweensOf(this.ship.pos);
+        this.ship.vel.set(0, 0, 0);
+        gsap.to(this.ship.pos, {
+            x: worldX,
+            y: SHIP_FLIGHT_Y,
+            z: worldZ + 1.85,
+            duration: 0.36,
+            ease: 'power2.out',
+            onComplete: () => {
+                // 2. Mini-Wheel vanishes with golden pop effect
+                const hitCard = this.rowSlots
+                    .flat()
+                    .find(
+                        (c) =>
+                            Math.abs(c.group.position.z - worldZ) < 1.2 &&
+                            Math.abs(c.group.position.x - worldX) < 1.2
+                    );
+                if (hitCard && hitCard.miniWheelPropGroup) {
+                    audioController.playWheelPop();
+                    this.vfx.spawnShockwave3D(worldX, 1.25, worldZ, 0xfacc15, 6.0, 0.35);
+                    this.vfx.spawnGpuParticleCloud(
+                        worldX,
+                        1.3,
+                        worldZ,
+                        90,
+                        [0xfde047, 0xfacc15, 0xeab308, 0xffffff],
+                        8,
+                        20,
+                        0.55
+                    );
+                    gsap.to(hitCard.miniWheelPropGroup.scale, {
+                        x: 1.8,
+                        y: 1.8,
+                        z: 1.8,
+                        duration: 0.12,
+                        ease: 'back.out(2)',
+                        onComplete: () => {
+                            hitCard.miniWheelPropGroup.visible = false;
+                        }
+                    });
+                }
+
+                // 3. Canopy opens & pressurized smoke vents out
+                this.ship.openCockpitCanopy(0.40);
+                this.vfx.spawnGpuParticleCloud(
+                    worldX,
+                    SHIP_FLIGHT_Y + 0.45,
+                    worldZ + 1.85,
+                    65,
+                    [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8],
+                    4,
+                    12,
+                    0.7
+                );
+                this.vfx.spawnGpuParticleCloud(
+                    worldX + 0.15,
+                    SHIP_FLIGHT_Y + 0.35,
+                    worldZ + 1.95,
+                    45,
+                    [0xffffff, 0xf1f5f9],
+                    3,
+                    10,
+                    0.65
+                );
+
+                // 4. Astronaut ejects into zero-G void
+                gsap.to(this.ship.cockpitAstronaut.position, {
+                    y: 2.4,
+                    z: 0.7,
+                    duration: 0.42,
+                    ease: 'power1.out',
+                    onComplete: () => {
+                        this.ship.cockpitAstronaut.visible = false;
+                        this.ship.root.visible = false; // Starfighter leaves focus so scene is purely astronaut in zero-G void!
+
+                        // 5. Cosmic Void Scene Setup
+                        const wheelZ = worldZ - 7.5;
+                        const wheelY = SHIP_FLIGHT_Y + 0.85;
+
+                        this.giantRouletteGroup.visible = true;
+                        this.giantRouletteGroup.position.set(worldX, wheelY + 16, wheelZ);
+                        this.wheelCurrentAngle = 0;
+                        this.giantWheelDisc.rotation.z = 0;
+
+                        gsap.to(this.giantRouletteGroup.position, {
+                            y: wheelY,
+                            duration: 0.75,
+                            ease: 'back.out(1.2)'
+                        });
+
+                        this.floatingAstronautGroup.visible = true;
+                        this.floatingAstronautGroup.position.set(
+                            worldX,
+                            SHIP_FLIGHT_Y - 0.45,
+                            worldZ - 1.5
+                        );
+                        gsap.fromTo(
+                            this.floatingAstronautGroup.position,
+                            { y: SHIP_FLIGHT_Y + 2.4 },
+                            { y: SHIP_FLIGHT_Y - 0.45, duration: 0.65, ease: 'power2.out' }
+                        );
+
+                        // Signal UI that yellow GIRAR button is now active!
+                        window.dispatchEvent(new CustomEvent('roulette-ready'));
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Executes the Provably Fair spin animation of the Giant Prize Wheel
+     * with authentic flapper audio clicks, near-miss suspense deceleration, and payout celebration!
+     */
+    public spinGiantWheel(outcome: WheelSpinOutcome, onComplete: () => void) {
+        if (this.isWheelSpinning) return;
+        this.isWheelSpinning = true;
+
+        const startAngle = this.wheelCurrentAngle;
+        const targetAngle = startAngle + outcome.spinAngleRad;
+        const totalDuration = outcome.isNearMiss ? 5.8 : 4.4;
+
+        const spinTracker = { progress: 0 };
+        this.lastFlapperPegIndex = -1;
+
+        gsap.to(spinTracker, {
+            progress: 1.0,
+            duration: totalDuration,
+            ease: outcome.isNearMiss ? 'power2.out' : 'power3.out',
+            onUpdate: () => {
+                let t = spinTracker.progress;
+                // Near-miss agonizing crawl as wheel slows right next to jackpot/high prize
+                if (outcome.isNearMiss && t > 0.68) {
+                    const localT = (t - 0.68) / 0.32;
+                    t = 0.68 + Math.pow(localT, 2.2) * 0.32;
+                }
+
+                const currentAngle = startAngle + (targetAngle - startAngle) * t;
+                this.wheelCurrentAngle = currentAngle;
+                this.giantWheelDisc.rotation.z = currentAngle;
+
+                const sectorSize = (Math.PI * 2) / 12;
+                const pegIndex = Math.floor(currentAngle / sectorSize);
+
+                // Flapper mechanical deflection as peg pushes against it
+                const sectorOffset = ((currentAngle % sectorSize) + sectorSize) % sectorSize;
+                const normInSector = sectorOffset / sectorSize;
+                if (normInSector > 0.72) {
+                    this.giantWheelFlapper.rotation.z = (normInSector - 0.72) * 1.5;
+                }
+
+                if (pegIndex !== this.lastFlapperPegIndex) {
+                    this.lastFlapperPegIndex = pegIndex;
+
+                    // Elastic snapback of mechanical flapper
+                    gsap.to(this.giantWheelFlapper.rotation, {
+                        z: 0,
+                        duration: 0.08,
+                        ease: 'back.out(2.5)'
+                    });
+
+                    const speed = 1.0 - t;
+                    const pitch = 0.7 + speed * 0.9;
+                    audioController.playWheelTick(pitch);
+
+                    // Near-miss suspense heartbeat pulse & screen micro-shake
+                    if (outcome.isNearMiss && t > 0.80) {
+                        audioController.playWheelNearMiss();
+                        this.vfx.triggerScreenShake(0.12, 0.08);
+                    }
+                }
+            },
+            onComplete: () => {
+                this.isWheelSpinning = false;
+
+                const worldX = this.giantRouletteGroup.position.x;
+                const wheelY = this.giantRouletteGroup.position.y;
+                const wheelZ = this.giantRouletteGroup.position.z;
+
+                this.vfx.triggerScreenShake(0.35, 0.25);
+                this.vfx.spawnShockwave3D(worldX, wheelY, wheelZ, 0xfacc15, 9.0, 0.45);
+                this.vfx.spawnGpuParticleCloud(
+                    worldX,
+                    wheelY,
+                    wheelZ,
+                    160,
+                    [0xfde047, 0xfacc15, 0xeab308, 0xffffff, 0xec4899],
+                    12,
+                    26,
+                    0.72
+                );
+
+                if (outcome.segment.type === 'WIPEOUT') {
+                    audioController.playWheelWipeout();
+                    this.vfx.spawnCrashExplosion3D(worldX, SHIP_FLIGHT_Y, wheelZ - 2.0);
+                    this.vfx.triggerScreenShake(0.65, 0.45);
+                    setTimeout(() => {
+                        this.finishRouletteSequence(onComplete);
+                    }, 1400);
+                } else if (outcome.segment.type === 'EXTRA_SPIN' || outcome.segment.type === 'SLOT') {
+                    audioController.playGoldenHit();
+                    onComplete();
+                } else {
+                    audioController.playCashout(outcome.segment.multiplier >= 10);
+                    this.vfx.spawnGraffitiMultiplierTag3D(
+                        worldX,
+                        wheelY + 1.2,
+                        wheelZ,
+                        this.gameState.engine.currentMultiplier,
+                        this.gameState.engine.currentRow
+                    );
+
+                    setTimeout(() => {
+                        this.finishRouletteSequence(onComplete);
+                    }, 1800);
+                }
+            }
+        });
+    }
+
+    public finishRouletteSequence(onComplete?: () => void) {
+        gsap.to(this.floatingAstronautGroup.position, {
+            y: SHIP_FLIGHT_Y + 2.4,
+            duration: 0.50,
+            ease: 'power2.in',
+            onComplete: () => {
+                this.floatingAstronautGroup.visible = false;
+                this.ship.root.visible = true;
+                this.ship.cockpitAstronaut.visible = true;
+                this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
+
+                this.ship.closeCockpitCanopy(0.38);
+
+                gsap.to(this.giantRouletteGroup.position, {
+                    y: this.giantRouletteGroup.position.y + 18,
+                    duration: 0.65,
+                    ease: 'power2.in',
+                    onComplete: () => {
+                        this.giantRouletteGroup.visible = false;
+                        this.isRouletteActive = false;
+                        this.ship.triggerSpeedBurst(0.65);
+                        if (onComplete) onComplete();
+                    }
+                });
+            }
+        });
+    }
+
+    /**
      * Tracks cursor and touch movement across the entire viewport so the Starfighter
      * dynamically pitches, yaws, and banks toward the user's cursor in real time!
      */
@@ -2367,6 +2823,12 @@ export class PixiRenderer {
                 this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
                 this.vfx.clearGraffitiTags();
                 this.ship.setShieldActive(engine.hasActiveShield, true);
+                this.ship.root.visible = true;
+                this.isRouletteActive = false;
+                this.isWheelSpinning = false;
+                this.giantRouletteGroup.visible = false;
+                this.floatingAstronautGroup.visible = false;
+                this.ship.resetCockpit();
             } else if (state === GameState.IDLE) {
                 this.vfx.clearGraffitiTags();
                 this.ship.vel.set(0, 0, 0);
@@ -2377,6 +2839,12 @@ export class PixiRenderer {
                 }
                 this.ship.setTargetPosition(0, SHIP_FLIGHT_Y, 0);
                 this.ship.setShieldActive(engine.shieldPurchased, true);
+                this.ship.root.visible = true;
+                this.isRouletteActive = false;
+                this.isWheelSpinning = false;
+                this.giantRouletteGroup.visible = false;
+                this.floatingAstronautGroup.visible = false;
+                this.ship.resetCockpit();
             } else if (state === GameState.CRASHED || state === GameState.WON) {
                 this.ship.setShieldActive(false, true);
             }
@@ -2387,7 +2855,10 @@ export class PixiRenderer {
             const worldZ = PixiRenderer.rowToWorldZ(row);
             const specials = engine.getSpecialsForRow(row);
 
-            if (lane === specials.alienLane) {
+            if (lane === specials.wheelLane) {
+                // Wheel box: ship glides towards it, ready to brake smoothly
+                this.ship.setTargetPosition(worldX, SHIP_FLIGHT_Y, worldZ + 1.85);
+            } else if (lane === specials.alienLane) {
                 // Alien box: ship flies directly toward item underneath, pausing right before impact
                 this.ship.setTargetPosition(worldX, 1.05, worldZ + 2.0);
             } else {
@@ -2400,7 +2871,7 @@ export class PixiRenderer {
             const worldX = PixiRenderer.laneToWorldX(pick.lane);
             const worldZ = PixiRenderer.rowToWorldZ(pick.row);
 
-            // Immediately destroy the entire cell and clear all residual elements!
+            // Immediately destroy the entire cell and clear all residual elements (unless wheel sequence)!
             const hitCard = this.rowSlots
                 .flat()
                 .find(
@@ -2408,7 +2879,7 @@ export class PixiRenderer {
                         Math.abs(c.group.position.z - worldZ) < 1.2 &&
                         Math.abs(c.group.position.x - worldX) < 1.2
                 );
-            if (hitCard) {
+            if (hitCard && pick.specialType !== 'WHEEL') {
                 hitCard.mysteryBoxGroup.visible = false;
                 hitCard.miniSunGroup.visible = false;
                 hitCard.alienPortalGroup.visible = false;
@@ -2472,6 +2943,9 @@ export class PixiRenderer {
                 } else if (pick.specialType === 'ALIEN') {
                     // 3. Purple Alien Box: disappears immediately, abducting ship to clean destination row!
                     this.triggerAlienAbductionSequence(worldX, worldZ, pick.rowsSkipped);
+                } else if (pick.specialType === 'WHEEL') {
+                    // 4. Rare Prize Wheel (Ruleta) Box: approaches, brakes smoothly, mini-wheel pops, astronaut jumps into void!
+                    this.triggerRouletteSequence(worldX, worldZ, pick);
                 }
 
                 // Cinematic Near-Miss Tension: check if an adjacent lane held a deadly mine
@@ -2756,8 +3230,16 @@ export class PixiRenderer {
 
         const targetShipX = PixiRenderer.laneToWorldX(shipLane);
         const targetShipZ = PixiRenderer.rowToWorldZ(shipRow);
-        if (!this.isAbductionActive) {
+        if (!this.isAbductionActive && !this.isRouletteActive) {
             this.ship.setTargetPosition(targetShipX, SHIP_FLIGHT_Y, targetShipZ);
+        }
+
+        // Zero-G cosmic void drift for floating astronaut facing the giant prize wheel
+        if (this.isRouletteActive && this.floatingAstronautGroup.visible) {
+            const bob = Math.sin(this.elapsed * 2.2) * 0.12;
+            const roll = Math.cos(this.elapsed * 1.6) * 0.05;
+            this.floatingAstroMesh.position.y = bob;
+            this.floatingAstroMesh.rotation.z = roll;
         }
 
         const hitStopX =
@@ -2849,6 +3331,29 @@ export class PixiRenderer {
     ) {
         const aspect = this.width / Math.max(1, this.height);
         const isPortrait916 = aspect < 1.0;
+
+        // Cinematic framing for Cosmic Prize Wheel & Floating Astronaut in Zero-G
+        if (this.isRouletteActive) {
+            const rouZ = this.giantRouletteGroup.position.z;
+            const rouX = this.giantRouletteGroup.position.x;
+            const camTargetZ = rouZ + (isPortrait916 ? 14.8 : 11.8);
+            const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 2.6 : 1.95);
+            const camTargetX = rouX * 0.20;
+
+            this.camPos.x = THREE.MathUtils.lerp(this.camPos.x, camTargetX, dt * 6.5);
+            this.camPos.y = THREE.MathUtils.lerp(this.camPos.y, camTargetY, dt * 6.5);
+            this.camPos.z = THREE.MathUtils.lerp(this.camPos.z, camTargetZ, dt * 6.5);
+
+            this.camera.position.copy(this.camPos).add(this.vfx.shakeOffset);
+
+            const lookY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.4 : 1.05);
+            const desiredLook = this.scratchDesiredLook.set(rouX, lookY, rouZ);
+            this.camLookAt.lerp(desiredLook, dt * 10);
+            this.camera.lookAt(this.camLookAt);
+            this.camera.rotation.z += this.vfx.shakeRoll;
+            return;
+        }
+
         const narrowFactor = isPortrait916 ? Math.max(0, (0.65 - aspect) * 9.5) : 0;
         let offsetY = isPortrait916 ? 6.5 + narrowFactor * 0.55 : 4.4;
         let offsetZ = isPortrait916 ? 10.5 + narrowFactor : 7.2;
@@ -2951,10 +3456,15 @@ export class PixiRenderer {
                     plat.mysteryBoxGroup.visible = true;
                     plat.miniSunGroup.visible = false;
                     plat.alienPortalGroup.visible = false;
+                    plat.miniWheelPropGroup.visible = false;
                     plat.mineGroup.visible = false;
                     plat.diffuseHazeSprite.visible = false;
                     plat.badgeSprite.visible = false;
                     plat.catGroup.visible = false;
+                }
+                if (this.isRouletteActive) {
+                    plat.group.visible = false;
+                    continue;
                 }
                 plat.group.visible = true;
 
@@ -2967,8 +3477,10 @@ export class PixiRenderer {
                     this.gameState.hitStopLane === lane;
 
                 const rowSpecials = engine.getSpecialsForRow(rowNumber);
-                let boxType: 'normal' | 'orange' | 'alien' = 'normal';
-                if (lane === rowSpecials.alienLane) {
+                let boxType: 'normal' | 'orange' | 'alien' | 'wheel' = 'normal';
+                if (lane === rowSpecials.wheelLane) {
+                    boxType = 'wheel';
+                } else if (lane === rowSpecials.alienLane) {
                     boxType = 'alien';
                 } else if (lane === rowSpecials.goldenLane) {
                     boxType = 'orange';
@@ -2977,11 +3489,13 @@ export class PixiRenderer {
 
                 // Bind appropriate cartoon texture array
                 const activeMat =
-                    boxType === 'orange'
-                        ? plat.boxMatOrange
-                        : boxType === 'alien'
-                          ? plat.boxMatAlien
-                          : plat.boxMatNormal;
+                    boxType === 'wheel'
+                        ? plat.boxMatWheel
+                        : boxType === 'orange'
+                          ? plat.boxMatOrange
+                          : boxType === 'alien'
+                            ? plat.boxMatAlien
+                            : plat.boxMatNormal;
 
                 if (plat.boxBody.material !== activeMat) {
                     plat.boxBody.material = activeMat;
@@ -3047,13 +3561,31 @@ export class PixiRenderer {
                     plat.diffuseHazeMat.color.setHex(0xf59e0b);
                     const pulse = 0.24 + 0.08 * Math.sin(this.elapsed * 3.2 + lane * 0.9);
                     plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
+                    plat.miniWheelPropGroup.visible = false;
                 } else if (boxType === 'alien') {
                     plat.diffuseHazeSprite.visible = true;
                     plat.diffuseHazeMat.color.setHex(0x2563eb);
                     const pulse = 0.24 + 0.08 * Math.sin(this.elapsed * 3.2 + lane * 0.9 + 1.2);
                     plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.45, pulse * 1.4) : pulse;
+                    plat.miniWheelPropGroup.visible = false;
+                } else if (boxType === 'wheel') {
+                    plat.diffuseHazeSprite.visible = true;
+                    plat.diffuseHazeMat.color.setHex(0xfacc15);
+                    const pulse = 0.32 + 0.12 * Math.sin(this.elapsed * 3.6 + lane);
+                    plat.diffuseHazeMat.opacity = isHovered ? Math.min(0.55, pulse * 1.5) : pulse;
+                    if (
+                        plat.mysteryBoxGroup.visible &&
+                        !plat.isShattered &&
+                        (!this.isRouletteActive || engine.currentRow !== rowNumber)
+                    ) {
+                        plat.miniWheelPropGroup.visible = true;
+                        plat.miniWheelMesh.rotation.z = this.elapsed * 2.0;
+                    } else {
+                        plat.miniWheelPropGroup.visible = false;
+                    }
                 } else {
                     plat.diffuseHazeSprite.visible = false;
+                    plat.miniWheelPropGroup.visible = false;
                 }
 
                 // Underneath Content Reveal Logic:
@@ -3152,7 +3684,13 @@ export class PixiRenderer {
                     if (isPicked) {
                         if (pickForRow.isSafe) {
                             // SAFE IMPACT: Cell is completely destroyed, clean & empty!
-                            plat.mysteryBoxGroup.visible = false;
+                            // Except during active roulette sequence where wheel crate stays visible until astronaut ejects!
+                            if (pickForRow.specialType === 'WHEEL' && this.isRouletteActive) {
+                                plat.mysteryBoxGroup.visible = !this.floatingAstronautGroup.visible;
+                            } else {
+                                plat.mysteryBoxGroup.visible = false;
+                                plat.miniWheelPropGroup.visible = false;
+                            }
                             plat.miniSunGroup.visible = false;
                             plat.alienPortalGroup.visible = false;
                             plat.mineGroup.visible = false;
@@ -3161,6 +3699,7 @@ export class PixiRenderer {
                         } else {
                             // Fatal mine detonation
                             plat.mysteryBoxGroup.visible = false;
+                            plat.miniWheelPropGroup.visible = false;
                             plat.miniSunGroup.visible = false;
                             plat.alienPortalGroup.visible = false;
                             plat.mineGroup.visible = true;
@@ -3171,6 +3710,7 @@ export class PixiRenderer {
                     } else if (isMine && !isPlaying) {
                         // Round finished: show hazard bombs in unpicked lanes
                         plat.mysteryBoxGroup.visible = false;
+                        plat.miniWheelPropGroup.visible = false;
                         plat.mineGroup.visible = true;
                         plat.mineGroup.rotation.y = this.elapsed * 2.5;
                     } else {
@@ -3181,6 +3721,7 @@ export class PixiRenderer {
                     // Row was skipped or bypassed by alien abduction warp!
                     // MUST BE COMPLETELY CLEAN - NO BOXES, NO RESIDUAL CLUTTER!
                     plat.mysteryBoxGroup.visible = false;
+                    plat.miniWheelPropGroup.visible = false;
                     plat.miniSunGroup.visible = false;
                     plat.alienPortalGroup.visible = false;
                     plat.mineGroup.visible = false;
@@ -3197,13 +3738,14 @@ export class PixiRenderer {
                     this.isAbductionActive && rowNumber === Math.max(1, engine.currentRow - 1);
 
                 if (
-                    isShipRestingTile ||
+                    (isShipRestingTile && (!this.isRouletteActive || pickForRow?.specialType !== 'WHEEL')) ||
                     isAlienLandingRow ||
                     isPassedRow ||
                     isAbductionLandingRow ||
                     (isTraversedOrSkipped && rowNumber < engine.currentRow)
                 ) {
                     plat.mysteryBoxGroup.visible = false;
+                    plat.miniWheelPropGroup.visible = false;
                     plat.miniSunGroup.visible = false;
                     plat.alienPortalGroup.visible = false;
                     plat.mineGroup.visible = false;
@@ -3212,7 +3754,7 @@ export class PixiRenderer {
                 }
 
                 if (isCurrentRow) {
-                    plat.badgeSprite.visible = true;
+                    plat.badgeSprite.visible = !this.isRouletteActive;
                     const isFirst = engine.currentRow === 1;
                     const nextM = calculateNextStepMultiplier(
                         engine.currentMultiplier,
@@ -3232,6 +3774,10 @@ export class PixiRenderer {
                     } else if (boxType === 'alien') {
                         subText = `UFO WARP +2F`;
                         accentCss = '#c084fc';
+                        isSpecial = true;
+                    } else if (boxType === 'wheel') {
+                        subText = `RULETA ×1000`;
+                        accentCss = '#facc15';
                         isSpecial = true;
                     }
 

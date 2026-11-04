@@ -2258,6 +2258,40 @@ body {
     0 2px 8px rgba(0, 0, 0, 0.45) !important;
 }
 
+/* 4B. Golden Yellow Comic "GIRAR" Button for Rare Prize Wheel Sequence */
+.btn-primary-focal.mode-wheel-spin {
+  background: linear-gradient(
+    180deg,
+    #fef08a 0%,
+    #facc15 45%,
+    #eab308 85%,
+    #ca8a04 100%
+  ) !important;
+  border-color: #080b11 !important;
+  color: #422006 !important;
+  box-shadow:
+    inset 0 3px 0 #fef9c3,
+    inset 0 -3px 0 #a16207,
+    0 5px 0 #080b11,
+    0 0 28px rgba(250, 204, 21, 0.75),
+    0 8px 18px rgba(0, 0, 0, 0.52) !important;
+  animation: subtleFocalHeartbeat 1.1s infinite ease-in-out !important;
+}
+
+.btn-primary-focal.mode-wheel-spin:hover:not(:disabled) {
+  filter: brightness(1.08) !important;
+}
+
+.btn-primary-focal.mode-wheel-spin:active:not(:disabled),
+.btn-primary-focal.mode-wheel-spin.depressed-heavy {
+  animation: none !important;
+  transform: translateY(4px) scale(0.985) !important;
+  box-shadow:
+    inset 0 3px 6px rgba(0, 0, 0, 0.35),
+    0 1px 0 #080b11,
+    0 2px 8px rgba(0, 0, 0, 0.45) !important;
+}
+
 .btn-primary-focal:disabled {
   animation: none;
   background: #232e3a;

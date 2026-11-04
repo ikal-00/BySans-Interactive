@@ -1,6 +1,7 @@
 import {
     deriveHazards,
     deriveRowSpecials,
+    deriveWheelSpinOutcome,
     evaluateLanePick,
     generateServerSeed,
     hashServerSeed
@@ -12,7 +13,7 @@ import {
     calculateShieldSaveMultiplier
 } from '../math/multipliers';
 import { GameState } from '../math/types';
-import type { RoundPick, RoundSummary, RowSpecialConfig } from '../math/types';
+import type { RoundPick, RoundSummary, RowSpecialConfig, WheelSpinOutcome } from '../math/types';
 import { stakeRGS } from '../engine/StakeRGSBridge';
 
 export type StateListener = (state: GameState, engine: GameEngine) => void;
@@ -21,6 +22,8 @@ export type PartialCashoutListener = (bankedAmount: number, remainingBet: number
 export type StepListener = (pick: RoundPick, engine: GameEngine) => void;
 export type BalanceListener = (balance: number, engine: GameEngine) => void;
 export type HistoryListener = (summaries: RoundSummary[], engine: GameEngine) => void;
+export type WheelTriggerListener = (row: number, lane: number, engine: GameEngine) => void;
+export type WheelSpinListener = (outcome: WheelSpinOutcome, engine: GameEngine) => void;
 
 export class GameEngine {
     public state: GameState = GameState.IDLE;
@@ -48,6 +51,14 @@ export class GameEngine {
     public lastCrashedLane: number | null = null;
     public alienDestroyedRows: Set<number> = new Set();
 
+    // Prize Wheel (Ruleta) state tracking
+    public isWheelActive: boolean = false;
+    public wheelSpinsRemaining: number = 0;
+    public wheelSpinIndex: number = 0;
+    public wheelRow: number = 0;
+    public wheelLane: number = 0;
+    public wheelPendingPick: RoundPick | null = null;
+
     // Provably fair config
     public serverSeed: string = '';
     public clientSeed: string = '';
@@ -65,6 +76,8 @@ export class GameEngine {
     private stepListeners: Set<StepListener> = new Set();
     private balanceListeners: Set<BalanceListener> = new Set();
     private historyListeners: Set<HistoryListener> = new Set();
+    private wheelTriggerListeners: Set<WheelTriggerListener> = new Set();
+    private wheelSpinListeners: Set<WheelSpinListener> = new Set();
 
     constructor(serverSeed: string, clientSeed: string) {
         this.serverSeed = serverSeed || generateServerSeed();
@@ -137,6 +150,16 @@ export class GameEngine {
     public onHistoryUpdate(listener: HistoryListener): () => void {
         this.historyListeners.add(listener);
         return () => this.historyListeners.delete(listener);
+    }
+
+    public onWheelTrigger(listener: WheelTriggerListener): () => void {
+        this.wheelTriggerListeners.add(listener);
+        return () => this.wheelTriggerListeners.delete(listener);
+    }
+
+    public onWheelSpin(listener: WheelSpinListener): () => void {
+        this.wheelSpinListeners.add(listener);
+        return () => this.wheelSpinListeners.delete(listener);
     }
 
     public setCallbacks(onStateChange?: StateListener, onCashout?: CashoutListener) {
@@ -217,6 +240,13 @@ export class GameEngine {
         this.partialPayoutBanked = 0;
         this.partialCashoutUsedOnRow = 0;
 
+        this.isWheelActive = false;
+        this.wheelSpinsRemaining = 0;
+        this.wheelSpinIndex = 0;
+        this.wheelRow = 0;
+        this.wheelLane = 0;
+        this.wheelPendingPick = null;
+
         this.currentRow = 1;
         this.currentMultiplier = 1.0;
         this.lastCrashedRow = null;
@@ -252,12 +282,16 @@ export class GameEngine {
                 specials.alienBoost = 2.0;
                 specials.alienSkipRows = 2;
             }
+            if ((window as any).__devForceWheel) {
+                specials.wheelLane = 1;
+            }
         }
         return specials;
     }
 
     public pickLane(laneIndex: number): RoundPick | null {
         if (this.state !== GameState.PLAYING) return null;
+        if (this.isWheelActive) return null; // Cannot pick new lane while roulette is active
         if (!Number.isInteger(laneIndex) || laneIndex < 0 || laneIndex > 4) return null;
 
         const actingRow = this.currentRow;
@@ -286,6 +320,9 @@ export class GameEngine {
                 outcome.specialType = 'ALIEN';
                 outcome.boostFactor = 2.0;
                 outcome.rowsSkipped = 2;
+            } else if ((window as any).__devForceWheel && laneIndex === 1) {
+                outcome.specialType = 'WHEEL';
+                outcome.isSafe = true;
             }
         }
 
@@ -293,6 +330,34 @@ export class GameEngine {
 
         // CASE 1: SAFE STEP
         if (outcome.isSafe) {
+            // Special Case: WHEEL (Roulette) Box
+            if (outcome.specialType === 'WHEEL') {
+                this.isWheelActive = true;
+                this.wheelSpinsRemaining = 1;
+                this.wheelSpinIndex = 0;
+                this.wheelRow = actingRow;
+                this.wheelLane = laneIndex;
+
+                const pick: RoundPick = {
+                    row: actingRow,
+                    lane: laneIndex,
+                    isSafe: true,
+                    shieldSaved: false,
+                    specialType: 'WHEEL',
+                    boostApplied: 1.0,
+                    rowsSkipped: 0,
+                    hazards: outcome.hazards,
+                    stepMultiplierAfter: this.currentMultiplier
+                };
+                this.currentPicks.push(pick);
+                this.wheelPendingPick = pick;
+
+                this.stepListeners.forEach((fn) => fn(pick, this));
+                this.wheelTriggerListeners.forEach((fn) => fn(actingRow, laneIndex, this));
+                this.emitStateChange(GameState.PLAYING);
+                return pick;
+            }
+
             this.currentMultiplier = calculateNextStepMultiplier(
                 this.currentMultiplier,
                 this.minesCount,
@@ -478,6 +543,109 @@ export class GameEngine {
         this.cashoutListeners.forEach((fn) => fn(totalRoundPayout, effectiveFinalMult, this));
 
         return totalRoundPayout;
+    }
+
+    /**
+     * Executes a spin of the Giant Prize Wheel (Ruleta) in accordance with Provably Fair math.
+     */
+    public spinWheel(): WheelSpinOutcome | null {
+        if (!this.isWheelActive || this.wheelSpinsRemaining <= 0) return null;
+
+        const outcome = deriveWheelSpinOutcome(
+            this.serverSeed,
+            this.clientSeed,
+            this.nonce,
+            this.wheelRow,
+            this.wheelSpinIndex
+        );
+        this.wheelSpinIndex++;
+
+        // Outcome Case 1: WIPEOUT (Nada - x0)
+        if (outcome.segment.type === 'WIPEOUT') {
+            this.currentMultiplier = 0.0;
+            this.isWheelActive = false;
+            this.wheelSpinsRemaining = 0;
+            this.lastCrashedRow = this.wheelRow;
+            this.lastCrashedLane = this.wheelLane;
+
+            if (this.wheelPendingPick) {
+                this.wheelPendingPick.isSafe = false;
+                this.wheelPendingPick.stepMultiplierAfter = 0;
+            }
+
+            const summary: RoundSummary = {
+                id: `rnd_${Date.now()}_${this.nonce}`,
+                betAmount: this.betAmount,
+                effectiveBet: this.initialEffectiveBet,
+                minesCount: this.minesCount,
+                clearedRows: Math.max(0, this.wheelRow - 1),
+                finalMultiplier: 0.0,
+                payout: 0.0,
+                partialPayoutBanked: this.partialPayoutBanked,
+                isWin: false,
+                luckyBoost: this.luckyBoost,
+                shieldUsed: this.shieldUsedInRound,
+                serverSeed: this.serverSeed,
+                serverSeedHash: hashServerSeed(this.serverSeed),
+                clientSeed: this.clientSeed,
+                nonce: this.nonce,
+                picks: [...this.currentPicks],
+                timestamp: Date.now()
+            };
+            this.recentSummaries.unshift(summary);
+            if (this.recentSummaries.length > 20) this.recentSummaries.pop();
+
+            this.previousServerSeed = this.serverSeed;
+            this.serverSeed = generateServerSeed();
+            this.nonce++;
+            this.persistState();
+
+            this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
+            this.emitStateChange(GameState.CRASHED);
+            this.emitHistoryUpdate();
+            return outcome;
+        }
+
+        // Outcome Case 2: EXTRA SPIN (+1 Spin)
+        if (outcome.segment.type === 'EXTRA_SPIN') {
+            this.wheelSpinsRemaining += 1;
+            this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
+            this.emitStateChange(GameState.PLAYING);
+            return outcome;
+        }
+
+        // Outcome Case 3: SLOT ACCESS (Teaser placeholder)
+        if (outcome.segment.type === 'SLOT') {
+            this.wheelSpinsRemaining += 1;
+            this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
+            this.emitStateChange(GameState.PLAYING);
+            return outcome;
+        }
+
+        // Outcome Case 4: MULTIPLIER REWARDS (x0.2, x1.2, x2, x3, x5, x8, x10, x1000)
+        const mult = outcome.segment.multiplier;
+        if (this.currentMultiplier > 1.0) {
+            // Apply on current round profit
+            this.currentMultiplier = Math.round(this.currentMultiplier * mult * 10000) / 10000;
+        } else {
+            // First step or baseline without profit: apply on base bet
+            this.currentMultiplier = Math.round(mult * 10000) / 10000;
+        }
+
+        if (this.wheelPendingPick) {
+            this.wheelPendingPick.boostApplied = mult;
+            this.wheelPendingPick.stepMultiplierAfter = this.currentMultiplier;
+        }
+
+        this.wheelSpinsRemaining--;
+        if (this.wheelSpinsRemaining <= 0) {
+            this.isWheelActive = false;
+            this.currentRow = this.wheelRow + 1;
+        }
+
+        this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
+        this.emitStateChange(GameState.PLAYING);
+        return outcome;
     }
 
     /**

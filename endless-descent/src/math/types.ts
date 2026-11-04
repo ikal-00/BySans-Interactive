@@ -5,7 +5,7 @@ export enum GameState {
     CRASHED = 'CRASHED'
 }
 
-export type LaneSpecialType = 'NONE' | 'GOLDEN' | 'ALIEN';
+export type LaneSpecialType = 'NONE' | 'GOLDEN' | 'ALIEN' | 'WHEEL';
 
 export type SimulationStrategy =
     | 'normal'
@@ -14,6 +14,37 @@ export type SimulationStrategy =
     | 'shield_mode'
     | 'partial_cashout';
 
+export type WheelPrizeType =
+    | 'JACKPOT'      // x1000
+    | 'HIGH_10'      // x10
+    | 'COMMON_1_2'   // x1.2
+    | 'MEDIUM_3'     // x3
+    | 'LOW_RESCUE'   // x0.2
+    | 'COMMON_2'     // x2
+    | 'EXTRA_SPIN'   // +1 Spin
+    | 'WIPEOUT'      // x0
+    | 'SLOT'         // Slot spins access (placeholder)
+    | 'COMMON_1_2B'  // x1.2
+    | 'MEDIUM_5'     // x5
+    | 'HIGH_8';      // x8
+
+export interface WheelSegmentConfig {
+    index: number;         // 0..11
+    label: string;         // e.g. "x1000", "x10", "x0", "+1 SPIN", etc.
+    type: WheelPrizeType;
+    multiplier: number;    // Multiplier factor (0 for extra spin / wipeout)
+    colorHex: string;
+    isNearMissHighlight?: boolean;
+}
+
+export interface WheelSpinOutcome {
+    segmentIndex: number;
+    segment: WheelSegmentConfig;
+    rawRoll: number;
+    spinAngleRad: number;
+    isNearMiss: boolean;
+}
+
 export interface RowSpecialConfig {
     row: number;
     goldenLane: number | null;
@@ -21,6 +52,7 @@ export interface RowSpecialConfig {
     alienLane: number | null;
     alienBoost: number;
     alienSkipRows: number;
+    wheelLane: number | null;
     catLane?: number | null;
 }
 

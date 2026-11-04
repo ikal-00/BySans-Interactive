@@ -22,6 +22,12 @@ export interface PBRTexturePack {
     cardboardOrangeBoxTopTex: THREE.Texture;
     cardboardAlienBoxTex: THREE.Texture;
     cardboardAlienBoxTopTex: THREE.Texture;
+    cardboardWheelBoxTex: THREE.Texture;
+    cardboardWheelBoxTopTex: THREE.Texture;
+    wheelFaceTex: THREE.Texture;
+    miniWheelTex: THREE.Texture;
+    astronautBackTex: THREE.Texture;
+    astronautFrontTex: THREE.Texture;
     miniSunTex: THREE.CanvasTexture;
     alienSymbolTex: THREE.CanvasTexture;
     dollarBillTex: THREE.CanvasTexture;
@@ -533,7 +539,7 @@ export function createPBRTexturePack(): PBRTexturePack {
     // =========================================================================
     // 5B. CLASSIC CARTOON 3D WOODEN/CARDBOARD MYSTERY CRATES & MINI SUN (512x512)
     // =========================================================================
-    function createCardboardBoxCanvas(type: 'normal' | 'orange' | 'alien'): HTMLCanvasElement {
+    function createCardboardBoxCanvas(type: 'normal' | 'orange' | 'alien' | 'wheel'): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 512;
@@ -554,6 +560,11 @@ export function createPBRTexturePack(): PBRTexturePack {
             frameC = '#453bc2'; frameHi = '#5e54db'; frameSh = '#221969';
             inkC = '#0a0818'; tapeC = '#4895ef'; tapeHi = '#72efdd';
             haloC = '#0a0818'; qFill = '#38f6ff';
+        } else if (type === 'wheel') {
+            p1 = '#4a044e'; p2 = '#581c87'; p3 = '#3b0764'; p4 = '#2e1065';
+            frameC = '#eab308'; frameHi = '#fde047'; frameSh = '#a16207';
+            inkC = '#17051f'; tapeC = '#fbbf24'; tapeHi = '#fef08a';
+            haloC = '#fef08a'; qFill = '#facc15';
         } else {
             p1 = '#c58b53'; p2 = '#b87e49'; p3 = '#ab713e'; p4 = '#bc8350';
             frameC = '#d29a65'; frameHi = '#e5b382'; frameSh = '#9d6738';
@@ -762,6 +773,31 @@ export function createPBRTexturePack(): PBRTexturePack {
             ctx.beginPath();
             ctx.arc(248, 184, 5, 0, Math.PI * 2);
             ctx.fill();
+        } else if (type === 'wheel') {
+            // Radiant Golden/Magenta Halo + Dark Comic Ink Contour + Bright Gold Fill
+            ctx.shadowColor = 'rgba(250, 204, 21, 0.95)';
+            ctx.shadowBlur = 26;
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 34;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.strokeText('?', 256, 276);
+
+            ctx.shadowColor = 'transparent';
+            ctx.strokeStyle = '#3b0764';
+            ctx.lineWidth = 24;
+            ctx.strokeText('?', 256, 276);
+
+            ctx.fillStyle = '#fef08a';
+            ctx.fillText('?', 256, 276);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(228, 195, 16, 9, -Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(248, 184, 5, 0, Math.PI * 2);
+            ctx.fill();
         } else {
             ctx.shadowColor = 'rgba(16, 12, 10, 0.45)';
             ctx.shadowBlur = 12;
@@ -782,7 +818,7 @@ export function createPBRTexturePack(): PBRTexturePack {
         return canvas;
     }
 
-    function createCardboardBoxTopCanvas(type: 'normal' | 'orange' | 'alien'): HTMLCanvasElement {
+    function createCardboardBoxTopCanvas(type: 'normal' | 'orange' | 'alien' | 'wheel'): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
         canvas.width = 512;
         canvas.height = 512;
@@ -800,6 +836,10 @@ export function createPBRTexturePack(): PBRTexturePack {
             p1 = '#2d248a'; p2 = '#372ea3'; p3 = '#251c78'; p4 = '#1f1666';
             frameC = '#453bc2'; frameHi = '#5e54db'; frameSh = '#221969';
             inkC = '#0a0818'; tapeC = '#4895ef'; tapeHi = '#72efdd';
+        } else if (type === 'wheel') {
+            p1 = '#4a044e'; p2 = '#581c87'; p3 = '#3b0764'; p4 = '#2e1065';
+            frameC = '#eab308'; frameHi = '#fde047'; frameSh = '#a16207';
+            inkC = '#17051f'; tapeC = '#fbbf24'; tapeHi = '#fef08a';
         } else {
             p1 = '#c58b53'; p2 = '#b87e49'; p3 = '#ab713e'; p4 = '#bc8350';
             frameC = '#d29a65'; frameHi = '#e5b382'; frameSh = '#9d6738';
@@ -967,6 +1007,346 @@ export function createPBRTexturePack(): PBRTexturePack {
         ctx.lineWidth = 10;
         ctx.beginPath();
         ctx.arc(cx, cy, r - 5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    // =========================================================================
+    // 5D. 12-SEGMENT COMIC PRIZE WHEEL (RULETA) & ASTRONAUT PROCEDURAL CANVASES
+    // =========================================================================
+    function createRouletteWheelCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d')!;
+
+        const cx = 512;
+        const cy = 512;
+        const R_outer = 492;
+        const R_rim = 460;
+        const R_inner = 428;
+        const R_hub = 65;
+
+        // 1. Outer Dark Comic Outline & Wooden Rim
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_outer, 0, Math.PI * 2);
+        ctx.fillStyle = '#18100c';
+        ctx.fill();
+
+        const woodGrad = ctx.createRadialGradient(cx, cy, R_inner, cx, cy, R_outer);
+        woodGrad.addColorStop(0, '#78350f');
+        woodGrad.addColorStop(0.5, '#92400e');
+        woodGrad.addColorStop(1, '#451a03');
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_outer - 6, 0, Math.PI * 2);
+        ctx.fillStyle = woodGrad;
+        ctx.fill();
+
+        // Golden Beveled Inner Rim
+        const goldGrad = ctx.createLinearGradient(0, cy - R_rim, 0, cy + R_rim);
+        goldGrad.addColorStop(0, '#fef08a');
+        goldGrad.addColorStop(0.5, '#eab308');
+        goldGrad.addColorStop(1, '#a16207');
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_rim, 0, Math.PI * 2);
+        ctx.strokeStyle = goldGrad;
+        ctx.lineWidth = 14;
+        ctx.stroke();
+
+        ctx.strokeStyle = '#18100c';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // 2. The 12 Prize Sectors Matching Ruleta.jpeg & Exact User Specifications
+        const sectors = [
+            { mult: 'x1000', label: 'JACKPOT', bg1: '#dc2626', bg2: '#991b1b', textCol: '#fef08a', icon: '💎' },
+            { mult: 'x10',   label: 'PREMIO ALTO', bg1: '#16a34a', bg2: '#14532d', textCol: '#ffffff', icon: '⭐' },
+            { mult: 'x1.2',  label: 'PISO',    bg1: '#eab308', bg2: '#a16207', textCol: '#ffffff', icon: '❓' },
+            { mult: 'x3',    label: 'MEDIO',   bg1: '#2563eb', bg2: '#1e3a8a', textCol: '#ffffff', icon: '☘️' },
+            { mult: 'x0.2',  label: 'RESCATE', bg1: '#9333ea', bg2: '#581c87', textCol: '#ffffff', icon: '❓' },
+            { mult: 'x2',    label: 'PISO',    bg1: '#eab308', bg2: '#a16207', textCol: '#ffffff', icon: '❓' },
+            { mult: '+1 SPIN', label: 'EXTRA', bg1: '#ec4899', bg2: '#be185d', textCol: '#ffffff', icon: '☘️' },
+            { mult: 'x0',    label: 'NADA',    bg1: '#7f1d1d', bg2: '#450a0a', textCol: '#fca5a5', icon: '💀' },
+            { mult: 'SLOT',  label: 'GIROS',   bg1: '#7c3aed', bg2: '#4c1d95', textCol: '#fef08a', icon: '🎰' },
+            { mult: 'x1.2',  label: 'PISO',    bg1: '#eab308', bg2: '#a16207', textCol: '#ffffff', icon: '❓' },
+            { mult: 'x5',    label: 'MEDIO',   bg1: '#dc2626', bg2: '#991b1b', textCol: '#ffffff', icon: '⭐' },
+            { mult: 'x8',    label: 'PREMIO ALTO', bg1: '#16a34a', bg2: '#14532d', textCol: '#ffffff', icon: '☘️' }
+        ];
+
+        const sectorAngle = (Math.PI * 2) / 12;
+
+        for (let i = 0; i < 12; i++) {
+            const s = sectors[i];
+            const centerAngle = -Math.PI / 2 + i * sectorAngle;
+            const startAngle = centerAngle - sectorAngle / 2;
+            const endAngle = centerAngle + sectorAngle / 2;
+
+            // Wedge Slice
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, R_inner, startAngle, endAngle);
+            ctx.closePath();
+
+            const sGrad = ctx.createRadialGradient(cx, cy, R_hub, cx, cy, R_inner);
+            sGrad.addColorStop(0, s.bg1);
+            sGrad.addColorStop(1, s.bg2);
+            ctx.fillStyle = sGrad;
+            ctx.fill();
+
+            // Dark Comic Ink Sector Divider
+            ctx.strokeStyle = '#18100c';
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.restore();
+
+            // 1. Icon near outer rim (matching Ruleta.jpeg)
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(centerAngle);
+            ctx.translate(335, 0);
+            ctx.rotate(Math.PI / 2);
+            ctx.font = '50px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(s.icon, 0, 0);
+            ctx.restore();
+
+            // 2. Multiplier Typography in middle slice (circumferential for perfect legibility)
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(centerAngle);
+            ctx.translate(230, 0);
+            ctx.rotate(Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const isLongText = s.mult.length > 4;
+            ctx.font = isLongText
+                ? '900 42px "Arial Black", Impact, sans-serif'
+                : '900 56px "Arial Black", Impact, sans-serif';
+
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 9;
+            ctx.lineJoin = 'round';
+            ctx.strokeText(s.mult, 0, 0);
+            ctx.fillStyle = s.textCol;
+            ctx.fillText(s.mult, 0, 0);
+            ctx.restore();
+
+            // 3. Sub-label closer to hub
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(centerAngle);
+            ctx.translate(135, 0);
+            ctx.rotate(Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = '800 20px "Arial Black", Impact, sans-serif';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 5;
+            ctx.strokeText(s.label, 0, 0);
+            ctx.fillStyle = s.textCol;
+            ctx.fillText(s.label, 0, 0);
+            ctx.restore();
+        }
+
+        // 3. Golden Pegs at sector divisions
+        for (let i = 0; i < 12; i++) {
+            const divAngle = -Math.PI / 2 + (i + 0.5) * sectorAngle;
+            const px = cx + Math.cos(divAngle) * (R_inner + 16);
+            const py = cy + Math.sin(divAngle) * (R_inner + 16);
+
+            ctx.beginPath();
+            ctx.arc(px, py + 3, 11, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(px, py, 10, 0, Math.PI * 2);
+            ctx.fillStyle = '#fde047';
+            ctx.fill();
+            ctx.strokeStyle = '#78350f';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(px - 3, py - 3, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+        }
+
+        // 4. Center Golden Metallic Hub
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_hub + 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#18100c';
+        ctx.fill();
+
+        const hubRingGrad = ctx.createLinearGradient(0, cy - R_hub, 0, cy + R_hub);
+        hubRingGrad.addColorStop(0, '#fef08a');
+        hubRingGrad.addColorStop(0.5, '#eab308');
+        hubRingGrad.addColorStop(1, '#a16207');
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_hub, 0, Math.PI * 2);
+        ctx.fillStyle = hubRingGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#18100c';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        const domeGrad = ctx.createRadialGradient(cx - 25, cy - 25, 5, cx, cy, R_hub - 22);
+        domeGrad.addColorStop(0, '#fef08a');
+        domeGrad.addColorStop(0.4, '#facc15');
+        domeGrad.addColorStop(0.85, '#ca8a04');
+        domeGrad.addColorStop(1, '#713f12');
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_hub - 20, 0, Math.PI * 2);
+        ctx.fillStyle = domeGrad;
+        ctx.fill();
+        ctx.strokeStyle = '#18100c';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // 8-point Golden Star
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(254, 240, 138, 0.9)';
+        ctx.shadowBlur = 14;
+        for (let p = 0; p < 2; p++) {
+            ctx.rotate(Math.PI / 4);
+            ctx.beginPath();
+            ctx.moveTo(0, -44);
+            ctx.lineTo(12, -12);
+            ctx.lineTo(44, 0);
+            ctx.lineTo(12, 12);
+            ctx.lineTo(0, 44);
+            ctx.lineTo(-12, 12);
+            ctx.lineTo(-44, 0);
+            ctx.lineTo(-12, -12);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+
+        return canvas;
+    }
+
+    function createMiniWheelCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+        const cx = 128;
+        const cy = 128;
+        const R = 118;
+        const R_hub = 28;
+
+        const colors = [
+            '#dc2626', '#16a34a', '#eab308', '#2563eb',
+            '#9333ea', '#eab308', '#ec4899', '#7f1d1d',
+            '#7c3aed', '#eab308', '#dc2626', '#16a34a'
+        ];
+
+        // Outer gold rim
+        ctx.beginPath();
+        ctx.arc(cx, cy, R + 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#18100c';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fillStyle = '#eab308';
+        ctx.fill();
+        ctx.strokeStyle = '#18100c';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        const step = (Math.PI * 2) / 12;
+        for (let i = 0; i < 12; i++) {
+            const startA = -Math.PI / 2 + (i - 0.5) * step;
+            const endA = startA + step;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, R - 10, startA, endA);
+            ctx.closePath();
+            ctx.fillStyle = colors[i];
+            ctx.fill();
+            ctx.strokeStyle = '#18100c';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
+
+        // Center hub
+        ctx.beginPath();
+        ctx.arc(cx, cy, R_hub, 0, Math.PI * 2);
+        ctx.fillStyle = '#fde047';
+        ctx.fill();
+        ctx.strokeStyle = '#18100c';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    function createAstronautBackCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        // Procedural comic astronaut from behind fallback
+        const cx = 256;
+        const cy = 256;
+
+        // Life support pack
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(cx - 70, cy - 80, 140, 160);
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(cx - 70, cy - 80, 140, 160);
+
+        // Helmet from behind
+        ctx.beginPath();
+        ctx.arc(cx, cy - 110, 68, 0, Math.PI * 2);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+
+        // Oxygen thrusters on backpack
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(cx - 50, cy + 70, 24, 20);
+        ctx.fillRect(cx + 26, cy + 70, 24, 20);
+
+        return canvas;
+    }
+
+    function createAstronautFrontCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        const cx = 256;
+        const cy = 256;
+
+        // Helmet visor (cyan glass)
+        ctx.beginPath();
+        ctx.arc(cx, cy - 110, 68, 0, Math.PI * 2);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fill();
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 8;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - 110, 48, 38, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 4;
         ctx.stroke();
 
         return canvas;
@@ -1471,6 +1851,30 @@ export function createPBRTexturePack(): PBRTexturePack {
     const cardboardAlienBoxTopTex = new THREE.CanvasTexture(alienTopCanvas);
     cardboardAlienBoxTopTex.colorSpace = THREE.SRGBColorSpace;
 
+    const wheelSideCanvas = createCardboardBoxCanvas('wheel');
+    const cardboardWheelBoxTex = new THREE.CanvasTexture(wheelSideCanvas);
+    cardboardWheelBoxTex.colorSpace = THREE.SRGBColorSpace;
+
+    const wheelTopCanvas = createCardboardBoxTopCanvas('wheel');
+    const cardboardWheelBoxTopTex = new THREE.CanvasTexture(wheelTopCanvas);
+    cardboardWheelBoxTopTex.colorSpace = THREE.SRGBColorSpace;
+
+    const wheelFaceCanvas = createRouletteWheelCanvas();
+    const wheelFaceTex = new THREE.CanvasTexture(wheelFaceCanvas);
+    wheelFaceTex.colorSpace = THREE.SRGBColorSpace;
+
+    const miniWheelCanvas = createMiniWheelCanvas();
+    const miniWheelTex = new THREE.CanvasTexture(miniWheelCanvas);
+    miniWheelTex.colorSpace = THREE.SRGBColorSpace;
+
+    const astronautBackCanvas = createAstronautBackCanvas();
+    const astronautBackTex = new THREE.CanvasTexture(astronautBackCanvas);
+    astronautBackTex.colorSpace = THREE.SRGBColorSpace;
+
+    const astronautFrontCanvas = createAstronautFrontCanvas();
+    const astronautFrontTex = new THREE.CanvasTexture(astronautFrontCanvas);
+    astronautFrontTex.colorSpace = THREE.SRGBColorSpace;
+
     const miniSunCanvas = createComicOrbCanvas('orange');
     const miniSunTex = new THREE.CanvasTexture(miniSunCanvas);
     miniSunTex.colorSpace = THREE.SRGBColorSpace;
@@ -1864,6 +2268,8 @@ export function createPBRTexturePack(): PBRTexturePack {
         upgradeCanvas(miniSunCanvas, miniSunTex, '/assets/bonus_sun_comic.png', true);
         upgradeCanvas(alienSymbolCanvas, alienSymbolTex, '/assets/bonus_blue_comic.png', true);
         upgradeCanvas(shieldCanvas, shieldHexTex, '/assets/shield_hex_pattern.png', true);
+        upgradeCanvas(astronautBackCanvas, astronautBackTex, '/assets/astronaut_back.png', true);
+        upgradeCanvas(astronautFrontCanvas, astronautFrontTex, '/assets/astronaut_front.png', true);
     }
 
     const dollarBillTex = new THREE.CanvasTexture(billCanvas);
@@ -1933,6 +2339,12 @@ export function createPBRTexturePack(): PBRTexturePack {
         cardboardOrangeBoxTopTex,
         cardboardAlienBoxTex,
         cardboardAlienBoxTopTex,
+        cardboardWheelBoxTex,
+        cardboardWheelBoxTopTex,
+        wheelFaceTex,
+        miniWheelTex,
+        astronautBackTex,
+        astronautFrontTex,
         miniSunTex,
         alienSymbolTex,
         dollarBillTex,

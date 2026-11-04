@@ -46,6 +46,10 @@ for (let round = 1; round <= 5; round++) {
             `Row ${r} alienLane must match! IDLE: ${idleSpecials[r - 1].alienLane}, PLAYING: ${playingSpecials.alienLane}`
         );
         assert(
+            playingSpecials.wheelLane === idleSpecials[r - 1].wheelLane,
+            `Row ${r} wheelLane must match! IDLE: ${idleSpecials[r - 1].wheelLane}, PLAYING: ${playingSpecials.wheelLane}`
+        );
+        assert(
             playingSpecials.goldenBoost === idleSpecials[r - 1].goldenBoost,
             `Row ${r} goldenBoost must match!`
         );
@@ -56,8 +60,16 @@ for (let round = 1; round <= 5; round++) {
         if (playingSpecials.catLane !== null) {
             assert(
                 playingSpecials.catLane !== playingSpecials.goldenLane &&
-                playingSpecials.catLane !== playingSpecials.alienLane,
+                playingSpecials.catLane !== playingSpecials.alienLane &&
+                playingSpecials.catLane !== playingSpecials.wheelLane,
                 `Row ${r} catLane must be on a normal box only!`
+            );
+        }
+        if (playingSpecials.wheelLane !== null) {
+            assert(
+                playingSpecials.wheelLane !== playingSpecials.goldenLane &&
+                playingSpecials.wheelLane !== playingSpecials.alienLane,
+                `Row ${r} wheelLane must not overlap golden or alien!`
             );
         }
     }

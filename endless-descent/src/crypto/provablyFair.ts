@@ -1,5 +1,5 @@
 import CryptoJS from 'crypto-js';
-import type { LaneSpecialType, RowSpecialConfig } from '../math/types';
+import type { LaneSpecialType, RowSpecialConfig, WheelSegmentConfig, WheelSpinOutcome } from '../math/types';
 import { getLaneWinProbability } from '../math/multipliers';
 
 const hmacBytesCache = new Map<string, number[]>();
@@ -143,14 +143,26 @@ export function deriveRowSpecials(
         alienLane = remainingLanes[bytes[20] % remainingLanes.length];
     }
 
+    // Byte 23: Rare Prize Wheel (Ruleta) spawn roll (~5.5% normal, ~13% in lucky boost)
+    const wheelThreshold = luckyBoost ? Math.floor(256 * 0.13) : Math.floor(256 * 0.055);
+    const hasWheel = bytes[23] < wheelThreshold;
+
+    let wheelLane: number | null = null;
+    if (hasWheel) {
+        const availForWheel = [0, 1, 2, 3, 4].filter((l) => l !== goldenLane && l !== alienLane);
+        if (availForWheel.length > 0) {
+            wheelLane = availForWheel[bytes[24] % availForWheel.length];
+        }
+    }
+
     // Bytes 21 & 22: Comic Black Cat spawn roll (sitting on top of a normal crate, max 1 per row, ~38% frequency)
     const catThreshold = Math.floor(256 * 0.38);
     const hasCat = bytes[21] < catThreshold;
 
     let catLane: number | null = null;
     if (hasCat) {
-        // Normal crates only (never on goldenLane or alienLane)
-        const normalLanes = [0, 1, 2, 3, 4].filter((l) => l !== goldenLane && l !== alienLane);
+        // Normal crates only (never on goldenLane, alienLane, or wheelLane)
+        const normalLanes = [0, 1, 2, 3, 4].filter((l) => l !== goldenLane && l !== alienLane && l !== wheelLane);
         if (normalLanes.length > 0) {
             catLane = normalLanes[bytes[22] % normalLanes.length];
         }
@@ -163,6 +175,7 @@ export function deriveRowSpecials(
         alienLane,
         alienBoost,
         alienSkipRows,
+        wheelLane,
         catLane
     };
 }
@@ -200,6 +213,17 @@ export function evaluateLanePick(
         specialType = 'ALIEN';
         boostFactor = specials.alienBoost;
         rowsSkipped = specials.alienSkipRows;
+    } else if (specials.wheelLane === lane) {
+        specialType = 'WHEEL';
+        // Wheel crate has normal hazard probability
+        const isSafe = !baseHazards.includes(lane);
+        return {
+            isSafe,
+            specialType,
+            boostFactor: 1.0,
+            rowsSkipped: 0,
+            hazards: baseHazards
+        };
     }
 
     if (specialType === 'NONE') {
@@ -269,4 +293,113 @@ export function generateClientSeed(): string {
  */
 export function hashServerSeed(serverSeed: string): string {
     return CryptoJS.SHA256(serverSeed).toString(CryptoJS.enc.Hex);
+}
+
+/**
+ * The 12 segments of the Comic Prize Wheel matching Ruleta.jpeg:
+ *  0: x1000 💎 Jackpot Imposible
+ *  1: x10 ⭐ Premio Alto
+ *  2: x1.2 ❓ Piso Común
+ *  3: x3 ☘️ Premio Medio
+ *  4: x0.2 ❓ Rescate Bajo
+ *  5: x2 ❓ Piso Común
+ *  6: +1 SPIN ☘️ Tirada Extra
+ *  7: x0 💀 Wipeout (Nada)
+ *  8: SLOT 🎰 Acceso a Slot (Placeholder)
+ *  9: x1.2 ❓ Piso Común
+ * 10: x5 ❓ Premio Medio
+ * 11: x8 ☘️ Premio Alto
+ */
+export const WHEEL_SEGMENTS: WheelSegmentConfig[] = [
+    { index: 0, label: 'x1000', type: 'JACKPOT', multiplier: 1000, colorHex: '#dc2626', isNearMissHighlight: true },
+    { index: 1, label: 'x10', type: 'HIGH_10', multiplier: 10, colorHex: '#16a34a', isNearMissHighlight: true },
+    { index: 2, label: 'x1.2', type: 'COMMON_1_2', multiplier: 1.2, colorHex: '#eab308' },
+    { index: 3, label: 'x3', type: 'MEDIUM_3', multiplier: 3, colorHex: '#2563eb' },
+    { index: 4, label: 'x0.2', type: 'LOW_RESCUE', multiplier: 0.2, colorHex: '#9333ea' },
+    { index: 5, label: 'x2', type: 'COMMON_2', multiplier: 2, colorHex: '#eab308' },
+    { index: 6, label: '+1 SPIN', type: 'EXTRA_SPIN', multiplier: 0, colorHex: '#ec4899' },
+    { index: 7, label: 'x0', type: 'WIPEOUT', multiplier: 0, colorHex: '#991b1b' },
+    { index: 8, label: 'SLOT', type: 'SLOT', multiplier: 0, colorHex: '#7c3aed' },
+    { index: 9, label: 'x1.2', type: 'COMMON_1_2B', multiplier: 1.2, colorHex: '#eab308' },
+    { index: 10, label: 'x5', type: 'MEDIUM_5', multiplier: 5, colorHex: '#dc2626' },
+    { index: 11, label: 'x8', type: 'HIGH_8', multiplier: 8, colorHex: '#16a34a', isNearMissHighlight: true }
+];
+
+const WHEEL_WEIGHTS = [
+    8,    // 0: x1000 (0.08% Jackpot)
+    250,  // 1: x10   (2.50%)
+    1850, // 2: x1.2  (18.50%)
+    750,  // 3: x3    (7.50%)
+    1600, // 4: x0.2  (16.00%)
+    1400, // 5: x2    (14.00%)
+    500,  // 6: +1 SP (5.00%)
+    1142, // 7: x0    (11.42%)
+    300,  // 8: SLOT  (3.00%)
+    1500, // 9: x1.2  (15.00%)
+    400,  // 10: x5   (4.00%)
+    300   // 11: x8   (3.00%)
+]; // Sum = 10,000
+
+/**
+ * Deterministically computes the provably fair outcome of spinning the Giant Prize Wheel.
+ */
+export function deriveWheelSpinOutcome(
+    serverSeed: string,
+    clientSeed: string,
+    nonce: number,
+    row: number,
+    spinIndex = 0
+): WheelSpinOutcome {
+    const message = `${clientSeed}:${nonce}:${row}:wheel:${spinIndex}`;
+    const hash = CryptoJS.HmacSHA256(message, serverSeed).toString(CryptoJS.enc.Hex);
+    const bytes = parseHashBytes(hash);
+
+    // 32-bit roll in range [0, 10000)
+    const uint32 =
+        ((bytes[0] << 24) >>> 0) +
+        ((bytes[1] << 16) >>> 0) +
+        ((bytes[2] << 8) >>> 0) +
+        (bytes[3] >>> 0);
+    const rawRoll = uint32 / 0x100000000;
+    const rollInt = Math.floor(rawRoll * 10000);
+
+    let accum = 0;
+    let chosenSegmentIndex = 0;
+    for (let i = 0; i < WHEEL_WEIGHTS.length; i++) {
+        accum += WHEEL_WEIGHTS[i];
+        if (rollInt < accum) {
+            chosenSegmentIndex = i;
+            break;
+        }
+    }
+
+    const segment = WHEEL_SEGMENTS[chosenSegmentIndex];
+
+    // Jitter inside sector: within +/- 0.35 of the segment's half-width to avoid resting on pegs
+    const sectorAngle = (Math.PI * 2) / 12;
+    const jitterNorm = ((bytes[4] / 255) - 0.5) * 0.7; // -0.35 .. +0.35
+    const jitterAngle = jitterNorm * (sectorAngle * 0.5);
+
+    // Base revolutions (6 full spins = 12 * Math.PI)
+    const baseRevs = 6 + (bytes[5] % 3); // 6, 7, or 8 revolutions
+    // Final target rotation angle for wheel:
+    const spinAngleRad = baseRevs * (Math.PI * 2) + (12 - chosenSegmentIndex) * sectorAngle + jitterAngle;
+
+    // Near-miss flag: when result is adjacent to the x1000 jackpot (segment 11 or segment 1),
+    // landed on high multiplier (segment 10 = x5, segment 1 = x10, segment 0 = x1000),
+    // or deterministically flagged for an agonizing near-miss suspense crawl (~45% of spins)
+    const isNearMiss =
+        chosenSegmentIndex === 1 ||
+        chosenSegmentIndex === 11 ||
+        chosenSegmentIndex === 10 ||
+        chosenSegmentIndex === 0 ||
+        (bytes[6] % 100 < 45);
+
+    return {
+        segmentIndex: chosenSegmentIndex,
+        segment,
+        rawRoll,
+        spinAngleRad,
+        isNearMiss
+    };
 }

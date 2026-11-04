@@ -509,6 +509,12 @@ export class Spaceship3D {
         active: boolean;
     }[] = [];
 
+    // Cockpit Canopy Hinge & Ejectable Astronaut
+    public cockpitHinge!: THREE.Group;
+    public cockpitCanopyMesh!: THREE.Mesh;
+    public cockpitAstronaut!: THREE.Group;
+    public isCanopyOpen = false;
+
     // Spring-damper physical state
     public readonly pos = new THREE.Vector3(0, 0.65, 0);
     public readonly vel = new THREE.Vector3(0, 0, 0);
@@ -818,6 +824,95 @@ export class Spaceship3D {
 
         // Build 3D Quantum Cyber-Shield Barrier
         this.buildQuantumCyberShield(shipAssembly, _textures);
+
+        // Build 3D Cockpit Canopy & Ejectable Astronaut
+        this.buildCockpitCanopyAndAstronaut(shipAssembly, _textures);
+    }
+
+    private buildCockpitCanopyAndAstronaut(shipAssembly: THREE.Group, textures: PBRTexturePack) {
+        // Cockpit Hinge at forward base of canopy
+        this.cockpitHinge = new THREE.Group();
+        this.cockpitHinge.position.set(0, 0.42, 0.42);
+        shipAssembly.add(this.cockpitHinge);
+
+        // Canopy Glass structure
+        const canopyGroup = new THREE.Group();
+        canopyGroup.position.set(0, 0, -0.32);
+        this.cockpitHinge.add(canopyGroup);
+
+        const canopyGeo = new THREE.SphereGeometry(0.58, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const canopyMat = new THREE.MeshStandardMaterial({
+            color: 0x38bdf8,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.35,
+            roughness: 0.08,
+            metalness: 0.15,
+            transparent: true,
+            opacity: 0.65,
+            side: THREE.DoubleSide
+        });
+        this.cockpitCanopyMesh = new THREE.Mesh(canopyGeo, canopyMat);
+        this.cockpitCanopyMesh.scale.set(0.78, 0.58, 1.32);
+        this.cockpitCanopyMesh.rotation.x = 0.08;
+        canopyGroup.add(this.cockpitCanopyMesh);
+
+        // Canopy dark comic ink frame arch
+        const frameGeo = new THREE.TorusGeometry(0.52, 0.038, 8, 20, Math.PI);
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
+        const frameMesh = new THREE.Mesh(frameGeo, frameMat);
+        frameMesh.position.set(0, 0.02, 0.12);
+        frameMesh.rotation.y = Math.PI;
+        frameMesh.rotation.x = Math.PI / 2;
+        frameMesh.scale.set(0.85, 1.25, 0.85);
+        canopyGroup.add(frameMesh);
+
+        // Cockpit Astronaut sitting in cockpit
+        this.cockpitAstronaut = new THREE.Group();
+        this.cockpitAstronaut.position.set(0, 0.32, 0.08);
+        shipAssembly.add(this.cockpitAstronaut);
+
+        const astroGeo = new THREE.PlaneGeometry(0.75, 0.95);
+        const astroMat = new THREE.MeshBasicMaterial({
+            map: textures.astronautFrontTex,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+        const astroMesh = new THREE.Mesh(astroGeo, astroMat);
+        astroMesh.position.y = 0.25;
+        this.cockpitAstronaut.add(astroMesh);
+    }
+
+    public openCockpitCanopy(duration = 0.45, onComplete?: () => void) {
+        this.isCanopyOpen = true;
+        gsap.to(this.cockpitHinge.rotation, {
+            x: -Math.PI * 0.48,
+            duration,
+            ease: 'back.out(1.6)',
+            onComplete
+        });
+    }
+
+    public closeCockpitCanopy(duration = 0.35, onComplete?: () => void) {
+        this.isCanopyOpen = false;
+        gsap.to(this.cockpitHinge.rotation, {
+            x: 0,
+            duration,
+            ease: 'power2.inOut',
+            onComplete
+        });
+    }
+
+    public resetCockpit() {
+        this.isCanopyOpen = false;
+        if (this.cockpitHinge) {
+            gsap.killTweensOf(this.cockpitHinge.rotation);
+            this.cockpitHinge.rotation.x = 0;
+        }
+        if (this.cockpitAstronaut) {
+            gsap.killTweensOf(this.cockpitAstronaut.position);
+            this.cockpitAstronaut.visible = true;
+            this.cockpitAstronaut.position.set(0, 0.32, 0.08);
+        }
     }
 
     /**

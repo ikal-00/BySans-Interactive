@@ -1239,6 +1239,22 @@ export function createControlsUI(
     // 9. PRIMARY FOCAL ACTION WITH CLIENT-SIDE BALANCE GUARD [222]
     async function handlePrimaryFocalAction() {
         if (isRulesModalOpen() || isReplay) return;
+
+        // Giant Cosmic Prize Wheel (Ruleta) Spin Action
+        if (engine.isWheelActive) {
+            if (renderer.isWheelSpinning) return;
+            triggerMechanicalPress();
+            audioController.playClick();
+            const outcome = engine.spinWheel();
+            if (outcome) {
+                renderer.spinGiantWheel(outcome, () => {
+                    syncUI();
+                });
+            }
+            syncUI();
+            return;
+        }
+
         if (engine.state === GameState.PLAYING) {
             if (engine.currentRow > 1 && !stateCtrl.isHitStopActive) {
                 triggerMechanicalPress();
@@ -1357,7 +1373,11 @@ export function createControlsUI(
 
         if (e.key >= '1' && e.key <= '5') {
             const laneIdx = parseInt(e.key, 10) - 1;
-            if (engine.state === GameState.PLAYING && !stateCtrl.isHitStopActive) {
+            if (
+                engine.state === GameState.PLAYING &&
+                !stateCtrl.isHitStopActive &&
+                !engine.isWheelActive
+            ) {
                 e.preventDefault();
                 stateCtrl.selectLaneWithHitStop(laneIdx);
             }
@@ -1368,6 +1388,10 @@ export function createControlsUI(
             e.preventDefault();
             handlePrimaryFocalAction();
         }
+    });
+
+    window.addEventListener('roulette-ready', () => {
+        syncUI();
     });
 
     // 10. MULTI-CURRENCY HISTORY TICKER WITHOUT HARDCODED $ [219]
@@ -1498,15 +1522,25 @@ export function createControlsUI(
             const canCashout = isPlaying && engine.currentRow > 1 && !stateCtrl.isHitStopActive;
 
             if (btnPrimaryCta && focalCtaHeaderLabel && focalCtaTitle && focalCtaSub) {
-                if (!isPlaying) {
+                if (engine.isWheelActive) {
+                    btnPrimaryCta.disabled = renderer.isWheelSpinning;
+                    btnPrimaryCta.classList.remove('mode-cashout');
+                    btnPrimaryCta.classList.add('mode-wheel-spin');
+                    focalCtaHeaderLabel.textContent =
+                        lang === 'es' ? 'Ruleta Cósmica' : 'Cosmic Prize Wheel';
+                    focalCtaTitle.textContent = lang === 'es' ? 'GIRAR' : 'SPIN';
+                    focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${lang === 'es' ? 'Tirada' : 'Spin'}`;
+                } else if (!isPlaying) {
                     btnPrimaryCta.disabled = false;
                     btnPrimaryCta.classList.remove('mode-cashout');
+                    btnPrimaryCta.classList.remove('mode-wheel-spin');
                     focalCtaHeaderLabel.textContent = t.focalActionLabel;
                     focalCtaTitle.textContent = t.focalDropCapsule;
                     focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
                 } else if (canCashout) {
                     const cashoutVal = calculatePayout(engine.activeBetAmount, currentMult);
                     btnPrimaryCta.disabled = false;
+                    btnPrimaryCta.classList.remove('mode-wheel-spin');
                     btnPrimaryCta.classList.add('mode-cashout');
                     focalCtaHeaderLabel.textContent = lang === 'es' ? 'Cobro Disponible' : 'Cashout Available';
                     focalCtaTitle.textContent = `${t.focalCashout} ${stakeRGS.formatCurrency(cashoutVal)}`;
@@ -1514,13 +1548,17 @@ export function createControlsUI(
                 } else {
                     btnPrimaryCta.disabled = true;
                     btnPrimaryCta.classList.remove('mode-cashout');
+                    btnPrimaryCta.classList.remove('mode-wheel-spin');
                     focalCtaHeaderLabel.textContent = lang === 'es' ? 'Ronda en Curso' : 'Round Active';
                     focalCtaTitle.textContent = isMobile ? `[1–5]` : `[1–5]`;
                     focalCtaSub.textContent = `Row ${engine.currentRow} · ${nextMult.toFixed(2)}×`;
                 }
             }
 
-            const canPartial = engine.canPartialCashout() && !stateCtrl.isHitStopActive;
+            const canPartial =
+                engine.canPartialCashout() &&
+                !stateCtrl.isHitStopActive &&
+                !engine.isWheelActive;
             if (btnPartialCta && partialCtaSub && focalCtaHeaderShortcut) {
                 if (canPartial) {
                     btnPartialCta.style.display = 'flex';
