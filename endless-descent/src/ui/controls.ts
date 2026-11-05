@@ -1240,6 +1240,23 @@ export function createControlsUI(
     async function handlePrimaryFocalAction() {
         if (isRulesModalOpen() || isReplay) return;
 
+        // Giant Cosmic Prize Wheel (Ruleta) Spin Action
+        if (renderer.isRouletteActive || renderer.isWheelSpinning || (engine.isWheelActive && !engine.isSlotActive)) {
+            if (renderer.isWheelSpinning || !engine.isWheelActive || engine.wheelSpinsRemaining <= 0) return;
+
+            triggerMechanicalPress();
+            audioController.playClick();
+            const outcome = engine.spinWheel();
+            if (outcome) {
+                if (btnPrimaryCta) btnPrimaryCta.disabled = true;
+                renderer.spinGiantWheel(outcome as any, () => {
+                    syncUI();
+                });
+            }
+            syncUI();
+            return;
+        }
+
         // 1x3 Arcade Mini-Slot Bonus Spin Action (Stage 2)
         if (engine.isSlotActive || renderer.isSlotActive) {
             if (renderer.isSlotSpinning) return;
@@ -1257,28 +1274,6 @@ export function createControlsUI(
                             syncUI();
                         });
                     }
-                });
-            }
-            syncUI();
-            return;
-        }
-
-        // Giant Cosmic Prize Wheel (Ruleta) Spin Action
-        if (engine.isWheelActive || renderer.isRouletteActive) {
-            if (renderer.isWheelSpinning) return;
-            triggerMechanicalPress();
-            audioController.playClick();
-            const outcome = engine.isWheelActive ? engine.spinWheel() : {
-                sectorIndex: 4,
-                segment: { id: 'x5', label: 'x5', color: '#eab308', multiplier: 5.0 },
-                spinAngleRad: Math.PI * 6 + 1.2,
-                payoutMultiplier: 5.0,
-                isNearMiss: true,
-                nearMissAdjacentSegment: { id: 'x1000', label: 'JACKPOT', color: '#f59e0b', multiplier: 1000.0 }
-            };
-            if (outcome) {
-                renderer.spinGiantWheel(outcome as any, () => {
-                    syncUI();
                 });
             }
             syncUI();
@@ -1558,27 +1553,34 @@ export function createControlsUI(
             const canCashout = isPlaying && engine.currentRow > 1 && !stateCtrl.isHitStopActive;
 
             if (btnPrimaryCta && focalCtaHeaderLabel && focalCtaTitle && focalCtaSub) {
-                if (engine.isSlotActive || renderer.isSlotActive) {
+                if (renderer.isRouletteActive || renderer.isWheelSpinning || (engine.isWheelActive && !engine.isSlotActive)) {
+                    const isWheelLocked = renderer.isWheelSpinning || !engine.isWheelActive || engine.wheelSpinsRemaining <= 0;
+                    btnPrimaryCta.disabled = isWheelLocked;
+                    btnPrimaryCta.classList.remove('mode-cashout', 'mode-slot-spin');
+                    btnPrimaryCta.classList.add('mode-wheel-spin');
+                    focalCtaHeaderLabel.textContent =
+                        lang === 'es' ? 'Ruleta Cósmica' : 'Cosmic Prize Wheel';
+                    focalCtaTitle.textContent = renderer.isWheelSpinning
+                        ? (lang === 'es' ? 'GIRANDO...' : 'SPINNING...')
+                        : (lang === 'es' ? 'GIRAR' : 'SPIN');
+                    focalCtaSub.textContent = renderer.isWheelSpinning
+                        ? (lang === 'es' ? '¡Buena Suerte!' : 'Good Luck!')
+                        : `(${t.shortcutSpace.toUpperCase()}) · ${lang === 'es' ? 'Tirada' : 'Spin'}`;
+                } else if (engine.isSlotActive || renderer.isSlotActive) {
                     const totalSpins = engine.slotBundle?.spins.length || 5;
                     const spinsLeft = Math.max(0, totalSpins - engine.slotCurrentSpinIndex);
                     btnPrimaryCta.disabled = renderer.isSlotSpinning;
                     btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin');
                     btnPrimaryCta.classList.add('mode-slot-spin');
                     focalCtaHeaderLabel.textContent = lang === 'es' ? '★ MINI-SLOT 1x3 ★' : '★ 1x3 ARCADE SLOT ★';
-                    focalCtaTitle.textContent = lang === 'es'
-                        ? `TIRAR SLOT (${spinsLeft})`
-                        : `SPIN SLOT (${spinsLeft})`;
+                    focalCtaTitle.textContent = renderer.isSlotSpinning
+                        ? (lang === 'es' ? 'GIRANDO...' : 'SPINNING...')
+                        : (lang === 'es'
+                            ? `TIRAR SLOT (${spinsLeft})`
+                            : `SPIN SLOT (${spinsLeft})`);
                     focalCtaSub.textContent = lang === 'es'
                         ? `Acumulador: +${engine.slotAccumulator}x`
                         : `Accumulator: +${engine.slotAccumulator}x`;
-                } else if (engine.isWheelActive || renderer.isRouletteActive) {
-                    btnPrimaryCta.disabled = renderer.isWheelSpinning;
-                    btnPrimaryCta.classList.remove('mode-cashout', 'mode-slot-spin');
-                    btnPrimaryCta.classList.add('mode-wheel-spin');
-                    focalCtaHeaderLabel.textContent =
-                        lang === 'es' ? 'Ruleta Cósmica' : 'Cosmic Prize Wheel';
-                    focalCtaTitle.textContent = lang === 'es' ? 'GIRAR' : 'SPIN';
-                    focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${lang === 'es' ? 'Tirada' : 'Spin'}`;
                 } else if (!isPlaying) {
                     btnPrimaryCta.disabled = false;
                     btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin', 'mode-slot-spin');

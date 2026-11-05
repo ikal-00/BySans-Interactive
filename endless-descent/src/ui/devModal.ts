@@ -53,6 +53,8 @@ export function renderDevModal(engine: GameEngine, onUpdate: () => void) {
     const godMode = !!(window as any).__devGodMode;
     const forceSolar = !!(window as any).__devForceSolar;
     const forceAlien = !!(window as any).__devForceAlien;
+    const forceWheel = !!(window as any).__devForceWheel;
+    const forceWheelSlot = !!(window as any).__devForceWheelSlot;
 
     overlay.innerHTML = `
       <div class="dev-modal-backdrop" id="dev-backdrop"></div>
@@ -115,6 +117,23 @@ export function renderDevModal(engine: GameEngine, onUpdate: () => void) {
               <button class="dev-switch ${forceAlien ? 'active' : ''}" id="toggle-force-alien" type="button">
                 🛸 Forzar Alien (Abducción) [${forceAlien ? 'ON' : 'OFF'}]
               </button>
+              <button class="dev-switch ${forceWheel ? 'active' : ''}" id="toggle-force-wheel" type="button">
+                🎡 Forzar Ruleta (Caja) [${forceWheel ? 'ON' : 'OFF'}]
+              </button>
+            </div>
+          </div>
+
+          <!-- Seccion 4: Ruleta y Tragamonedas (Slot) QA -->
+          <div class="dev-card-section">
+            <div class="dev-section-title">
+              <span class="dev-icon">🎰</span>
+              <span>RULETA Y MINI-SLOT ARCADE (STAGE 2)</span>
+            </div>
+            <p class="dev-desc">Controla y fuerza el resultado de la Ruleta para probar el bono de Slot:</p>
+            <div class="dev-toggle-grid">
+              <button class="dev-switch ${forceWheelSlot ? 'active' : ''}" id="toggle-force-wheel-slot" type="button" style="grid-column: span 2;">
+                🎰 Forzar SLOT en la Ruleta [${forceWheelSlot ? 'ACTIVADO (FORZAR ACCESO)' : 'DESACTIVADO'}]
+              </button>
             </div>
           </div>
 
@@ -175,6 +194,28 @@ export function renderDevModal(engine: GameEngine, onUpdate: () => void) {
         stakeRGS.showToast(
             (window as any).__devForceAlien ? '🛸 Caja Alien FORZADA en carril 3' : 'Forzado Alien DESACTIVADO',
             'info'
+        );
+    });
+
+    // Toggle Wheel Box
+    document.getElementById('toggle-force-wheel')?.addEventListener('click', () => {
+        (window as any).__devForceWheel = !(window as any).__devForceWheel;
+        renderDevModal(engine, onUpdate);
+        stakeRGS.showToast(
+            (window as any).__devForceWheel ? '🎡 Caja de Ruleta FORZADA en carril 2' : 'Forzado Ruleta DESACTIVADO',
+            'info'
+        );
+    });
+
+    // Toggle Wheel Landing on SLOT
+    document.getElementById('toggle-force-wheel-slot')?.addEventListener('click', () => {
+        (window as any).__devForceWheelSlot = !(window as any).__devForceWheelSlot;
+        renderDevModal(engine, onUpdate);
+        stakeRGS.showToast(
+            (window as any).__devForceWheelSlot
+                ? '🎰 Ruleta FORZADA a caer en: GIROS DE SLOT'
+                : 'Forzado de SLOT DESACTIVADO',
+            (window as any).__devForceWheelSlot ? 'success' : 'info'
         );
     });
 }

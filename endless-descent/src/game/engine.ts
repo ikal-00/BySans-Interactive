@@ -641,7 +641,8 @@ export class GameEngine {
 
         // Outcome Case 3: SLOT ACCESS (1x3 Arcade Mini-Slot Stage 2 Block Generation)
         if (outcome.segment.type === 'SLOT') {
-            this.isSlotActive = true;
+            this.wheelSpinsRemaining = 0;
+            this.isSlotActive = false;
             this.slotPreMultiplier = this.currentMultiplier;
             this.slotCurrentSpinIndex = 0;
             this.slotAccumulator = 0;
@@ -683,6 +684,12 @@ export class GameEngine {
         this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
         this.emitStateChange(GameState.PLAYING);
         return outcome;
+    }
+
+    public activateSlotBonus(): void {
+        this.isWheelActive = false;
+        this.isSlotActive = true;
+        this.emitStateChange(GameState.PLAYING);
     }
 
     public onSlotSpin(fn: SlotSpinListener): () => void {

@@ -372,6 +372,11 @@ export function deriveWheelSpinOutcome(
         }
     }
 
+    // Developer QA override: force landing on SLOT (Sector 8)
+    if (typeof window !== 'undefined' && (window as any).__devForceWheelSlot) {
+        chosenSegmentIndex = 8;
+    }
+
     const segment = WHEEL_SEGMENTS[chosenSegmentIndex];
 
     // Jitter inside sector: within +/- 0.35 of the segment's half-width to avoid resting on pegs
@@ -381,8 +386,9 @@ export function deriveWheelSpinOutcome(
 
     // Base revolutions (6 full spins = 12 * Math.PI)
     const baseRevs = 6 + (bytes[5] % 3); // 6, 7, or 8 revolutions
-    // Final target rotation angle for wheel:
-    const spinAngleRad = baseRevs * (Math.PI * 2) + (12 - chosenSegmentIndex) * sectorAngle + jitterAngle;
+    // Final target rotation angle for wheel: Sector 9 (x1.2 PISO) is at 12 o'clock at rotation 0
+    const targetSectorsFromZero = ((chosenSegmentIndex - 9) % 12 + 12) % 12;
+    const spinAngleRad = baseRevs * (Math.PI * 2) + targetSectorsFromZero * sectorAngle + jitterAngle;
 
     // Near-miss flag: when result is adjacent to the x1000 jackpot (segment 11 or segment 1),
     // landed on high multiplier (segment 10 = x5, segment 1 = x10, segment 0 = x1000),

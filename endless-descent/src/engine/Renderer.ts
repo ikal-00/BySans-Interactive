@@ -2912,6 +2912,9 @@ export class PixiRenderer {
     public triggerRouletteSequence(worldX: number, worldZ: number, _pick: RoundPick) {
         this.isRouletteActive = true;
         this.isWheelSpinning = false;
+        this.isSlotActive = false;
+        this.isSlotSpinning = false;
+        if (this.miniSlotGroup) this.miniSlotGroup.visible = false;
         this.lastFlapperPegIndex = -1;
 
         // 1. Starfighter approaches and brakes smoothly right before the box
@@ -3036,7 +3039,12 @@ export class PixiRenderer {
         this.isWheelSpinning = true;
 
         const startAngle = this.wheelCurrentAngle;
-        const targetAngle = startAngle + outcome.spinAngleRad;
+        const currentMod = ((startAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        const targetMod = ((outcome.spinAngleRad % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        let delta = (targetMod - currentMod) % (Math.PI * 2);
+        if (delta < 0) delta += Math.PI * 2;
+        const baseFullRevs = Math.max(5 * Math.PI * 2, Math.floor(outcome.spinAngleRad / (Math.PI * 2)) * (Math.PI * 2));
+        const targetAngle = startAngle + baseFullRevs + delta;
         const totalDuration = outcome.isNearMiss ? 5.8 : 4.4;
 
         const spinTracker = { progress: 0 };
@@ -3090,8 +3098,8 @@ export class PixiRenderer {
                 }
             },
             onComplete: () => {
-                this.isWheelSpinning = false;
-
+                // Keep this.isWheelSpinning = true throughout result display & celebration
+                // so the user cannot trigger duplicate spins or see the wheel prematurely vanish!
                 const worldX = this.giantRouletteGroup.position.x;
                 const wheelY = this.giantRouletteGroup.position.y;
                 const wheelZ = this.giantRouletteGroup.position.z;
@@ -3114,17 +3122,27 @@ export class PixiRenderer {
                     this.vfx.spawnCrashExplosion3D(worldX, SHIP_FLIGHT_Y, wheelZ - 2.0);
                     this.vfx.triggerScreenShake(0.65, 0.45);
                     setTimeout(() => {
-                        this.finishRouletteSequence(onComplete);
-                    }, 1400);
+                        this.finishRouletteSequence(() => {
+                            this.isWheelSpinning = false;
+                            onComplete();
+                        });
+                    }, 2400);
                 } else if (outcome.segment.type === 'EXTRA_SPIN') {
                     audioController.playGoldenHit();
-                    onComplete();
+                    setTimeout(() => {
+                        this.isWheelSpinning = false;
+                        onComplete();
+                    }, 1800);
                 } else if (outcome.segment.type === 'SLOT') {
                     audioController.playGoldenHit();
-                    this.isRouletteActive = false;
-                    const spinsCount = this.gameState.engine.slotBundle?.spins.length || 5;
-                    this.triggerSlotSequence(worldX, wheelZ + 7.5, spinsCount, 0);
-                    onComplete();
+                    // Wait 2.2s so the player clearly sees the flapper resting on GIROS DE SLOT!
+                    setTimeout(() => {
+                        this.isRouletteActive = false;
+                        this.isWheelSpinning = false;
+                        const spinsCount = this.gameState.engine.slotBundle?.spins.length || 5;
+                        this.triggerSlotSequence(worldX, wheelZ + 7.5, spinsCount, 0);
+                        onComplete();
+                    }, 2200);
                 } else {
                     audioController.playCashout(outcome.segment.multiplier >= 10);
                     this.vfx.spawnGraffitiMultiplierTag3D(
@@ -3135,9 +3153,13 @@ export class PixiRenderer {
                         this.gameState.engine.currentRow
                     );
 
+                    // Ample display time (2.8s) so the player clearly celebrates and absorbs the final result
                     setTimeout(() => {
-                        this.finishRouletteSequence(onComplete);
-                    }, 1800);
+                        this.finishRouletteSequence(() => {
+                            this.isWheelSpinning = false;
+                            onComplete();
+                        });
+                    }, 2800);
                 }
             }
         });
@@ -3211,6 +3233,9 @@ export class PixiRenderer {
     public triggerSlotSequence(worldX: number, worldZ: number, spinsLeft: number, accumulator: number) {
         this.isSlotActive = true;
         this.isSlotSpinning = false;
+        this.isRouletteActive = false;
+        this.isWheelSpinning = false;
+        this.gameState.engine.activateSlotBonus();
 
         const slotZ = worldZ - 7.0;
         const slotY = SHIP_FLIGHT_Y + 1.15;
