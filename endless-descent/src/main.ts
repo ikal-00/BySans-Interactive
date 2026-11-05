@@ -34,6 +34,8 @@ const gameState = new GameStateController(engine);
 
 // 2. Initialize Three.js 3D Space Renderer
 const renderer = new PixiRenderer(canvas, gameState);
+(window as any).__gameRenderer = renderer;
+(window as any).__gameEngine = engine;
 
 // 3. Initialize Production Stake-Ready HUD & Betting Panel
 createControlsUI(topHeader, leftDock, stageContainer, gameState, renderer);

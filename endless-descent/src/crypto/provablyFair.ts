@@ -155,18 +155,7 @@ export function deriveRowSpecials(
         }
     }
 
-    // Bytes 21 & 22: Comic Black Cat spawn roll (sitting on top of a normal crate, max 1 per row, ~38% frequency)
-    const catThreshold = Math.floor(256 * 0.38);
-    const hasCat = bytes[21] < catThreshold;
-
-    let catLane: number | null = null;
-    if (hasCat) {
-        // Normal crates only (never on goldenLane, alienLane, or wheelLane)
-        const normalLanes = [0, 1, 2, 3, 4].filter((l) => l !== goldenLane && l !== alienLane && l !== wheelLane);
-        if (normalLanes.length > 0) {
-            catLane = normalLanes[bytes[22] % normalLanes.length];
-        }
-    }
+    const catLane: number | null = null;
 
     return {
         row,

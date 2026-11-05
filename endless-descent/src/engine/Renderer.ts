@@ -64,12 +64,6 @@ interface FloatingMultiplierCard3D {
     wheelStandFlapper: THREE.Group;
     mineGroup: THREE.Group;
 
-    // 3D Comic Black Cat (Sitting on top of normal crates licking its paws)
-    catGroup: THREE.Group;
-    catElbowPivot: THREE.Group;
-    catHeadPivot: THREE.Group;
-    catTongue: THREE.Mesh;
-    catTailSegments: THREE.Group[];
 
     badgeCanvas: HTMLCanvasElement;
     badgeTex: THREE.CanvasTexture;
@@ -1485,308 +1479,6 @@ export class PixiRenderer {
             blending: THREE.AdditiveBlending
         });
 
-        // =====================================================================
-        // 3D COMIC BLACK CAT ASSET (Matching media_1793758160382_981c78d1.jpg)
-        // =====================================================================
-        const catFurMat = new THREE.MeshStandardMaterial({
-            map: this.textures.catFurTex,
-            color: 0x222634,
-            roughness: 0.38,
-            metalness: 0.18
-        });
-        const catInnerEarMat = new THREE.MeshBasicMaterial({ color: 0xf472b6 });
-        const catEyeMat = new THREE.MeshStandardMaterial({
-            color: 0xfacc15,
-            emissive: 0xfacc15,
-            emissiveIntensity: 0.90,
-            roughness: 0.1,
-            metalness: 0.05
-        });
-        const catPupilMat = new THREE.MeshBasicMaterial({ color: 0x050608 });
-        const catHighlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const catTongueMat = new THREE.MeshBasicMaterial({ color: 0xfb7185 });
-        const catClawMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
-
-        const catTorsoGeo = new THREE.SphereGeometry(0.38, 16, 12);
-        const catBibGeo = new THREE.ConeGeometry(0.26, 0.35, 10);
-        const catHaunchGeo = new THREE.SphereGeometry(0.30, 12, 10);
-        const catRearPawGeo = new THREE.SphereGeometry(0.12, 8, 6);
-        const catClawGeo = new THREE.ConeGeometry(0.022, 0.07, 4);
-        const catArmGeo = new THREE.CylinderGeometry(0.08, 0.09, 0.46, 8);
-        const catFrontPawGeo = new THREE.SphereGeometry(0.13, 8, 6);
-        const catHeadGeo = new THREE.SphereGeometry(0.30, 16, 12);
-        const catCheekGeo = new THREE.ConeGeometry(0.16, 0.28, 6);
-        const catMuzzleGeo = new THREE.SphereGeometry(0.16, 10, 8);
-        const catNoseGeo = new THREE.ConeGeometry(0.04, 0.035, 3);
-        const catEarGeo = new THREE.ConeGeometry(0.18, 0.44, 4);
-        const catEarInnerGeo = new THREE.ConeGeometry(0.13, 0.36, 4);
-        const catEyeMeshGeo = new THREE.SphereGeometry(0.12, 14, 10);
-        const catPupilMeshGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.18, 8);
-        const catSpec1MeshGeo = new THREE.SphereGeometry(0.03, 6, 6);
-        const catSpec2MeshGeo = new THREE.SphereGeometry(0.016, 6, 6);
-        const catTongueGeo = new THREE.SphereGeometry(0.065, 8, 6);
-        const catUpperArmGeo = new THREE.CylinderGeometry(0.08, 0.09, 0.30, 8);
-        const catLickForearmGeo = new THREE.CylinderGeometry(0.075, 0.08, 0.28, 8);
-        const catLickPawGeo = new THREE.SphereGeometry(0.115, 10, 8);
-        const catPadGeo = new THREE.SphereGeometry(0.045, 6, 6);
-        const catTailSegGeo = new THREE.CylinderGeometry(0.05, 0.07, 0.16, 8);
-
-        const buildCatForCrate = () => {
-            const catGroup = new THREE.Group();
-            catGroup.position.set(0.0, 1.98, 0.08);
-            catGroup.scale.setScalar(1.85);
-            catGroup.visible = false;
-
-            const catRoot = new THREE.Group();
-            catGroup.add(catRoot);
-
-            // 1. Reclining Body Torso
-            const torsoGroup = new THREE.Group();
-            torsoGroup.position.set(0.0, 0.22, 0.0);
-            catRoot.add(torsoGroup);
-
-            const torsoMesh = new THREE.Mesh(catTorsoGeo, catFurMat);
-            torsoMesh.scale.set(0.85, 0.62, 1.45);
-            torsoMesh.rotation.set(0.08, -0.42, -0.06);
-            const torsoOutline = this.createOutline(catTorsoGeo, 0.04, torsoMesh.position, torsoMesh.rotation);
-            torsoOutline.scale.copy(torsoMesh.scale);
-            torsoGroup.add(torsoMesh, torsoOutline);
-
-            const bibMesh = new THREE.Mesh(catBibGeo, catFurMat);
-            bibMesh.position.set(-0.12, 0.02, 0.38);
-            bibMesh.rotation.set(1.3, -0.2, 0.3);
-            const bibOutline = this.createOutline(catBibGeo, 0.035, bibMesh.position, bibMesh.rotation);
-            torsoGroup.add(bibMesh, bibOutline);
-
-            // 2. Hindquarters & Haunches (resting folded on crate surface)
-            const rightHaunch = new THREE.Mesh(catHaunchGeo, catFurMat);
-            rightHaunch.scale.set(0.85, 0.72, 1.2);
-            rightHaunch.position.set(0.32, -0.02, -0.25);
-            rightHaunch.rotation.set(0.12, -0.3, 0.15);
-            const rightHaunchOutline = this.createOutline(catHaunchGeo, 0.038, rightHaunch.position, rightHaunch.rotation);
-            rightHaunchOutline.scale.copy(rightHaunch.scale);
-            torsoGroup.add(rightHaunch, rightHaunchOutline);
-
-            const leftHaunch = new THREE.Mesh(catHaunchGeo, catFurMat);
-            leftHaunch.scale.set(0.75, 0.65, 1.15);
-            leftHaunch.position.set(-0.16, -0.03, -0.34);
-            leftHaunch.rotation.set(0.1, 0.25, -0.15);
-            const leftHaunchOutline = this.createOutline(catHaunchGeo, 0.038, leftHaunch.position, leftHaunch.rotation);
-            leftHaunchOutline.scale.copy(leftHaunch.scale);
-            torsoGroup.add(leftHaunch, leftHaunchOutline);
-
-            const rearPaw = new THREE.Mesh(catRearPawGeo, catFurMat);
-            rearPaw.scale.set(0.85, 0.5, 1.35);
-            rearPaw.position.set(0.36, -0.15, -0.05);
-            torsoGroup.add(rearPaw);
-
-            for (let c = 0; c < 3; c++) {
-                const claw = new THREE.Mesh(catClawGeo, catClawMat);
-                claw.position.set(0.34 + c * 0.032, -0.16, 0.06);
-                claw.rotation.x = Math.PI / 2;
-                torsoGroup.add(claw);
-            }
-
-            // 3. Right Front Extended Arm (stretched flat forward on crate)
-            const rightArmGroup = new THREE.Group();
-            rightArmGroup.position.set(-0.22, -0.05, 0.28);
-            torsoGroup.add(rightArmGroup);
-
-            const rightArmMesh = new THREE.Mesh(catArmGeo, catFurMat);
-            rightArmMesh.position.set(-0.14, -0.05, 0.16);
-            rightArmMesh.rotation.set(0.85, -0.3, 0.5);
-            const rightArmOutline = this.createOutline(catArmGeo, 0.032, rightArmMesh.position, rightArmMesh.rotation);
-            rightArmGroup.add(rightArmMesh, rightArmOutline);
-
-            const frontRightPaw = new THREE.Mesh(catFrontPawGeo, catFurMat);
-            frontRightPaw.scale.set(1.0, 0.5, 1.35);
-            frontRightPaw.position.set(-0.25, -0.16, 0.35);
-            rightArmGroup.add(frontRightPaw);
-
-            for (let c = 0; c < 3; c++) {
-                const claw = new THREE.Mesh(catClawGeo, catClawMat);
-                claw.position.set(-0.29 + c * 0.038, -0.16, 0.46);
-                claw.rotation.x = Math.PI / 2;
-                rightArmGroup.add(claw);
-            }
-
-            // 4. Cat Head & Face (Expressive, large golden eyes, slit pupils)
-            const headPivot = new THREE.Group();
-            headPivot.position.set(-0.16, 0.32, 0.48);
-            headPivot.rotation.set(-0.25, 0.15, 0.06);
-            torsoGroup.add(headPivot);
-
-            const headMesh = new THREE.Mesh(catHeadGeo, catFurMat);
-            headMesh.scale.set(1.18, 0.94, 1.0);
-            const headOutline = this.createOutline(catHeadGeo, 0.038, headMesh.position);
-            headOutline.scale.copy(headMesh.scale);
-            headPivot.add(headMesh, headOutline);
-
-            const leftCheek = new THREE.Mesh(catCheekGeo, catFurMat);
-            leftCheek.position.set(-0.26, -0.06, 0.06);
-            leftCheek.rotation.set(0, 0, 1.45);
-            const rightCheek = new THREE.Mesh(catCheekGeo, catFurMat);
-            rightCheek.position.set(0.26, -0.06, 0.06);
-            rightCheek.rotation.set(0, 0, -1.45);
-            headPivot.add(leftCheek, rightCheek);
-
-            const muzzleMesh = new THREE.Mesh(catMuzzleGeo, catFurMat);
-            muzzleMesh.scale.set(1.22, 0.75, 1.0);
-            muzzleMesh.position.set(0.0, -0.08, 0.20);
-            const muzzleOutline = this.createOutline(catMuzzleGeo, 0.03, muzzleMesh.position);
-            muzzleOutline.scale.copy(muzzleMesh.scale);
-            headPivot.add(muzzleMesh, muzzleOutline);
-
-            const noseMesh = new THREE.Mesh(catNoseGeo, catInnerEarMat);
-            noseMesh.position.set(0.0, -0.05, 0.32);
-            noseMesh.rotation.x = Math.PI / 2;
-            noseMesh.rotation.z = Math.PI;
-            headPivot.add(noseMesh);
-
-            const leftEar = new THREE.Mesh(catEarGeo, catFurMat);
-            leftEar.position.set(-0.16, 0.23, 0.02);
-            leftEar.rotation.set(-0.08, 0.1, 0.28);
-            const leftEarOutline = this.createOutline(catEarGeo, 0.032, leftEar.position, leftEar.rotation);
-            const leftEarInner = new THREE.Mesh(catEarInnerGeo, catInnerEarMat);
-            leftEarInner.position.set(-0.15, 0.22, 0.05);
-            leftEarInner.rotation.copy(leftEar.rotation);
-            headPivot.add(leftEar, leftEarOutline, leftEarInner);
-
-            const rightEar = new THREE.Mesh(catEarGeo, catFurMat);
-            rightEar.position.set(0.17, 0.23, 0.02);
-            rightEar.rotation.set(-0.08, -0.1, -0.28);
-            const rightEarOutline = this.createOutline(catEarGeo, 0.032, rightEar.position, rightEar.rotation);
-            const rightEarInner = new THREE.Mesh(catEarInnerGeo, catInnerEarMat);
-            rightEarInner.position.set(0.16, 0.22, 0.05);
-            rightEarInner.rotation.copy(rightEar.rotation);
-            headPivot.add(rightEar, rightEarOutline, rightEarInner);
-
-            const buildCatEye = (isLeft: boolean) => {
-                const eyeGroup = new THREE.Group();
-                const sign = isLeft ? -1 : 1;
-                eyeGroup.position.set(sign * 0.115, 0.035, 0.21);
-                eyeGroup.rotation.set(-0.06, sign * -0.22, sign * 0.15);
-
-                const blackRing = new THREE.Mesh(catEyeMeshGeo, catPupilMat);
-                blackRing.scale.set(1.24, 1.44, 0.6);
-
-                const iris = new THREE.Mesh(catEyeMeshGeo, catEyeMat);
-                iris.scale.set(1.16, 1.35, 0.55);
-                iris.position.z = 0.012;
-
-                const pupil = new THREE.Mesh(catPupilMeshGeo, catPupilMat);
-                pupil.position.set(0, 0, 0.045);
-                pupil.scale.set(0.38, 1.3, 0.38);
-
-                const s1 = new THREE.Mesh(catSpec1MeshGeo, catHighlightMat);
-                s1.position.set(0.026, 0.036, 0.06);
-                const s2 = new THREE.Mesh(catSpec2MeshGeo, catHighlightMat);
-                s2.position.set(-0.022, -0.028, 0.06);
-
-                eyeGroup.add(blackRing, iris, pupil, s1, s2);
-                return eyeGroup;
-            };
-
-            headPivot.add(buildCatEye(true), buildCatEye(false));
-
-            // Whiskers
-            const whiskerMat = new THREE.LineBasicMaterial({ color: 0xf8fafc, linewidth: 2 });
-            for (let side = -1; side <= 1; side += 2) {
-                for (let w = 0; w < 3; w++) {
-                    const ang = (w - 1) * 0.22;
-                    const whiskerGeo = new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(side * 0.11, -0.07, 0.24),
-                        new THREE.Vector3(side * (0.34 + Math.abs(ang) * 0.08), -0.05 + ang * 0.12, 0.26 + Math.cos(ang) * 0.06)
-                    ]);
-                    const whisker = new THREE.Line(whiskerGeo, whiskerMat);
-                    headPivot.add(whisker);
-                }
-            }
-
-            // Pink Tongue
-            const tongueMesh = new THREE.Mesh(catTongueGeo, catTongueMat);
-            tongueMesh.scale.set(0.85, 0.32, 1.25);
-            tongueMesh.position.set(0.03, -0.12, 0.24);
-            tongueMesh.rotation.set(0.25, 0.25, -0.15);
-            headPivot.add(tongueMesh);
-
-            // 5. Left Front Arm & Curled Licking Paw
-            const lickShoulder = new THREE.Group();
-            lickShoulder.position.set(0.12, -0.02, 0.30);
-            torsoGroup.add(lickShoulder);
-
-            const upperArmMesh = new THREE.Mesh(catUpperArmGeo, catFurMat);
-            upperArmMesh.position.set(-0.02, 0.08, 0.02);
-            upperArmMesh.rotation.set(-0.5, -0.25, -0.35);
-            const upperArmOutline = this.createOutline(catUpperArmGeo, 0.03, upperArmMesh.position, upperArmMesh.rotation);
-            lickShoulder.add(upperArmMesh, upperArmOutline);
-
-            const catElbowPivot = new THREE.Group();
-            catElbowPivot.position.set(-0.06, 0.16, 0.08);
-            lickShoulder.add(catElbowPivot);
-
-            const lickForearmMesh = new THREE.Mesh(catLickForearmGeo, catFurMat);
-            lickForearmMesh.position.set(-0.04, 0.06, 0.06);
-            lickForearmMesh.rotation.set(0.9, 0.25, 0.5);
-            const lickForearmOutline = this.createOutline(catLickForearmGeo, 0.03, lickForearmMesh.position, lickForearmMesh.rotation);
-            catElbowPivot.add(lickForearmMesh, lickForearmOutline);
-
-            const lickPawMesh = new THREE.Mesh(catLickPawGeo, catFurMat);
-            lickPawMesh.scale.set(1.0, 0.7, 1.2);
-            lickPawMesh.position.set(-0.08, 0.15, 0.12);
-            lickPawMesh.rotation.set(0.65, 0.35, 0.4);
-            const lickPawOutline = this.createOutline(catLickPawGeo, 0.03, lickPawMesh.position);
-            lickPawOutline.scale.copy(lickPawMesh.scale);
-            catElbowPivot.add(lickPawMesh, lickPawOutline);
-
-            const padMesh = new THREE.Mesh(catPadGeo, catInnerEarMat);
-            padMesh.scale.set(1.1, 0.4, 1.0);
-            padMesh.position.set(-0.08, 0.16, 0.10);
-            padMesh.rotation.copy(lickPawMesh.rotation);
-            catElbowPivot.add(padMesh);
-
-            for (let c = 0; c < 3; c++) {
-                const claw = new THREE.Mesh(catClawGeo, catClawMat);
-                claw.position.set(-0.11 + c * 0.026, 0.20, 0.15);
-                claw.rotation.set(-0.7, 0.25, -0.2);
-                catElbowPivot.add(claw);
-            }
-
-            // 6. Long Tail Sweeping to the Right in S-Curve
-            const tailGroup = new THREE.Group();
-            tailGroup.position.set(0.20, -0.06, -0.42);
-            torsoGroup.add(tailGroup);
-
-            const catTailSegments: THREE.Group[] = [];
-            let parentJoint = tailGroup;
-            const segmentCount = 9;
-            for (let i = 0; i < segmentCount; i++) {
-                const joint = new THREE.Group();
-                joint.position.set(0.08, 0.01, 0.05);
-                parentJoint.add(joint);
-
-                const segMesh = new THREE.Mesh(catTailSegGeo, catFurMat);
-                const s = 1.0 - i * 0.06;
-                segMesh.scale.set(s, s, s);
-                segMesh.rotation.z = -Math.PI / 2.8;
-                segMesh.position.set(0.04, 0.02, 0.02);
-                const segOutline = this.createOutline(catTailSegGeo, 0.02, segMesh.position, segMesh.rotation);
-                segOutline.scale.copy(segMesh.scale);
-                joint.add(segMesh, segOutline);
-
-                catTailSegments.push(joint);
-                parentJoint = joint;
-            }
-
-            return {
-                catGroup,
-                catElbowPivot,
-                catHeadPivot: headPivot,
-                catTongue: tongueMesh,
-                catTailSegments
-            };
-        };
-
         // 3D Comic Prize Wheel on Wooden Stand (Matching Ruleta.jpeg)
         const basePlankGeo = new THREE.BoxGeometry(2.35, 0.22, 0.44);
         const woodMat = new THREE.MeshStandardMaterial({
@@ -1957,9 +1649,6 @@ export class PixiRenderer {
 
                 mysteryBoxGroup.add(lidLeft, lidRight);
 
-                // Add 3D Comic Black Cat to the top of the mystery crate
-                const catData = buildCatForCrate();
-                mysteryBoxGroup.add(catData.catGroup);
 
                 visualGroup.add(mysteryBoxGroup);
 
@@ -2150,11 +1839,6 @@ export class PixiRenderer {
                     wheelStandDisc: wheelStandData.wheelStandDisc,
                     wheelStandFlapper: wheelStandData.wheelStandFlapper,
                     mineGroup,
-                    catGroup: catData.catGroup,
-                    catElbowPivot: catData.catElbowPivot,
-                    catHeadPivot: catData.catHeadPivot,
-                    catTongue: catData.catTongue,
-                    catTailSegments: catData.catTailSegments,
                     badgeCanvas,
                     badgeTex,
                     badgeSprite,
@@ -2657,20 +2341,20 @@ export class PixiRenderer {
         this.astro3D = this.buildVolumetric3DAstronaut();
         this.floatingAstronautGroup.add(this.astro3D.root);
 
-        const astroThrusterLight = new THREE.PointLight(0x38bdf8, 2.2, 8.0, 1.5);
-        astroThrusterLight.position.set(0, -0.4, 0.6);
+        const astroThrusterLight = new THREE.PointLight(0xffffff, 0.85, 10.0, 1.2);
+        astroThrusterLight.position.set(0, 0.5, 2.2);
         this.floatingAstronautGroup.add(astroThrusterLight);
     }
 
     /**
-     * Constructs a true volumetric 3D Astronaut model for the zero-G void scene.
-     * Based on AEspaldas.jpeg and Flotando.jpeg:
-     * - Sculpted helmet with glossy cyan visor bubble and collar ring.
-     * - Bulky Primary Life Support System (PLSS) backpack with rear telemetry monitor and LED gauges.
-     * - 4 flexible ribbed umbilical hoses (blue, red, cyan, yellow collars) looping to waist.
-     * - Dual RCS thruster nozzles emitting ion glow.
-     * - Segmented arms with articulated EVA gloves and dark grip pads.
-     * - Floating legs in natural zero-G relaxation posture with heavy lunar boots and tread soles.
+     * Constructs a true 3D Sculpted Comic Astronaut model for the zero-G void scene.
+     * 100% faithful to AEspaldas.jpeg:
+     * - Sculpted 3D heightfield relief matching the exact illustration proportions, linework, and colors.
+     * - Watertight extruded dark-ink side bevel giving 0.50 units of volumetric 3D thickness.
+     * - Front face mapped to astronautBackTex and astronautNormalTex for realistic specular PBR response.
+     * - 4 physical 3D ribbed umbilical hoses with cyan, red, cobalt blue, and yellow metallic collars.
+     * - 3D telemetry life support monitor on the backpack with glowing CRT display and LED indicators.
+     * - Dual 3D RCS thruster cones emitting subtle zero-G blue ion attitude stabilization thrust.
      */
     private buildVolumetric3DAstronaut(): {
         root: THREE.Group;
@@ -2682,294 +2366,345 @@ export class PixiRenderer {
         rightLeg: THREE.Group;
     } {
         const root = new THREE.Group();
-        root.scale.setScalar(0.95);
+        root.scale.setScalar(1.45);
 
-        const suitMat = new THREE.MeshStandardMaterial({
-            color: 0xf8fafc,
-            roughness: 0.40,
-            metalness: 0.12
-        });
-        const suitDarkMat = new THREE.MeshStandardMaterial({
-            color: 0x334155,
-            roughness: 0.50,
-            metalness: 0.35
-        });
-        const visorMat = new THREE.MeshStandardMaterial({
-            color: 0x0ea5e9,
-            emissive: 0x0284c7,
-            emissiveIntensity: 0.35,
-            roughness: 0.12,
-            metalness: 0.85
-        });
-        const packMat = new THREE.MeshStandardMaterial({
-            color: 0xe2e8f0,
+        const worldWidth = 2.45;
+        const worldHeight = 2.95;
+        const gridW = 54;
+        const gridH = 66;
+
+        // Depth profile function for anatomical 3D relief
+        const evaluateAstroDepth = (u: number, v: number): number => {
+            const dx = u - 0.5;
+            // 1. Helmet dome (curves outward towards viewer)
+            const distH = Math.hypot(dx * 1.05, (v - 0.17) * 1.15);
+            const zDome = distH < 0.18 ? Math.cos((distH / 0.18) * Math.PI * 0.5) * 0.18 : 0;
+
+            // 2. PLSS Backpack block
+            const bx = Math.min(1.0, Math.abs(dx) / 0.22);
+            const by = Math.min(1.0, Math.abs(v - 0.435) / 0.165);
+            const boxFalloff = Math.max(0, 1.0 - Math.pow(bx, 6) - Math.pow(by, 6));
+            const zBackpack = boxFalloff * 0.22;
+
+            // 3. Central Telemetry Unit
+            const tx = Math.min(1.0, Math.abs(dx) / 0.10);
+            const ty = Math.min(1.0, Math.abs(v - 0.46) / 0.08);
+            const zTelemetry = Math.max(0, 1.0 - Math.pow(tx, 4) - Math.pow(ty, 4)) * 0.04;
+
+            // 4. Torso & harness
+            const distT = Math.hypot(dx * 1.8, (v - 0.45) * 1.5);
+            const zTorso = Math.max(0, 1.0 - distT) * 0.14;
+
+            // 5. Arms
+            const zArmL = Math.max(0, 1.0 - Math.abs(u - 0.20) / 0.12) * Math.max(0, 1.0 - Math.abs(v - 0.50) / 0.18) * 0.12;
+            const zArmR = Math.max(0, 1.0 - Math.abs(u - 0.80) / 0.12) * Math.max(0, 1.0 - Math.abs(v - 0.50) / 0.18) * 0.12;
+
+            // 6. Legs
+            const zLegL = v > 0.65 ? Math.max(0, 1.0 - Math.abs(u - 0.40) / 0.12) * 0.14 : 0;
+            const zLegR = v > 0.65 ? Math.max(0, 1.0 - Math.abs(u - 0.60) / 0.12) * 0.14 : 0;
+
+            // 7. Boots soles
+            const zBoots = v > 0.86 ? ((v - 0.86) / 0.14) * 0.06 : 0;
+
+            return Math.max(0.04, zDome, zBackpack + zTelemetry, zTorso, zArmL, zArmR, zLegL, zLegR) + zBoots;
+        };
+
+        // Watertight 3D Geometry Builder
+        const buildAstroGeometry = (alphaGrid: Float32Array): THREE.BufferGeometry => {
+            const positions: number[] = [];
+            const uvs: number[] = [];
+            const indices: number[] = [];
+
+            const vCols = gridW + 1;
+            const vRows = gridH + 1;
+            const frontVertIdx = new Int32Array(vCols * vRows).fill(-1);
+
+            const isCellActive = (cx: number, cy: number): boolean => {
+                if (cx < 0 || cx >= gridW || cy < 0 || cy >= gridH) return false;
+                return alphaGrid[cy * gridW + cx] > 0.08;
+            };
+
+            const getOrAddFrontVert = (vx: number, vy: number): number => {
+                const key = vy * vCols + vx;
+                if (frontVertIdx[key] !== -1) return frontVertIdx[key];
+
+                const u = vx / gridW;
+                const v = vy / gridH;
+                const x = (u - 0.5) * worldWidth;
+                const y = (0.5 - v) * worldHeight;
+                const z = evaluateAstroDepth(u, v);
+
+                const idx = positions.length / 3;
+                positions.push(x, y, z);
+                uvs.push(u, 1.0 - v);
+                frontVertIdx[key] = idx;
+                return idx;
+            };
+
+            // 1. Front Sculpted Mesh
+            for (let cy = 0; cy < gridH; cy++) {
+                for (let cx = 0; cx < gridW; cx++) {
+                    if (!isCellActive(cx, cy)) continue;
+
+                    const f00 = getOrAddFrontVert(cx, cy);
+                    const f10 = getOrAddFrontVert(cx + 1, cy);
+                    const f01 = getOrAddFrontVert(cx, cy + 1);
+                    const f11 = getOrAddFrontVert(cx + 1, cy + 1);
+
+                    indices.push(f00, f01, f10);
+                    indices.push(f10, f01, f11);
+                }
+            }
+
+            // 2. Extruded Bevel Side Shell (Dark Ink Edge)
+            const zBack = -0.16;
+            const addSideQuad = (
+                x1: number, y1: number, z1: number, u1: number, v1: number,
+                x2: number, y2: number, z2: number, u2: number, v2: number
+            ) => {
+                const i0 = positions.length / 3;
+                positions.push(x1, y1, z1);
+                uvs.push(u1, 1.0 - v1);
+
+                const i1 = positions.length / 3;
+                positions.push(x2, y2, z2);
+                uvs.push(u2, 1.0 - v2);
+
+                const i2 = positions.length / 3;
+                positions.push(x2, y2, zBack);
+                uvs.push(u2, 1.0 - v2);
+
+                const i3 = positions.length / 3;
+                positions.push(x1, y1, zBack);
+                uvs.push(u1, 1.0 - v1);
+
+                indices.push(i0, i1, i2);
+                indices.push(i0, i2, i3);
+            };
+
+            for (let cy = 0; cy < gridH; cy++) {
+                for (let cx = 0; cx < gridW; cx++) {
+                    if (!isCellActive(cx, cy)) continue;
+
+                    const u0 = cx / gridW;
+                    const u1 = (cx + 1) / gridW;
+                    const v0 = cy / gridH;
+                    const v1 = (cy + 1) / gridH;
+
+                    const x0 = (u0 - 0.5) * worldWidth;
+                    const x1 = (u1 - 0.5) * worldWidth;
+                    const y0 = (0.5 - v0) * worldHeight;
+                    const y1 = (0.5 - v1) * worldHeight;
+
+                    const z00 = evaluateAstroDepth(u0, v0);
+                    const z10 = evaluateAstroDepth(u1, v0);
+                    const z01 = evaluateAstroDepth(u0, v1);
+                    const z11 = evaluateAstroDepth(u1, v1);
+
+                    // Top Edge
+                    if (!isCellActive(cx, cy - 1)) {
+                        addSideQuad(x0, y0, z00, u0, v0, x1, y0, z10, u1, v0);
+                    }
+                    // Bottom Edge
+                    if (!isCellActive(cx, cy + 1)) {
+                        addSideQuad(x1, y1, z11, u1, v1, x0, y1, z01, u0, v1);
+                    }
+                    // Left Edge
+                    if (!isCellActive(cx - 1, cy)) {
+                        addSideQuad(x0, y1, z01, u0, v1, x0, y0, z00, u0, v0);
+                    }
+                    // Right Edge
+                    if (!isCellActive(cx + 1, cy)) {
+                        addSideQuad(x1, y0, z10, u1, v0, x1, y1, z11, u1, v1);
+                    }
+                }
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            geo.setIndex(indices);
+            geo.computeVertexNormals();
+            return geo;
+        };
+
+        const suitPbrMat = new THREE.MeshStandardMaterial({
+            map: this.textures.astronautBackTex,
+            normalMap: this.textures.astronautNormalTex,
+            normalScale: new THREE.Vector2(0.85, 0.85),
             roughness: 0.38,
-            metalness: 0.22
+            metalness: 0.15,
+            side: THREE.DoubleSide
         });
-        const panelMat = new THREE.MeshStandardMaterial({
+
+        // Elliptical fallback alpha while image loads
+        const initAlpha = new Float32Array(gridW * gridH);
+        for (let cy = 0; cy < gridH; cy++) {
+            const v = (cy + 0.5) / gridH;
+            for (let cx = 0; cx < gridW; cx++) {
+                const u = (cx + 0.5) / gridW;
+                const d = Math.hypot((u - 0.5) * 1.35, (v - 0.48) * 1.15);
+                initAlpha[cy * gridW + cx] = d < 0.52 ? 1.0 : 0.0;
+            }
+        }
+        const astroGeo = buildAstroGeometry(initAlpha);
+        const astroMesh = new THREE.Mesh(astroGeo, suitPbrMat);
+        root.add(astroMesh);
+
+        // Update with exact image alpha from texture canvas
+        const updateWithExactImageAlpha = (img: HTMLImageElement | HTMLCanvasElement) => {
+            const off = document.createElement('canvas');
+            off.width = gridW;
+            off.height = gridH;
+            const octx = off.getContext('2d')!;
+            octx.drawImage(img, 0, 0, gridW, gridH);
+            const data = octx.getImageData(0, 0, gridW, gridH).data;
+            const exactAlpha = new Float32Array(gridW * gridH);
+            for (let i = 0; i < gridW * gridH; i++) {
+                exactAlpha[i] = data[i * 4 + 3] / 255.0;
+            }
+            astroMesh.geometry.dispose();
+            astroMesh.geometry = buildAstroGeometry(exactAlpha);
+        };
+
+        if (this.textures.astronautBackTex.image) {
+            updateWithExactImageAlpha(this.textures.astronautBackTex.image as any);
+        } else {
+            const ldr = new THREE.TextureLoader();
+            ldr.load('/assets/astronaut_back.png', (t) => {
+                if (t.image) updateWithExactImageAlpha(t.image);
+            });
+        }
+
+        // =====================================================================
+        // 3D PHYSICAL ATTACHMENTS IN REAL 3D SPACE
+        // =====================================================================
+        // 1. Four 3D Umbilical Hoses with Metallic Colored Collars
+        const rubberHoseMat = new THREE.MeshStandardMaterial({
             color: 0x1e293b,
-            roughness: 0.60,
-            metalness: 0.45
+            roughness: 0.65,
+            metalness: 0.20
         });
-        const rubberMat = new THREE.MeshStandardMaterial({
-            color: 0x0f172a,
-            roughness: 0.85
-        });
+        const makeCollarMat = (hex: number) =>
+            new THREE.MeshStandardMaterial({
+                color: hex,
+                roughness: 0.25,
+                metalness: 0.85,
+                emissive: hex,
+                emissiveIntensity: 0.25
+            });
 
-        // 1. Torso Suit Body
-        const torsoGroup = new THREE.Group();
-        root.add(torsoGroup);
+        const hoseGroup = new THREE.Group();
+        root.add(hoseGroup);
 
-        const torsoGeo = new THREE.CylinderGeometry(0.68, 0.58, 1.25, 18);
-        const torsoMesh = new THREE.Mesh(torsoGeo, suitMat);
-        torsoMesh.position.set(0, 0, 0);
-        const torsoOutline = this.createOutline(torsoGeo, 0.045, torsoMesh.position);
-        torsoGroup.add(torsoMesh, torsoOutline);
+        const collarGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.06, 12);
+        collarGeo.rotateX(Math.PI / 2);
 
-        // Chest/Back Harness Straps
-        const beltGeo = new THREE.TorusGeometry(0.64, 0.05, 8, 20);
-        const beltMesh = new THREE.Mesh(beltGeo, suitDarkMat);
-        beltMesh.rotation.x = Math.PI / 2;
-        beltMesh.position.set(0, -0.45, 0);
-        torsoGroup.add(beltMesh);
+        const addHose = (points: THREE.Vector3[], collarHex: number) => {
+            const curve = new THREE.CatmullRomCurve3(points);
+            const tubeGeo = new THREE.TubeGeometry(curve, 16, 0.026, 8, false);
+            const hose = new THREE.Mesh(tubeGeo, rubberHoseMat);
+            const collar = new THREE.Mesh(collarGeo, makeCollarMat(collarHex));
+            collar.position.copy(points[0]);
+            collar.lookAt(points[1]);
+            hoseGroup.add(hose, collar);
+        };
 
-        // 2. Helmet & Visor
-        const helmetGroup = new THREE.Group();
-        helmetGroup.position.set(0, 1.05, 0.02);
-        root.add(helmetGroup);
+        // Top-Right Hose (Cyan collar 0x06b6d4)
+        addHose([
+            new THREE.Vector3(0.24, 0.42, 0.38),
+            new THREE.Vector3(0.38, 0.30, 0.42),
+            new THREE.Vector3(0.42, 0.16, 0.32),
+            new THREE.Vector3(0.28, 0.06, 0.22)
+        ], 0x06b6d4);
 
-        const domeGeo = new THREE.SphereGeometry(0.68, 24, 20);
-        const domeMesh = new THREE.Mesh(domeGeo, suitMat);
-        const domeOutline = this.createOutline(domeGeo, 0.045);
-        helmetGroup.add(domeMesh, domeOutline);
+        // Bottom-Right Hose (Yellow collar 0xfacc15)
+        addHose([
+            new THREE.Vector3(0.18, -0.06, 0.36),
+            new THREE.Vector3(0.36, -0.10, 0.38),
+            new THREE.Vector3(0.42, -0.14, 0.26),
+            new THREE.Vector3(0.26, -0.18, 0.20)
+        ], 0xfacc15);
 
-        // Front Visor Bubble (facing towards giant wheel, -Z)
-        const visorGeo = new THREE.SphereGeometry(0.56, 20, 16);
-        const visorMesh = new THREE.Mesh(visorGeo, visorMat);
-        visorMesh.position.set(0, 0.04, -0.20);
-        visorMesh.scale.set(0.92, 0.85, 0.75);
-        helmetGroup.add(visorMesh);
+        // Top-Left Hose (Cobalt Blue collar 0x2563eb)
+        addHose([
+            new THREE.Vector3(-0.16, 0.24, 0.38),
+            new THREE.Vector3(-0.36, 0.20, 0.42),
+            new THREE.Vector3(-0.42, 0.12, 0.30),
+            new THREE.Vector3(-0.28, 0.04, 0.22)
+        ], 0x2563eb);
 
-        // Collar Ring
-        const collarGeo = new THREE.TorusGeometry(0.54, 0.075, 10, 24);
-        const collarMesh = new THREE.Mesh(collarGeo, suitDarkMat);
-        collarMesh.rotation.x = Math.PI / 2;
-        collarMesh.position.set(0, -0.42, 0);
-        helmetGroup.add(collarMesh);
+        // Bottom-Left Hose (Red collar 0xef4444)
+        addHose([
+            new THREE.Vector3(-0.22, -0.06, 0.36),
+            new THREE.Vector3(-0.38, -0.10, 0.38),
+            new THREE.Vector3(-0.44, -0.16, 0.26),
+            new THREE.Vector3(-0.26, -0.22, 0.20)
+        ], 0xef4444);
 
-        // Side Ear Communication Pods
-        const earPodGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.18, 12);
-        earPodGeo.rotateZ(Math.PI / 2);
-        for (const ex of [-0.64, 0.64]) {
-            const earPod = new THREE.Mesh(earPodGeo, suitDarkMat);
-            earPod.position.set(ex, 0, 0);
-            const led = new THREE.Mesh(
-                new THREE.SphereGeometry(0.04, 6, 6),
-                new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
-            );
-            led.position.set(ex * 1.1, 0, 0.08);
-            helmetGroup.add(earPod, led);
+        // 2. 3D Telemetry Life Support Monitor on Backpack
+        const telemetryGroup = new THREE.Group();
+        telemetryGroup.position.set(0, 0.12, 0.38);
+        root.add(telemetryGroup);
+
+        const bezelGeo = new THREE.BoxGeometry(0.32, 0.40, 0.04);
+        const bezelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.7 });
+        telemetryGroup.add(new THREE.Mesh(bezelGeo, bezelMat));
+
+        const screenCanvas = document.createElement('canvas');
+        screenCanvas.width = 128;
+        screenCanvas.height = 80;
+        const sctx = screenCanvas.getContext('2d')!;
+        sctx.fillStyle = '#051912';
+        sctx.fillRect(0, 0, 128, 80);
+        sctx.strokeStyle = '#10b981';
+        sctx.lineWidth = 2.5;
+        sctx.beginPath();
+        for (let x = 0; x < 128; x++) {
+            const y = 40 + Math.sin(x * 0.15) * 18 + (x % 16 === 0 ? -12 : 0);
+            if (x === 0) sctx.moveTo(x, y); else sctx.lineTo(x, y);
         }
+        sctx.stroke();
+        const screenTex = new THREE.CanvasTexture(screenCanvas);
+        screenTex.colorSpace = THREE.SRGBColorSpace;
+        const screenMat = new THREE.MeshBasicMaterial({ map: screenTex });
+        const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.14), screenMat);
+        screenMesh.position.set(0, 0.08, 0.025);
+        telemetryGroup.add(screenMesh);
 
-        // 3. Life-Support Backpack (PLSS) - Seen from behind!
-        const backpackGroup = new THREE.Group();
-        backpackGroup.position.set(0, 0.15, 0.52);
-        root.add(backpackGroup);
+        const ledGeo = new THREE.SphereGeometry(0.018, 8, 8);
+        const ledG = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0x22c55e }));
+        ledG.position.set(-0.08, -0.08, 0.025);
+        const ledY = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+        ledY.position.set(0, -0.08, 0.025);
+        const ledC = new THREE.Mesh(ledGeo, new THREE.MeshBasicMaterial({ color: 0x06b6d4 }));
+        ledC.position.set(0.08, -0.08, 0.025);
+        telemetryGroup.add(ledG, ledY, ledC);
 
-        const packGeo = new THREE.BoxGeometry(1.30, 1.45, 0.55);
-        const packMesh = new THREE.Mesh(packGeo, packMat);
-        const packOutline = this.createOutline(packGeo, 0.042);
-        backpackGroup.add(packMesh, packOutline);
+        // 3. Dual 3D RCS Attitude Thruster Nozzles
+        const rcsGroup = new THREE.Group();
+        root.add(rcsGroup);
 
-        // Rear Service Console / Telemetry Panel (facing camera)
-        const panelGeo = new THREE.BoxGeometry(0.85, 0.95, 0.08);
-        const panelMesh = new THREE.Mesh(panelGeo, panelMat);
-        panelMesh.position.set(0, 0.06, 0.28);
-        backpackGroup.add(panelMesh);
+        const rcsConeGeo = new THREE.CylinderGeometry(0.032, 0.055, 0.10, 8);
+        rcsConeGeo.rotateX(Math.PI / 2);
+        const rcsMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, metalness: 0.85 });
 
-        // Telemetry Screen (Green data screen)
-        const screenGeo = new THREE.BoxGeometry(0.36, 0.24, 0.03);
-        const screenMesh = new THREE.Mesh(
-            screenGeo,
-            new THREE.MeshBasicMaterial({ color: 0x10b981 })
-        );
-        screenMesh.position.set(-0.18, 0.26, 0.33);
-        backpackGroup.add(screenMesh);
+        const rcsL = new THREE.Mesh(rcsConeGeo, rcsMat);
+        rcsL.position.set(-0.35, 0.50, 0.32);
+        const rcsR = new THREE.Mesh(rcsConeGeo, rcsMat);
+        rcsR.position.set(0.35, 0.50, 0.32);
+        rcsGroup.add(rcsL, rcsR);
 
-        // Status Gauges & Dials (Amber, Red, Blue LEDs)
-        const ledColors = [0xf59e0b, 0xef4444, 0x38bdf8, 0xeab308];
-        const ledGeo = new THREE.SphereGeometry(0.035, 6, 6);
-        for (let i = 0; i < 4; i++) {
-            const led = new THREE.Mesh(
-                ledGeo,
-                new THREE.MeshBasicMaterial({ color: ledColors[i] })
-            );
-            led.position.set(0.18 + (i % 2) * 0.12, 0.32 - Math.floor(i / 2) * 0.12, 0.33);
-            backpackGroup.add(led);
-        }
-
-        // 4 Curved Flexible Life-Support Conduits / Umbilical Hoses
-        const hoseDefs = [
-            { angStart: 0, sign: -1, y: 0.12, color: 0x0284c7 },
-            { angStart: 0.2, sign: -1, y: -0.28, color: 0xef4444 },
-            { angStart: 0, sign: 1, y: 0.12, color: 0x06b6d4 },
-            { angStart: 0.2, sign: 1, y: -0.28, color: 0xeab308 }
-        ];
-        for (const h of hoseDefs) {
-            const hoseGeo = new THREE.TorusGeometry(0.42, 0.055, 8, 16, Math.PI * 0.58);
-            const hoseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
-            const hoseMesh = new THREE.Mesh(hoseGeo, hoseMat);
-            hoseMesh.position.set(h.sign * 0.42, h.y, 0.15);
-            hoseMesh.rotation.y = h.sign * Math.PI * 0.42;
-            hoseMesh.rotation.z = h.sign * 0.15;
-
-            const collar = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.08, 0.08, 0.10, 8),
-                new THREE.MeshStandardMaterial({ color: h.color, roughness: 0.3 })
-            );
-            collar.position.set(h.sign * 0.62, h.y + 0.06, 0.22);
-            backpackGroup.add(hoseMesh, collar);
-        }
-
-        // Dual RCS Ion Thruster Nozzles on backpack corners
-        const thrusterGeo = new THREE.ConeGeometry(0.11, 0.22, 12);
-        thrusterGeo.rotateX(Math.PI);
-        const thrusterMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.3, metalness: 0.8 });
-        for (const tx of [-0.58, 0.58]) {
-            const thruster = new THREE.Mesh(thrusterGeo, thrusterMat);
-            thruster.position.set(tx, 0.68, 0.22);
-            thruster.rotation.z = (tx < 0 ? 1 : -1) * 0.24;
-            backpackGroup.add(thruster);
-        }
-
-        // 4. Arms & EVA Space Gloves (Natural Zero-G floating pose)
-        const leftArmGroup = new THREE.Group();
-        leftArmGroup.position.set(-0.82, 0.42, 0.05);
-        root.add(leftArmGroup);
-
-        const shoulderPadGeo = new THREE.SphereGeometry(0.24, 12, 10);
-        const leftShoulder = new THREE.Mesh(shoulderPadGeo, suitMat);
-        leftArmGroup.add(leftShoulder);
-
-        const armUpperGeo = new THREE.CylinderGeometry(0.18, 0.16, 0.55, 10);
-        const leftUpperArm = new THREE.Mesh(armUpperGeo, suitMat);
-        leftUpperArm.position.set(-0.18, -0.28, -0.08);
-        leftUpperArm.rotation.set(0.22, 0, 0.45);
-        const leftUpperOutline = this.createOutline(armUpperGeo, 0.038, leftUpperArm.position, leftUpperArm.rotation);
-        leftArmGroup.add(leftUpperArm, leftUpperOutline);
-
-        const armLowerGeo = new THREE.CylinderGeometry(0.16, 0.14, 0.50, 10);
-        const leftLowerArm = new THREE.Mesh(armLowerGeo, suitMat);
-        leftLowerArm.position.set(-0.35, -0.68, -0.18);
-        leftLowerArm.rotation.set(0.48, 0, 0.65);
-        const leftLowerOutline = this.createOutline(armLowerGeo, 0.035, leftLowerArm.position, leftLowerArm.rotation);
-        leftArmGroup.add(leftLowerArm, leftLowerOutline);
-
-        const gloveGeo = new THREE.BoxGeometry(0.22, 0.28, 0.18);
-        const leftGlove = new THREE.Mesh(gloveGeo, suitMat);
-        leftGlove.position.set(-0.48, -0.96, -0.26);
-        leftGlove.rotation.copy(leftLowerArm.rotation);
-        const leftPalmGrip = new THREE.Mesh(
-            new THREE.BoxGeometry(0.18, 0.22, 0.03),
-            rubberMat
-        );
-        leftPalmGrip.position.set(0, 0, -0.09);
-        leftGlove.add(leftPalmGrip);
-        leftArmGroup.add(leftGlove);
-
-        // Right Arm Group
-        const rightArmGroup = new THREE.Group();
-        rightArmGroup.position.set(0.82, 0.42, 0.05);
-        root.add(rightArmGroup);
-
-        const rightShoulder = new THREE.Mesh(shoulderPadGeo, suitMat);
-        rightArmGroup.add(rightShoulder);
-
-        const rightUpperArm = new THREE.Mesh(armUpperGeo, suitMat);
-        rightUpperArm.position.set(0.18, -0.28, -0.08);
-        rightUpperArm.rotation.set(0.22, 0, -0.45);
-        const rightUpperOutline = this.createOutline(armUpperGeo, 0.038, rightUpperArm.position, rightUpperArm.rotation);
-        rightArmGroup.add(rightUpperArm, rightUpperOutline);
-
-        const rightLowerArm = new THREE.Mesh(armLowerGeo, suitMat);
-        rightLowerArm.position.set(0.35, -0.68, -0.18);
-        rightLowerArm.rotation.set(0.48, 0, -0.65);
-        const rightLowerOutline = this.createOutline(armLowerGeo, 0.035, rightLowerArm.position, rightLowerArm.rotation);
-        rightArmGroup.add(rightLowerArm, rightLowerOutline);
-
-        const rightGlove = new THREE.Mesh(gloveGeo, suitMat);
-        rightGlove.position.set(0.48, -0.96, -0.26);
-        rightGlove.rotation.copy(rightLowerArm.rotation);
-        const rightPalmGrip = new THREE.Mesh(
-            new THREE.BoxGeometry(0.18, 0.22, 0.03),
-            rubberMat
-        );
-        rightPalmGrip.position.set(0, 0, -0.09);
-        rightGlove.add(rightPalmGrip);
-        rightArmGroup.add(rightGlove);
-
-        // 5. Legs & Lunar Space Boots
-        const leftLegGroup = new THREE.Group();
-        leftLegGroup.position.set(-0.35, -0.65, 0.04);
-        root.add(leftLegGroup);
-
-        const thighGeo = new THREE.CylinderGeometry(0.24, 0.20, 0.70, 12);
-        const leftThigh = new THREE.Mesh(thighGeo, suitMat);
-        leftThigh.position.set(-0.08, -0.35, -0.08);
-        leftThigh.rotation.set(0.32, 0, 0.12);
-        const leftThighOutline = this.createOutline(thighGeo, 0.04, leftThigh.position, leftThigh.rotation);
-        leftLegGroup.add(leftThigh, leftThighOutline);
-
-        const calfGeo = new THREE.CylinderGeometry(0.21, 0.18, 0.65, 12);
-        const leftCalf = new THREE.Mesh(calfGeo, suitMat);
-        leftCalf.position.set(-0.12, -0.92, 0.04);
-        leftCalf.rotation.set(-0.18, 0, 0.08);
-        const leftCalfOutline = this.createOutline(calfGeo, 0.038, leftCalf.position, leftCalf.rotation);
-        leftLegGroup.add(leftCalf, leftCalfOutline);
-
-        const bootGeo = new THREE.BoxGeometry(0.36, 0.32, 0.58);
-        const leftBoot = new THREE.Mesh(bootGeo, suitMat);
-        leftBoot.position.set(-0.14, -1.35, 0.12);
-        leftBoot.rotation.set(0.25, 0, 0.08);
-        const soleGeo = new THREE.BoxGeometry(0.40, 0.10, 0.64);
-        const leftSole = new THREE.Mesh(soleGeo, rubberMat);
-        leftSole.position.set(0, -0.16, 0);
-        leftBoot.add(leftSole);
-        leftLegGroup.add(leftBoot);
-
-        // Right Leg Group
-        const rightLegGroup = new THREE.Group();
-        rightLegGroup.position.set(0.35, -0.65, 0.04);
-        root.add(rightLegGroup);
-
-        const rightThigh = new THREE.Mesh(thighGeo, suitMat);
-        rightThigh.position.set(0.08, -0.35, -0.08);
-        rightThigh.rotation.set(0.28, 0, -0.12);
-        const rightThighOutline = this.createOutline(thighGeo, 0.04, rightThigh.position, rightThigh.rotation);
-        rightLegGroup.add(rightThigh, rightThighOutline);
-
-        const rightCalf = new THREE.Mesh(calfGeo, suitMat);
-        rightCalf.position.set(0.12, -0.92, 0.04);
-        rightCalf.rotation.set(-0.14, 0, -0.08);
-        const rightCalfOutline = this.createOutline(calfGeo, 0.038, rightCalf.position, rightCalf.rotation);
-        rightLegGroup.add(rightCalf, rightCalfOutline);
-
-        const rightBoot = new THREE.Mesh(bootGeo, suitMat);
-        rightBoot.position.set(0.14, -1.35, 0.12);
-        rightBoot.rotation.set(0.22, 0, -0.08);
-        const rightSole = new THREE.Mesh(soleGeo, rubberMat);
-        rightSole.position.set(0, -0.16, 0);
-        rightBoot.add(rightSole);
-        rightLegGroup.add(rightBoot);
+        const dummyGroup = new THREE.Group();
 
         return {
             root,
-            helmet: helmetGroup,
-            backpack: backpackGroup,
-            leftArm: leftArmGroup,
-            rightArm: rightArmGroup,
-            leftLeg: leftLegGroup,
-            rightLeg: rightLegGroup
+            helmet: dummyGroup,
+            backpack: telemetryGroup,
+            leftArm: dummyGroup,
+            rightArm: dummyGroup,
+            leftLeg: dummyGroup,
+            rightLeg: dummyGroup
         };
     }
 
@@ -3082,13 +2817,13 @@ export class PixiRenderer {
                         this.floatingAstronautGroup.visible = true;
                         this.floatingAstronautGroup.position.set(
                             worldX,
-                            SHIP_FLIGHT_Y - 0.70,
-                            worldZ - 1.5
+                            SHIP_FLIGHT_Y - 0.20,
+                            worldZ - 1.8
                         );
                         gsap.fromTo(
                             this.floatingAstronautGroup.position,
                             { y: SHIP_FLIGHT_Y + 1.8 },
-                            { y: SHIP_FLIGHT_Y - 0.70, duration: 0.65, ease: 'power2.out' }
+                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.65, ease: 'power2.out' }
                         );
 
                         // Signal UI that yellow GIRAR button is now active!
@@ -3812,9 +3547,9 @@ export class PixiRenderer {
         if (this.isRouletteActive) {
             const rouZ = this.giantRouletteGroup.position.z;
             const rouX = this.giantRouletteGroup.position.x;
-            const camTargetZ = rouZ + (isPortrait916 ? 14.8 : 11.8);
-            const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 2.6 : 1.95);
-            const camTargetX = rouX * 0.20;
+            const camTargetZ = rouZ + (isPortrait916 ? 14.8 : 12.8);
+            const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.6 : 1.20);
+            const camTargetX = rouX * 0.15;
 
             this.camPos.x = THREE.MathUtils.lerp(this.camPos.x, camTargetX, dt * 6.5);
             this.camPos.y = THREE.MathUtils.lerp(this.camPos.y, camTargetY, dt * 6.5);
@@ -3822,7 +3557,7 @@ export class PixiRenderer {
 
             this.camera.position.copy(this.camPos).add(this.vfx.shakeOffset);
 
-            const lookY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.4 : 1.05);
+            const lookY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.4 : 1.20);
             const desiredLook = this.scratchDesiredLook.set(rouX, lookY, rouZ);
             this.camLookAt.lerp(desiredLook, dt * 10);
             this.camera.lookAt(this.camLookAt);
@@ -3938,7 +3673,6 @@ export class PixiRenderer {
                     plat.mineGroup.visible = false;
                     plat.diffuseHazeSprite.visible = false;
                     plat.badgeSprite.visible = false;
-                    plat.catGroup.visible = false;
                 }
                 if (this.isRouletteActive) {
                     plat.group.visible = false;
@@ -4096,42 +3830,6 @@ export class PixiRenderer {
                             plat.alienRelicUfo.rotation.z = Math.sin(this.elapsed * 3.2) * 0.08;
                         }
                         if (plat.alienRelicRing) plat.alienRelicRing.rotation.z = this.elapsed * 2.8;
-                    }
-                }
-
-                // 3D Comic Black Cat Presence & Animation (Max 1 per row, normal crates only)
-                const isCatBox = boxType === 'normal' && rowSpecials.catLane === lane;
-                const shouldShowCat = isCatBox && plat.mysteryBoxGroup.visible && !plat.isShattered;
-                plat.catGroup.visible = shouldShowCat;
-
-                if (shouldShowCat) {
-                    // 1. Rhythmic paw licking motion
-                    const lickCycle = Math.sin(this.elapsed * 5.4 + lane * 1.5 + rowNumber);
-                    plat.catElbowPivot.rotation.x = lickCycle * 0.18;
-                    plat.catElbowPivot.rotation.z = Math.cos(this.elapsed * 5.4 + lane * 1.5 + rowNumber) * 0.10;
-
-                    // 2. Head nod / tilt (looks up curiously towards camera if hovered!)
-                    if (isHovered) {
-                        plat.catHeadPivot.rotation.x = 0.16 + Math.sin(this.elapsed * 3.5) * 0.04;
-                        plat.catHeadPivot.rotation.y = 0.0;
-                        plat.catHeadPivot.rotation.z = 0.0;
-                    } else {
-                        plat.catHeadPivot.rotation.x = 0.06 + Math.sin(this.elapsed * 5.4 + lane * 1.5 + rowNumber + 0.35) * 0.08;
-                        plat.catHeadPivot.rotation.y = 0.14 + Math.cos(this.elapsed * 2.7 + lane) * 0.09;
-                        plat.catHeadPivot.rotation.z = -0.05 + Math.sin(this.elapsed * 5.4 + lane) * 0.04;
-                    }
-
-                    // 3. Pink tongue flickers in sync with the lick
-                    const tongueP = Math.max(0, Math.sin(this.elapsed * 5.4 + lane * 1.5 + rowNumber + 0.45));
-                    plat.catTongue.scale.set(0.85 + tongueP * 0.4, 0.32, 1.15 + tongueP * 0.65);
-                    plat.catTongue.position.z = 0.24 + tongueP * 0.05;
-
-                    // 4. Tail S-curve wave along crate
-                    for (let i = 0; i < plat.catTailSegments.length; i++) {
-                        const seg = plat.catTailSegments[i];
-                        const wave = Math.sin(this.elapsed * 2.2 - i * 0.42 + lane);
-                        seg.rotation.y = wave * 0.20 + 0.18;
-                        seg.rotation.x = Math.cos(this.elapsed * 1.8 - i * 0.35 + rowNumber) * 0.08;
                     }
                 }
 

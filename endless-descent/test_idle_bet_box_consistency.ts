@@ -54,17 +54,9 @@ for (let round = 1; round <= 5; round++) {
             `Row ${r} goldenBoost must match!`
         );
         assert(
-            playingSpecials.catLane === idleSpecials[r - 1].catLane,
-            `Row ${r} catLane must match! IDLE: ${idleSpecials[r - 1].catLane}, PLAYING: ${playingSpecials.catLane}`
+            playingSpecials.catLane === null,
+            `Row ${r} catLane must be null (cat eliminated)!`
         );
-        if (playingSpecials.catLane !== null) {
-            assert(
-                playingSpecials.catLane !== playingSpecials.goldenLane &&
-                playingSpecials.catLane !== playingSpecials.alienLane &&
-                playingSpecials.catLane !== playingSpecials.wheelLane,
-                `Row ${r} catLane must be on a normal box only!`
-            );
-        }
         if (playingSpecials.wheelLane !== null) {
             assert(
                 playingSpecials.wheelLane !== playingSpecials.goldenLane &&
