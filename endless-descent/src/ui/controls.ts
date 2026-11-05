@@ -1240,6 +1240,29 @@ export function createControlsUI(
     async function handlePrimaryFocalAction() {
         if (isRulesModalOpen() || isReplay) return;
 
+        // 1x3 Arcade Mini-Slot Bonus Spin Action (Stage 2)
+        if (engine.isSlotActive || renderer.isSlotActive) {
+            if (renderer.isSlotSpinning) return;
+            triggerMechanicalPress();
+            audioController.playClick();
+            const outcome = engine.executeSlotSpin();
+            if (outcome) {
+                const totalSpins = engine.slotBundle?.spins.length || 5;
+                const spinsLeft = Math.max(0, totalSpins - engine.slotCurrentSpinIndex);
+                const isFinished = engine.slotCurrentSpinIndex >= totalSpins;
+                renderer.spinSlotReels(outcome, spinsLeft, engine.slotAccumulator, () => {
+                    syncUI();
+                    if (isFinished) {
+                        renderer.finishSlotSequence(engine.slotAccumulator, () => {
+                            syncUI();
+                        });
+                    }
+                });
+            }
+            syncUI();
+            return;
+        }
+
         // Giant Cosmic Prize Wheel (Ruleta) Spin Action
         if (engine.isWheelActive || renderer.isRouletteActive) {
             if (renderer.isWheelSpinning) return;
@@ -1383,7 +1406,9 @@ export function createControlsUI(
             if (
                 engine.state === GameState.PLAYING &&
                 !stateCtrl.isHitStopActive &&
-                !engine.isWheelActive
+                !engine.isWheelActive &&
+                !engine.isSlotActive &&
+                !renderer.isSlotActive
             ) {
                 e.preventDefault();
                 stateCtrl.selectLaneWithHitStop(laneIdx);
@@ -1398,6 +1423,10 @@ export function createControlsUI(
     });
 
     window.addEventListener('roulette-ready', () => {
+        syncUI();
+    });
+
+    window.addEventListener('slot-ready', () => {
         syncUI();
     });
 
@@ -1529,9 +1558,22 @@ export function createControlsUI(
             const canCashout = isPlaying && engine.currentRow > 1 && !stateCtrl.isHitStopActive;
 
             if (btnPrimaryCta && focalCtaHeaderLabel && focalCtaTitle && focalCtaSub) {
-                if (engine.isWheelActive || renderer.isRouletteActive) {
+                if (engine.isSlotActive || renderer.isSlotActive) {
+                    const totalSpins = engine.slotBundle?.spins.length || 5;
+                    const spinsLeft = Math.max(0, totalSpins - engine.slotCurrentSpinIndex);
+                    btnPrimaryCta.disabled = renderer.isSlotSpinning;
+                    btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin');
+                    btnPrimaryCta.classList.add('mode-slot-spin');
+                    focalCtaHeaderLabel.textContent = lang === 'es' ? '★ MINI-SLOT 1x3 ★' : '★ 1x3 ARCADE SLOT ★';
+                    focalCtaTitle.textContent = lang === 'es'
+                        ? `TIRAR SLOT (${spinsLeft})`
+                        : `SPIN SLOT (${spinsLeft})`;
+                    focalCtaSub.textContent = lang === 'es'
+                        ? `Acumulador: +${engine.slotAccumulator}x`
+                        : `Accumulator: +${engine.slotAccumulator}x`;
+                } else if (engine.isWheelActive || renderer.isRouletteActive) {
                     btnPrimaryCta.disabled = renderer.isWheelSpinning;
-                    btnPrimaryCta.classList.remove('mode-cashout');
+                    btnPrimaryCta.classList.remove('mode-cashout', 'mode-slot-spin');
                     btnPrimaryCta.classList.add('mode-wheel-spin');
                     focalCtaHeaderLabel.textContent =
                         lang === 'es' ? 'Ruleta Cósmica' : 'Cosmic Prize Wheel';
@@ -1539,23 +1581,21 @@ export function createControlsUI(
                     focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${lang === 'es' ? 'Tirada' : 'Spin'}`;
                 } else if (!isPlaying) {
                     btnPrimaryCta.disabled = false;
-                    btnPrimaryCta.classList.remove('mode-cashout');
-                    btnPrimaryCta.classList.remove('mode-wheel-spin');
+                    btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin', 'mode-slot-spin');
                     focalCtaHeaderLabel.textContent = t.focalActionLabel;
                     focalCtaTitle.textContent = t.focalDropCapsule;
                     focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
                 } else if (canCashout) {
                     const cashoutVal = calculatePayout(engine.activeBetAmount, currentMult);
                     btnPrimaryCta.disabled = false;
-                    btnPrimaryCta.classList.remove('mode-wheel-spin');
+                    btnPrimaryCta.classList.remove('mode-wheel-spin', 'mode-slot-spin');
                     btnPrimaryCta.classList.add('mode-cashout');
                     focalCtaHeaderLabel.textContent = lang === 'es' ? 'Cobro Disponible' : 'Cashout Available';
                     focalCtaTitle.textContent = `${t.focalCashout} ${stakeRGS.formatCurrency(cashoutVal)}`;
                     focalCtaSub.textContent = `${currentMult.toFixed(2)}× · ${t.shortcutSpace}`;
                 } else {
                     btnPrimaryCta.disabled = true;
-                    btnPrimaryCta.classList.remove('mode-cashout');
-                    btnPrimaryCta.classList.remove('mode-wheel-spin');
+                    btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin', 'mode-slot-spin');
                     focalCtaHeaderLabel.textContent = lang === 'es' ? 'Ronda en Curso' : 'Round Active';
                     focalCtaTitle.textContent = isMobile ? `[1–5]` : `[1–5]`;
                     focalCtaSub.textContent = `Row ${engine.currentRow} · ${nextMult.toFixed(2)}×`;
@@ -1565,7 +1605,8 @@ export function createControlsUI(
             const canPartial =
                 engine.canPartialCashout() &&
                 !stateCtrl.isHitStopActive &&
-                !engine.isWheelActive;
+                !engine.isWheelActive &&
+                !engine.isSlotActive;
             if (btnPartialCta && partialCtaSub && focalCtaHeaderShortcut) {
                 if (canPartial) {
                     btnPartialCta.style.display = 'flex';

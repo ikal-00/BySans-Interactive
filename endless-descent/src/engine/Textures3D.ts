@@ -51,6 +51,10 @@ export interface PBRTexturePack {
     ufoBellyTex: THREE.CanvasTexture;
     ufoCollarTex: THREE.CanvasTexture;
     astronautNormalTex: THREE.Texture;
+    slotReelStripTex: THREE.CanvasTexture;
+    slotCabinetMarqueeTex: THREE.CanvasTexture;
+    slotLedDisplayTex: THREE.CanvasTexture;
+    slotLedDisplayCanvas: HTMLCanvasElement;
 }
 
 // =============================================================================
@@ -1353,7 +1357,182 @@ export function createPBRTexturePack(): PBRTexturePack {
     }
 
     // =========================================================================
-    // 6. PHOTOREALISTIC HIGH-RES PLANET TEXTURES (512x256 Pixel-Synthesized fBm)
+    // 5E. 1x3 ARCADE MINI-SLOT REEL STRIP & CABINET CANVASES
+    // =========================================================================
+    function createSlotReelStripCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 3072;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+
+        const sectors = [
+            { mult: 'x88', tag: 'JACKPOT', bg1: '#7f1d1d', bg2: '#dc2626', col: '#fef08a', starCol: '#facc15' }, // 0
+            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }, // 1
+            { mult: 'x10', tag: 'HIGH',    bg1: '#0c4a6e', bg2: '#0284c7', col: '#e0f2fe', starCol: '#38bdf8' }, // 2
+            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }, // 3
+            { mult: 'x28', tag: 'MEGA',    bg1: '#4c1d95', bg2: '#7c3aed', col: '#f5d0fe', starCol: '#ec4899' }, // 4
+            { mult: 'x8',  tag: 'MID',     bg1: '#064e3b', bg2: '#059669', col: '#ecfdf5', starCol: '#34d399' }, // 5
+            { mult: 'x88', tag: 'JACKPOT', bg1: '#7f1d1d', bg2: '#dc2626', col: '#fef08a', starCol: '#facc15' }, // 6
+            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }, // 7
+            { mult: 'x10', tag: 'HIGH',    bg1: '#0c4a6e', bg2: '#0284c7', col: '#e0f2fe', starCol: '#38bdf8' }, // 8
+            { mult: 'x28', tag: 'MEGA',    bg1: '#4c1d95', bg2: '#7c3aed', col: '#f5d0fe', starCol: '#ec4899' }, // 9
+            { mult: 'x8',  tag: 'MID',     bg1: '#064e3b', bg2: '#059669', col: '#ecfdf5', starCol: '#34d399' }, // 10
+            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }  // 11
+        ];
+
+        const secW = 256;
+        for (let i = 0; i < 12; i++) {
+            const s = sectors[i];
+            const ox = i * secW;
+
+            // Background gradient
+            const bgGrad = ctx.createLinearGradient(ox, 0, ox, 256);
+            bgGrad.addColorStop(0, s.bg1);
+            bgGrad.addColorStop(0.5, s.bg2);
+            bgGrad.addColorStop(1, s.bg1);
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(ox, 0, secW, 256);
+
+            // Comic Sunburst Rays
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(ox, 0, secW, 256);
+            ctx.clip();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            for (let a = 0; a < 8; a++) {
+                const angle = (a * Math.PI) / 4;
+                ctx.beginPath();
+                ctx.moveTo(ox + 128, 128);
+                ctx.arc(ox + 128, 128, 180, angle - 0.16, angle + 0.16);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Inner Comic Inset Bevel Frame, Badge & Symbols (Rotated 180 to face upright on 3D cylinder)
+            ctx.save();
+            ctx.translate(ox + 128, 128);
+            ctx.rotate(Math.PI);
+
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(-125, -125, 250, 250);
+
+            ctx.strokeStyle = s.starCol;
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(-120, -120, 240, 240);
+
+            // Top Pill Badge with Category Tag
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.roundRect(-64, -112, 128, 28, 14);
+            ctx.fill();
+            ctx.strokeStyle = s.starCol;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.font = '900 14px "Arial Black", Impact, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = s.starCol;
+            ctx.fillText(s.tag, 0, -98);
+
+            // Central Massive Multiplier Text
+            const fontSize = s.mult.length > 3 ? 82 : 96;
+            ctx.font = `900 ${fontSize}px "Arial Black", Impact, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Thick Comic Drop Shadow & Stroke
+            ctx.lineWidth = 14;
+            ctx.strokeStyle = '#000000';
+            ctx.lineJoin = 'round';
+            ctx.strokeText(s.mult, 0, 10);
+
+            ctx.fillStyle = s.col;
+            ctx.fillText(s.mult, 0, 10);
+
+            // Highlight glint
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.strokeText(s.mult, 0, 7);
+
+            ctx.restore();
+
+            // Sector Vertical Divider Bars with Rivets
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(ox + secW - 4, 0, 8, 256);
+            ctx.fillStyle = '#facc15';
+            ctx.beginPath();
+            ctx.arc(ox + secW, 20, 3, 0, Math.PI * 2);
+            ctx.arc(ox + secW, 128, 3, 0, Math.PI * 2);
+            ctx.arc(ox + secW, 236, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        return canvas;
+    }
+
+    function createSlotCabinetMarqueeCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+
+        // Deep cyber slate-purple background
+        const bgGrad = ctx.createLinearGradient(0, 0, 1024, 256);
+        bgGrad.addColorStop(0, '#0f0b1e');
+        bgGrad.addColorStop(0.5, '#1e1b4b');
+        bgGrad.addColorStop(1, '#0f0b1e');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 1024, 256);
+
+        // Cyber grid scanlines
+        ctx.strokeStyle = 'rgba(168, 85, 247, 0.15)';
+        ctx.lineWidth = 2;
+        for (let y = 10; y < 256; y += 16) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(1024, y);
+            ctx.stroke();
+        }
+
+        // Glowing outer neon border
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 8;
+        ctx.strokeRect(12, 12, 1000, 232);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(20, 20, 984, 216);
+
+        // Header Title
+        ctx.font = '900 58px "Arial Black", Impact, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 12;
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText('★ MINI-SLOT 1x3 ARCADE ★', 512, 92);
+        ctx.fillStyle = '#fde047';
+        ctx.fillText('★ MINI-SLOT 1x3 ARCADE ★', 512, 92);
+
+        // Sub-Header
+        ctx.font = '900 24px "Plus Jakarta Sans", sans-serif';
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#000000';
+        ctx.strokeText('LÍNEA DE PAGO CENTRAL • SINGLE-LINE PROVABLY FAIR', 512, 175);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('LÍNEA DE PAGO CENTRAL • SINGLE-LINE PROVABLY FAIR', 512, 175);
+
+        return canvas;
+    }
+
+    function createSlotLedDisplayCanvas(spinsLeft = 5, maxSpins = 5, accumulator = 0): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 256;
+        updateSlotLedDisplayCanvas(canvas, spinsLeft, maxSpins, accumulator);
+        return canvas;
+    }
     //    Complemented by 3D Simplex/fBm Per-Pixel Detail in our Custom Planet GLSL Shader!
     // =========================================================================
     const pw = 512;
@@ -1883,6 +2062,20 @@ export function createPBRTexturePack(): PBRTexturePack {
     const alienSymbolTex = new THREE.CanvasTexture(alienSymbolCanvas);
     alienSymbolTex.colorSpace = THREE.SRGBColorSpace;
 
+    const slotReelStripCanvas = createSlotReelStripCanvas();
+    const slotReelStripTex = new THREE.CanvasTexture(slotReelStripCanvas);
+    slotReelStripTex.colorSpace = THREE.SRGBColorSpace;
+    slotReelStripTex.wrapS = THREE.RepeatWrapping;
+    slotReelStripTex.wrapT = THREE.ClampToEdgeWrapping;
+
+    const slotCabinetMarqueeCanvas = createSlotCabinetMarqueeCanvas();
+    const slotCabinetMarqueeTex = new THREE.CanvasTexture(slotCabinetMarqueeCanvas);
+    slotCabinetMarqueeTex.colorSpace = THREE.SRGBColorSpace;
+
+    const slotLedDisplayCanvas = createSlotLedDisplayCanvas(5, 5, 0);
+    const slotLedDisplayTex = new THREE.CanvasTexture(slotLedDisplayCanvas);
+    slotLedDisplayTex.colorSpace = THREE.SRGBColorSpace;
+
     function createShieldHexPatternCanvas(): HTMLCanvasElement {
         const W = 1024;
         const H = 512;
@@ -2328,8 +2521,86 @@ export function createPBRTexturePack(): PBRTexturePack {
         ufoSaucerTex,
         ufoBellyTex,
         ufoCollarTex,
-        astronautNormalTex
+        astronautNormalTex,
+        slotReelStripTex,
+        slotCabinetMarqueeTex,
+        slotLedDisplayTex,
+        slotLedDisplayCanvas
     };
+}
+
+/**
+ * Dynamically redraws the Arcade Mini-Slot LED display with updated spins and accumulator
+ */
+export function updateSlotLedDisplayCanvas(
+    canvas: HTMLCanvasElement,
+    spinsLeft: number,
+    maxSpins: number,
+    accumulator: number
+) {
+    const ctx = canvas.getContext('2d')!;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Dark segmented CRT/LED panel background
+    const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+    bgGrad.addColorStop(0, '#030712');
+    bgGrad.addColorStop(0.5, '#0f172a');
+    bgGrad.addColorStop(1, '#030712');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Subtle scanline effect
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    for (let y = 0; y < h; y += 4) {
+        ctx.fillRect(0, y, w, 2);
+    }
+
+    // Outer cyber border
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(6, 6, w - 12, h - 12);
+
+    // Center divider
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(w / 2, 16);
+    ctx.lineTo(w / 2, h - 16);
+    ctx.stroke();
+
+    // --- LEFT PANEL: SPINS REMAINING ---
+    ctx.font = '900 24px "Arial Black", Impact, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('GIROS RESTANTES', w / 4, 52);
+
+    // Big glowing amber/gold digits
+    ctx.font = '900 86px "Arial Black", Impact, sans-serif';
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#000000';
+    const spinsText = `${spinsLeft} / ${maxSpins}`;
+    ctx.strokeText(spinsText, w / 4, 150);
+    ctx.fillStyle = spinsLeft > 0 ? '#facc15' : '#ef4444';
+    ctx.fillText(spinsText, w / 4, 150);
+
+    // --- RIGHT PANEL: TOTAL ACCUMULATOR ---
+    ctx.font = '900 24px "Arial Black", Impact, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('ACUMULADOR TOTAL', (3 * w) / 4, 52);
+
+    // Big glowing emerald digits
+    ctx.font = '900 86px "Arial Black", Impact, sans-serif';
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#000000';
+    const accumText = `+${accumulator.toFixed(0)}x`;
+    ctx.strokeText(accumText, (3 * w) / 4, 150);
+    ctx.fillStyle = accumulator > 0 ? '#10b981' : '#38bdf8';
+    ctx.fillText(accumText, (3 * w) / 4, 150);
 }
 
 /**

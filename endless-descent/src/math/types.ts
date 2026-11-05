@@ -157,3 +157,36 @@ export interface AuditRoundResult {
     isHashValid: boolean;
     rows: AuditRowResult[];
 }
+
+// =============================================================================
+// ARCADE MINI-SLOT (1x3) PROVABLY FAIR TYPES
+// =============================================================================
+export type SlotSymbolId = 'BLANK' | 'X4' | 'X8' | 'X10' | 'X28' | 'X88';
+export type SlotReelOffset = 'CENTER' | 'UP' | 'DOWN';
+export type SlotSpinProfile = 'NATURAL' | 'BONUS_BUY';
+
+export interface SlotReelView {
+    symbol: SlotSymbolId;
+    offset: SlotReelOffset;
+}
+
+export interface SlotSpinOutcome {
+    spinIndex: number;
+    profile: SlotSpinProfile;
+    isWin: boolean;
+    symbol: SlotSymbolId;
+    multiplier: number;
+    reels: [SlotReelView, SlotReelView, SlotReelView];
+    isNearMiss: boolean;
+    nearMissSymbol?: SlotSymbolId;
+}
+
+export interface SlotBonusBundle {
+    profile: SlotSpinProfile;
+    totalSpins: number;
+    spins: SlotSpinOutcome[];
+    totalAccumulatedMultiplier: number;
+    preMultiplier: number;
+    finalMultiplier: number;
+}
+

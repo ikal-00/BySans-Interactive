@@ -1,5 +1,15 @@
 import CryptoJS from 'crypto-js';
-import type { LaneSpecialType, RowSpecialConfig, WheelSegmentConfig, WheelSpinOutcome } from '../math/types';
+import type {
+    LaneSpecialType,
+    RowSpecialConfig,
+    WheelSegmentConfig,
+    WheelSpinOutcome,
+    SlotSymbolId,
+    SlotSpinProfile,
+    SlotSpinOutcome,
+    SlotBonusBundle,
+    SlotReelView
+} from '../math/types';
 import { getLaneWinProbability } from '../math/multipliers';
 
 const hmacBytesCache = new Map<string, number[]>();
@@ -392,3 +402,161 @@ export function deriveWheelSpinOutcome(
         isNearMiss
     };
 }
+
+// =============================================================================
+// ARCADE MINI-SLOT (1x3 SINGLE-LINE) PROVABLY FAIR GENERATOR
+// =============================================================================
+
+export interface SlotSymbolConfig {
+    symbol: SlotSymbolId;
+    multiplier: number;
+    weight: number;
+}
+
+/**
+ * Conditional Weight Tables for the Arcade Mini-Slot (1x3 Single-Line):
+ *
+ * Perfil A: Entrada Natural (Desde la Ruleta)
+ * EV altísimo. Reducción drástica del símbolo vacío (Blank). Conexiones medias frecuentes (x4 a x10),
+ * y tasa baja pero presente de x28 y x88.
+ */
+export const SLOT_WEIGHTS_NATURAL: SlotSymbolConfig[] = [
+    { symbol: 'BLANK', multiplier: 0,  weight: 1800 }, // 18.00%
+    { symbol: 'X4',    multiplier: 4,  weight: 4200 }, // 42.00%
+    { symbol: 'X8',    multiplier: 8,  weight: 2300 }, // 23.00%
+    { symbol: 'X10',   multiplier: 10, weight: 1300 }, // 13.00%
+    { symbol: 'X28',   multiplier: 28, weight: 360  }, //  3.60%
+    { symbol: 'X88',   multiplier: 88, weight: 40   }  //  0.40%
+]; // Sum = 10,000 | EV per spin = 6.18x
+
+/**
+ * Perfil B: Compra Directa (Bonus Buy Directo a Slot)
+ * Volatilidad extrema (All-or-Nothing). 90% de los giros programados como tiradas muertas/desalineadas (Blanks).
+ * Rescates frecuentes en x4, y probabilidad fraccional minúscula en x28 y x88.
+ */
+export const SLOT_WEIGHTS_BONUS_BUY: SlotSymbolConfig[] = [
+    { symbol: 'BLANK', multiplier: 0,  weight: 9000 }, // 90.00%
+    { symbol: 'X4',    multiplier: 4,  weight: 870  }, //  8.70%
+    { symbol: 'X8',    multiplier: 8,  weight: 100  }, //  1.00%
+    { symbol: 'X10',   multiplier: 10, weight: 25   }, //  0.25%
+    { symbol: 'X28',   multiplier: 28, weight: 4    }, //  0.04%
+    { symbol: 'X88',   multiplier: 88, weight: 1    }  //  0.01%
+]; // Sum = 10,000 | EV per spin = 0.473x
+
+/**
+ * Generates the complete block of N spins for the 1x3 Arcade Mini-Slot
+ * deterministically via HMAC_SHA256(ServerSeed, ClientSeed : Nonce : Stage) in Stage 2.
+ */
+export function generateSlotBonusSpins(
+    serverSeed: string,
+    clientSeed: string,
+    nonce: number,
+    profile: SlotSpinProfile = 'NATURAL',
+    preMultiplier = 1.0,
+    forcedSpinsCount?: number
+): SlotBonusBundle {
+    // Stage 2 metadata hash to determine spin count N (3 to 5 spins)
+    const stageMessage = `${clientSeed}:${nonce}:STAGE_2_SLOT`;
+    const metaHash = CryptoJS.HmacSHA256(`${stageMessage}:META`, serverSeed).toString(CryptoJS.enc.Hex);
+    const metaBytes = parseHashBytes(metaHash);
+
+    const totalSpins = forcedSpinsCount ?? (profile === 'NATURAL' ? 3 + (metaBytes[0] % 3) : 5);
+    const spins: SlotSpinOutcome[] = [];
+    const weights = profile === 'NATURAL' ? SLOT_WEIGHTS_NATURAL : SLOT_WEIGHTS_BONUS_BUY;
+
+    for (let i = 0; i < totalSpins; i++) {
+        const spinMessage = `${stageMessage}:${i}`;
+        const spinHash = CryptoJS.HmacSHA256(spinMessage, serverSeed).toString(CryptoJS.enc.Hex);
+        const bytes = parseHashBytes(spinHash);
+
+        const uint32 =
+            ((bytes[0] << 24) >>> 0) +
+            ((bytes[1] << 16) >>> 0) +
+            ((bytes[2] << 8) >>> 0) +
+            (bytes[3] >>> 0);
+        const rawRoll = uint32 / 0x100000000;
+        const rollInt = Math.floor(rawRoll * 10000);
+
+        let accum = 0;
+        let chosen = weights[0];
+        for (let w = 0; w < weights.length; w++) {
+            accum += weights[w].weight;
+            if (rollInt < accum) {
+                chosen = weights[w];
+                break;
+            }
+        }
+
+        const isWin = chosen.symbol !== 'BLANK';
+        let isNearMiss = false;
+        let nearMissSymbol: SlotSymbolId | undefined;
+        let reels: [SlotReelView, SlotReelView, SlotReelView];
+
+        if (isWin) {
+            // Winning spin: 3 identical symbols aligned on center payline!
+            reels = [
+                { symbol: chosen.symbol, offset: 'CENTER' },
+                { symbol: chosen.symbol, offset: 'CENTER' },
+                { symbol: chosen.symbol, offset: 'CENTER' }
+            ];
+        } else {
+            // Losing spin: determine if this triggers a high-tension Near-Miss visual
+            const nearMissRoll = bytes[4] % 100;
+            isNearMiss = nearMissRoll < 55; // 55% of blanks trigger near-miss drama
+
+            if (isNearMiss) {
+                // Tease symbol: x88 (top prize) in 50% of near-misses, else x28 or x10
+                const teaseRoll = bytes[5];
+                nearMissSymbol = teaseRoll < 128 ? 'X88' : (teaseRoll < 192 ? 'X28' : 'X10');
+                const offsetUpOrDown: 'UP' | 'DOWN' = (bytes[6] % 2 === 0) ? 'UP' : 'DOWN';
+
+                // Reels 1 and 2 nail the jackpot/high symbol dead-center; Reel 3 misses by half a centimeter!
+                reels = [
+                    { symbol: nearMissSymbol, offset: 'CENTER' },
+                    { symbol: nearMissSymbol, offset: 'CENTER' },
+                    { symbol: nearMissSymbol, offset: offsetUpOrDown }
+                ];
+            } else {
+                // Scattered blank (non-matching symbols, with varied offsets)
+                const candidateSymbols: SlotSymbolId[] = ['X4', 'X8', 'X10', 'X28'];
+                const s1 = candidateSymbols[bytes[7] % candidateSymbols.length];
+                let s2 = candidateSymbols[bytes[8] % candidateSymbols.length];
+                let s3 = candidateSymbols[bytes[9] % candidateSymbols.length];
+                if (s1 === s2 && s2 === s3) {
+                    s3 = candidateSymbols[(bytes[9] + 1) % candidateSymbols.length];
+                }
+                const off3: 'UP' | 'DOWN' | 'CENTER' =
+                    bytes[10] % 3 === 0 ? 'UP' : (bytes[10] % 3 === 1 ? 'DOWN' : 'CENTER');
+                reels = [
+                    { symbol: s1, offset: 'CENTER' },
+                    { symbol: s2, offset: 'CENTER' },
+                    { symbol: s3, offset: off3 }
+                ];
+            }
+        }
+
+        spins.push({
+            spinIndex: i,
+            profile,
+            isWin,
+            symbol: chosen.symbol,
+            multiplier: chosen.multiplier,
+            reels,
+            isNearMiss,
+            nearMissSymbol
+        });
+    }
+
+    const totalAccumulatedMultiplier = spins.reduce((sum, s) => sum + s.multiplier, 0);
+    const finalMultiplier = Math.round(preMultiplier * totalAccumulatedMultiplier * 10000) / 10000;
+
+    return {
+        profile,
+        totalSpins,
+        spins,
+        totalAccumulatedMultiplier,
+        preMultiplier,
+        finalMultiplier
+    };
+}
+

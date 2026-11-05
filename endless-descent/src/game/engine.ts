@@ -4,6 +4,7 @@ import {
     deriveWheelSpinOutcome,
     evaluateLanePick,
     generateServerSeed,
+    generateSlotBonusSpins,
     hashServerSeed
 } from '../crypto/provablyFair';
 import {
@@ -13,7 +14,14 @@ import {
     calculateShieldSaveMultiplier
 } from '../math/multipliers';
 import { GameState } from '../math/types';
-import type { RoundPick, RoundSummary, RowSpecialConfig, WheelSpinOutcome } from '../math/types';
+import type {
+    RoundPick,
+    RoundSummary,
+    RowSpecialConfig,
+    WheelSpinOutcome,
+    SlotBonusBundle,
+    SlotSpinOutcome
+} from '../math/types';
 import { stakeRGS } from '../engine/StakeRGSBridge';
 
 export type StateListener = (state: GameState, engine: GameEngine) => void;
@@ -24,6 +32,8 @@ export type BalanceListener = (balance: number, engine: GameEngine) => void;
 export type HistoryListener = (summaries: RoundSummary[], engine: GameEngine) => void;
 export type WheelTriggerListener = (row: number, lane: number, engine: GameEngine) => void;
 export type WheelSpinListener = (outcome: WheelSpinOutcome, engine: GameEngine) => void;
+export type SlotSpinListener = (outcome: SlotSpinOutcome, engine: GameEngine) => void;
+export type SlotCompleteListener = (bundle: SlotBonusBundle, engine: GameEngine) => void;
 
 export class GameEngine {
     public state: GameState = GameState.IDLE;
@@ -59,6 +69,13 @@ export class GameEngine {
     public wheelLane: number = 0;
     public wheelPendingPick: RoundPick | null = null;
 
+    // 1x3 Arcade Mini-Slot state tracking
+    public isSlotActive: boolean = false;
+    public slotBundle: SlotBonusBundle | null = null;
+    public slotCurrentSpinIndex: number = 0;
+    public slotAccumulator: number = 0;
+    public slotPreMultiplier: number = 1.0;
+
     // Provably fair config
     public serverSeed: string = '';
     public clientSeed: string = '';
@@ -78,6 +95,8 @@ export class GameEngine {
     private historyListeners: Set<HistoryListener> = new Set();
     private wheelTriggerListeners: Set<WheelTriggerListener> = new Set();
     private wheelSpinListeners: Set<WheelSpinListener> = new Set();
+    private slotSpinListeners: Set<SlotSpinListener> = new Set();
+    private slotCompleteListeners: Set<SlotCompleteListener> = new Set();
 
     constructor(serverSeed: string, clientSeed: string) {
         this.serverSeed = serverSeed || generateServerSeed();
@@ -246,6 +265,12 @@ export class GameEngine {
         this.wheelRow = 0;
         this.wheelLane = 0;
         this.wheelPendingPick = null;
+
+        this.isSlotActive = false;
+        this.slotBundle = null;
+        this.slotCurrentSpinIndex = 0;
+        this.slotAccumulator = 0;
+        this.slotPreMultiplier = 1.0;
 
         this.currentRow = 1;
         this.currentMultiplier = 1.0;
@@ -614,9 +639,21 @@ export class GameEngine {
             return outcome;
         }
 
-        // Outcome Case 3: SLOT ACCESS (Teaser placeholder)
+        // Outcome Case 3: SLOT ACCESS (1x3 Arcade Mini-Slot Stage 2 Block Generation)
         if (outcome.segment.type === 'SLOT') {
-            this.wheelSpinsRemaining += 1;
+            this.isSlotActive = true;
+            this.slotPreMultiplier = this.currentMultiplier;
+            this.slotCurrentSpinIndex = 0;
+            this.slotAccumulator = 0;
+            // Generate and calculate all N spins in block simultaneously in Stage 2 (Provably Fair)
+            this.slotBundle = generateSlotBonusSpins(
+                this.serverSeed,
+                this.clientSeed,
+                this.nonce,
+                'NATURAL',
+                this.slotPreMultiplier
+            );
+
             this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
             this.emitStateChange(GameState.PLAYING);
             return outcome;
@@ -646,6 +683,91 @@ export class GameEngine {
         this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
         this.emitStateChange(GameState.PLAYING);
         return outcome;
+    }
+
+    public onSlotSpin(fn: SlotSpinListener): () => void {
+        this.slotSpinListeners.add(fn);
+        return () => this.slotSpinListeners.delete(fn);
+    }
+
+    public onSlotComplete(fn: SlotCompleteListener): () => void {
+        this.slotCompleteListeners.add(fn);
+        return () => this.slotCompleteListeners.delete(fn);
+    }
+
+    /**
+     * Executes the next spin in the pre-calculated Stage 2 slot block.
+     * Accumulates multipliers on the central accumulator and multiplies total profit upon completion.
+     */
+    public executeSlotSpin(): SlotSpinOutcome | null {
+        if (!this.isSlotActive || !this.slotBundle) return null;
+        if (this.slotCurrentSpinIndex >= this.slotBundle.spins.length) return null;
+
+        const spinOutcome = this.slotBundle.spins[this.slotCurrentSpinIndex];
+        this.slotAccumulator += spinOutcome.multiplier;
+        this.slotCurrentSpinIndex++;
+
+        this.slotSpinListeners.forEach((fn) => fn(spinOutcome, this));
+
+        // When all spins complete:
+        if (this.slotCurrentSpinIndex >= this.slotBundle.spins.length) {
+            if (this.slotAccumulator > 0) {
+                this.currentMultiplier = Math.round(this.slotPreMultiplier * this.slotAccumulator * 10000) / 10000;
+            } else {
+                if (this.slotBundle.profile === 'BONUS_BUY') {
+                    this.currentMultiplier = 0;
+                }
+            }
+
+            if (this.wheelPendingPick) {
+                this.wheelPendingPick.boostApplied = this.slotAccumulator;
+                this.wheelPendingPick.stepMultiplierAfter = this.currentMultiplier;
+            }
+
+            this.isSlotActive = false;
+            if (this.isWheelActive) {
+                this.wheelSpinsRemaining--;
+                if (this.wheelSpinsRemaining <= 0) {
+                    this.isWheelActive = false;
+                    this.currentRow = this.wheelRow + 1;
+                }
+            }
+
+            this.slotCompleteListeners.forEach((fn) => fn(this.slotBundle!, this));
+            this.emitStateChange(this.currentMultiplier > 0 ? GameState.PLAYING : GameState.CRASHED);
+        }
+
+        return spinOutcome;
+    }
+
+    /**
+     * Bonus Buy: Purchase direct access to the 1x3 Arcade Mini-Slot (Perfil B).
+     * Volatilidad extrema (All-or-Nothing, ~90% Blanks).
+     */
+    public buySlotBonus(costMultiplier = 20.0): SlotBonusBundle | null {
+        if (this.state !== GameState.IDLE) return null;
+        const totalCost = this.activeBetAmount * costMultiplier;
+        if (this.balance < totalCost) return null;
+
+        this.balance -= totalCost;
+        this.emitBalanceChange();
+
+        this.state = GameState.PLAYING;
+        this.isSlotActive = true;
+        this.slotPreMultiplier = 1.0;
+        this.slotCurrentSpinIndex = 0;
+        this.slotAccumulator = 0;
+        this.slotBundle = generateSlotBonusSpins(
+            this.serverSeed,
+            this.clientSeed,
+            this.nonce,
+            'BONUS_BUY',
+            1.0,
+            5
+        );
+
+        this.emitStateChange(GameState.PLAYING);
+        return this.slotBundle;
     }
 
     /**

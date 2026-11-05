@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { GameState, type RoundPick, type WheelSpinOutcome } from '../math/types';
+import { GameState, type RoundPick, type WheelSpinOutcome, type SlotSymbolId, type SlotReelOffset, type SlotSpinOutcome } from '../math/types';
 import { calculateNextStepMultiplier } from '../math/multipliers';
 import { GameStateController } from './GameState';
 import { VFXManager } from './VFX_Manager';
-import { createPBRTexturePack, updateHologramBadgeCanvas, type PBRTexturePack } from './Textures3D';
+import { createPBRTexturePack, updateHologramBadgeCanvas, updateSlotLedDisplayCanvas, type PBRTexturePack } from './Textures3D';
 import { Spaceship3D } from './Spaceship3D';
 import { audioController } from './AudioController';
 
@@ -173,6 +173,16 @@ export class PixiRenderer {
     private wheelCurrentAngle = 0;
     private lastFlapperPegIndex = -1;
 
+    // 3D 1x3 Arcade Mini-Slot Machine & Zero-G Bonus Stage
+    public miniSlotGroup!: THREE.Group;
+    private slotReels: THREE.Mesh[] = [];
+    private slotReelAngles: number[] = [0, 0, 0];
+    private slotPaylineBeam!: THREE.Mesh;
+    private slotPaylineChevrons: THREE.Group[] = [];
+    private slotLedDisplayMesh!: THREE.Mesh;
+    public isSlotActive = false;
+    public isSlotSpinning = false;
+
     private starfieldGeo!: THREE.BufferGeometry;
     private starfieldPositions!: Float32Array;
 
@@ -245,6 +255,7 @@ export class PixiRenderer {
         this.buildTrajectoryPredictor();
         this.buildAlienUfoSaucer();
         this.buildGiantPrizeWheelAndAstronaut();
+        this.buildArcadeMiniSlotMachine();
 
         // Build 3D AAA [SPACE-OVERDRIVE V4] Starfighter (Floats freely in the open cosmic void)
         this.ship = new Spaceship3D(this.scene, this.textures);
@@ -2709,6 +2720,188 @@ export class PixiRenderer {
     }
 
     /**
+     * Builds the 3D Arcade Mini-Slot Machine (1x3 Single-Line)
+     * Cyberpunk retro cabinet housing, 3 rotating cylinders, neon laser payline,
+     * chevron guides, overhead spotlights, and real-time digital LED display.
+     */
+    private buildArcadeMiniSlotMachine() {
+        this.miniSlotGroup = new THREE.Group();
+        this.miniSlotGroup.visible = false;
+        this.scene.add(this.miniSlotGroup);
+
+        // 1. Main Cabinet Chassis (Cyber Slate Body with beveled metallic trim)
+        const cabinetWidth = 5.6;
+        const cabinetHeight = 3.6;
+        const cabinetDepth = 1.4;
+
+        const cabinetGeo = new THREE.BoxGeometry(cabinetWidth, cabinetHeight, cabinetDepth);
+        const cabinetMat = new THREE.MeshStandardMaterial({
+            color: 0x090d16,
+            roughness: 0.35,
+            metalness: 0.65
+        });
+        const cabinetMesh = new THREE.Mesh(cabinetGeo, cabinetMat);
+        const cabinetOutline = this.createOutline(cabinetGeo, 0.05);
+        this.miniSlotGroup.add(cabinetMesh, cabinetOutline);
+
+        // 2. Top Marquee Header (Slanted forward slightly with Glowing Neon Arcade Sign)
+        const marqueeGeo = new THREE.BoxGeometry(cabinetWidth - 0.2, 0.92, 0.45);
+        const marqueeMat = new THREE.MeshStandardMaterial({
+            map: this.textures.slotCabinetMarqueeTex,
+            roughness: 0.25,
+            metalness: 0.15,
+            emissive: 0x4c1d95,
+            emissiveIntensity: 0.4
+        });
+        const marqueeMesh = new THREE.Mesh(marqueeGeo, marqueeMat);
+        marqueeMesh.position.set(0, 2.12, 0.38);
+        marqueeMesh.rotation.x = -0.10;
+        const marqueeOutline = this.createOutline(marqueeGeo, 0.035);
+        this.miniSlotGroup.add(marqueeMesh, marqueeOutline);
+
+        // 3. Central Slot Aperture / Bezel Window
+        const windowFrameGeo = new THREE.BoxGeometry(4.8, 1.9, 0.22);
+        const windowFrameMat = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            roughness: 0.28,
+            metalness: 0.85
+        });
+        const windowFrameMesh = new THREE.Mesh(windowFrameGeo, windowFrameMat);
+        windowFrameMesh.position.set(0, 0.15, 0.65);
+        this.miniSlotGroup.add(windowFrameMesh);
+
+        // Vertical Mullion Dividers between the 3 reels
+        const dividerGeo = new THREE.BoxGeometry(0.12, 1.85, 0.28);
+        const dividerMat = new THREE.MeshStandardMaterial({
+            color: 0x0f172a,
+            emissive: 0x38bdf8,
+            emissiveIntensity: 0.45,
+            roughness: 0.2,
+            metalness: 0.9
+        });
+        const divLeft = new THREE.Mesh(dividerGeo, dividerMat);
+        divLeft.position.set(-0.76, 0.15, 0.68);
+        const divRight = new THREE.Mesh(dividerGeo, dividerMat);
+        divRight.position.set(0.76, 0.15, 0.68);
+        this.miniSlotGroup.add(divLeft, divRight);
+
+        // 4. The 3 3D Reel Cylinders
+        // Each reel is an authentic 3D cylinder rotated so its rotational axis is the local X axis
+        const reelRadius = 1.45;
+        const reelWidth = 1.15;
+        const reelSegments = 32;
+
+        const reelGeo = new THREE.CylinderGeometry(reelRadius, reelRadius, reelWidth, reelSegments, 1, true);
+        reelGeo.rotateZ(Math.PI / 2); // Align cylinder axis with X axis
+
+        const reelPositionsX = [-1.52, 0.0, 1.52];
+        this.slotReels = [];
+        this.slotReelAngles = [0, 0, 0];
+
+        for (let i = 0; i < 3; i++) {
+            const reelMat = new THREE.MeshStandardMaterial({
+                map: this.textures.slotReelStripTex,
+                roughness: 0.24,
+                metalness: 0.15
+            });
+            const reelMesh = new THREE.Mesh(reelGeo, reelMat);
+            reelMesh.position.set(reelPositionsX[i], 0.15, 0.22);
+            this.miniSlotGroup.add(reelMesh);
+            this.slotReels.push(reelMesh);
+
+            // Add side metallic end-caps to each reel cylinder
+            const capGeo = new THREE.CircleGeometry(reelRadius, 24);
+            capGeo.rotateY(Math.PI / 2);
+            const capMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.8 });
+            const capLeft = new THREE.Mesh(capGeo, capMat);
+            capLeft.position.set(reelPositionsX[i] - reelWidth / 2, 0.15, 0.22);
+            const capRight = new THREE.Mesh(capGeo, capMat);
+            capRight.position.set(reelPositionsX[i] + reelWidth / 2, 0.15, 0.22);
+            this.miniSlotGroup.add(capLeft, capRight);
+        }
+
+        // 5. Central Laser Payline (Single-Line Horizontal at y = 0.15, z = 1.68)
+        const paylineGeo = new THREE.BoxGeometry(4.75, 0.065, 0.04);
+        const paylineMat = new THREE.MeshStandardMaterial({
+            color: 0x38bdf8,
+            emissive: 0x0284c7,
+            emissiveIntensity: 0.85,
+            roughness: 0.1,
+            metalness: 0.3
+        });
+        this.slotPaylineBeam = new THREE.Mesh(paylineGeo, paylineMat);
+        this.slotPaylineBeam.position.set(0, 0.15, 1.68);
+        this.miniSlotGroup.add(this.slotPaylineBeam);
+
+        // Chevron Pointers pointing at the Central Payline
+        this.slotPaylineChevrons = [];
+        const chevronShape = new THREE.Shape();
+        chevronShape.moveTo(-0.18, 0.16);
+        chevronShape.lineTo(0.18, 0.0);
+        chevronShape.lineTo(-0.18, -0.16);
+        chevronShape.closePath();
+
+        const chevronGeo = new THREE.ExtrudeGeometry(chevronShape, {
+            depth: 0.06,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.02,
+            bevelThickness: 0.02
+        });
+        const chevronMat = new THREE.MeshStandardMaterial({
+            color: 0xfacc15,
+            emissive: 0xd97706,
+            emissiveIntensity: 0.9,
+            roughness: 0.2,
+            metalness: 0.5
+        });
+
+        // Left Chevrons: pointing right >>>
+        const chevLeftGroup = new THREE.Group();
+        chevLeftGroup.position.set(-2.45, 0.15, 1.68);
+        const chevLeft1 = new THREE.Mesh(chevronGeo, chevronMat);
+        chevLeftGroup.add(chevLeft1);
+        this.miniSlotGroup.add(chevLeftGroup);
+        this.slotPaylineChevrons.push(chevLeftGroup);
+
+        // Right Chevrons: pointing left <<<
+        const chevRightGroup = new THREE.Group();
+        chevRightGroup.position.set(2.45, 0.15, 1.68);
+        const chevRight1 = new THREE.Mesh(chevronGeo, chevronMat);
+        chevRight1.rotation.y = Math.PI; // point left
+        chevRightGroup.add(chevRight1);
+        this.miniSlotGroup.add(chevRightGroup);
+        this.slotPaylineChevrons.push(chevRightGroup);
+
+        // 6. Bottom Digital LED Readout Panel (Spins Left & Central Accumulator)
+        const ledGeo = new THREE.PlaneGeometry(4.75, 0.72);
+        const ledMat = new THREE.MeshStandardMaterial({
+            map: this.textures.slotLedDisplayTex,
+            roughness: 0.35,
+            metalness: 0.2,
+            emissive: 0x0f172a,
+            emissiveIntensity: 0.3
+        });
+        this.slotLedDisplayMesh = new THREE.Mesh(ledGeo, ledMat);
+        this.slotLedDisplayMesh.position.set(0, -1.25, 0.71);
+        this.miniSlotGroup.add(this.slotLedDisplayMesh);
+
+        // 7. Spotlights & Glow Lights for Dramatic Arcade Illumination
+        const overheadLight1 = new THREE.PointLight(0xffffff, 1.2, 10.0, 1.4);
+        overheadLight1.position.set(-1.5, 1.8, 1.8);
+        const overheadLight2 = new THREE.PointLight(0xfef08a, 1.4, 10.0, 1.4);
+        overheadLight2.position.set(0, 1.8, 1.8);
+        const overheadLight3 = new THREE.PointLight(0xffffff, 1.2, 10.0, 1.4);
+        overheadLight3.position.set(1.5, 1.8, 1.8);
+        this.miniSlotGroup.add(overheadLight1, overheadLight2, overheadLight3);
+
+        const neonGlow = new THREE.PointLight(0xa855f7, 1.0, 14.0, 1.2);
+        neonGlow.position.set(0, 0, 2.5);
+        this.miniSlotGroup.add(neonGlow);
+    }
+
+    /**
      * Cinematic Roulette Sequence:
      * 1. Starfighter approaches and brakes smoothly right before touching the crate.
      * 2. Small roulette on the crate vanishes with golden pop effect.
@@ -2923,8 +3116,14 @@ export class PixiRenderer {
                     setTimeout(() => {
                         this.finishRouletteSequence(onComplete);
                     }, 1400);
-                } else if (outcome.segment.type === 'EXTRA_SPIN' || outcome.segment.type === 'SLOT') {
+                } else if (outcome.segment.type === 'EXTRA_SPIN') {
                     audioController.playGoldenHit();
+                    onComplete();
+                } else if (outcome.segment.type === 'SLOT') {
+                    audioController.playGoldenHit();
+                    this.isRouletteActive = false;
+                    const spinsCount = this.gameState.engine.slotBundle?.spins.length || 5;
+                    this.triggerSlotSequence(worldX, wheelZ + 7.5, spinsCount, 0);
                     onComplete();
                 } else {
                     audioController.playCashout(outcome.segment.multiplier >= 10);
@@ -2951,6 +3150,7 @@ export class PixiRenderer {
             ease: 'power2.in',
             onComplete: () => {
                 this.floatingAstronautGroup.visible = false;
+                this.floatingAstronautGroup.rotation.y = 0;
                 this.ship.root.visible = true;
                 this.ship.cockpitAstronaut.visible = true;
                 this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
@@ -2970,6 +3170,311 @@ export class PixiRenderer {
                         if (onComplete) onComplete();
                     }
                 });
+            }
+        });
+    }
+
+    /**
+     * Maps a SlotSymbolId and SlotReelOffset to the exact cylinder rotation angle.
+     */
+    private getSlotReelTargetAngle(currentAngle: number, symbol: SlotSymbolId, offset: SlotReelOffset): number {
+        const sectorAngle = (Math.PI * 2) / 12;
+        const indicesMap: Record<SlotSymbolId, number[]> = {
+            'X88': [0, 6],
+            'X28': [4, 9],
+            'X10': [2, 8],
+            'X8':  [5, 10],
+            'X4':  [1, 3, 7, 11],
+            'BLANK': [1, 3, 5, 7, 10]
+        };
+
+        const available = indicesMap[symbol] || [0];
+        const targetSector = available[0];
+
+        // Offset: CENTER = 0, UP = +0.38 sectors, DOWN = -0.38 sectors (placing symbol half a step off-center)
+        const offsetShift = offset === 'UP' ? 0.38 * sectorAngle : (offset === 'DOWN' ? -0.38 * sectorAngle : 0);
+        const targetSectorBase = (targetSector + 0.5) * sectorAngle + offsetShift;
+
+        // Ensure at least 4 full forward revolutions for exhilarating visual spin
+        const minRevolutions = 4 * Math.PI * 2;
+        const currentMod = currentAngle % (Math.PI * 2);
+        let delta = (targetSectorBase - currentMod) % (Math.PI * 2);
+        if (delta < 0) delta += Math.PI * 2;
+
+        return currentAngle + minRevolutions + delta;
+    }
+
+    /**
+     * Transitions from Cosmic Prize Wheel or Direct Bonus Buy into the 3D Arcade Mini-Slot Machine (1x3).
+     * Astronaut remains in zero-G void floating and observing the cyber arcade cabinet!
+     */
+    public triggerSlotSequence(worldX: number, worldZ: number, spinsLeft: number, accumulator: number) {
+        this.isSlotActive = true;
+        this.isSlotSpinning = false;
+
+        const slotZ = worldZ - 7.0;
+        const slotY = SHIP_FLIGHT_Y + 1.15;
+
+        // Ensure floating astronaut is visible and facing the arcade slot in the void (flanked to the lower-left so slot and LED are fully visible)
+        this.floatingAstronautGroup.visible = true;
+        this.floatingAstronautGroup.position.set(
+            worldX - 2.85,
+            SHIP_FLIGHT_Y - 0.88,
+            worldZ - 2.6
+        );
+        this.floatingAstronautGroup.rotation.y = 0.32;
+        this.ship.root.visible = false;
+
+        // Slide the Giant Prize Wheel out of view if visible
+        if (this.giantRouletteGroup && this.giantRouletteGroup.visible) {
+            gsap.to(this.giantRouletteGroup.position, {
+                y: this.giantRouletteGroup.position.y + 18,
+                duration: 0.65,
+                ease: 'power2.in',
+                onComplete: () => {
+                    this.giantRouletteGroup.visible = false;
+                }
+            });
+        }
+
+        // Initialize LED display canvas
+        updateSlotLedDisplayCanvas(
+            this.textures.slotLedDisplayCanvas,
+            spinsLeft,
+            this.gameState.engine.slotBundle?.spins.length || 5,
+            accumulator
+        );
+        this.textures.slotLedDisplayTex.needsUpdate = true;
+
+        // Animate Mini-Slot dropping into view in front of the astronaut with high impact
+        this.miniSlotGroup.visible = true;
+        this.miniSlotGroup.position.set(worldX, slotY + 16, slotZ);
+
+        gsap.to(this.miniSlotGroup.position, {
+            y: slotY,
+            duration: 0.75,
+            ease: 'back.out(1.2)',
+            onComplete: () => {
+                this.vfx.spawnShockwave3D(worldX, slotY, slotZ, 0x38bdf8, 7.0, 0.35);
+                this.vfx.spawnGpuParticleCloud(
+                    worldX,
+                    slotY,
+                    slotZ + 0.5,
+                    80,
+                    [0x38bdf8, 0xa855f7, 0xfde047, 0xffffff],
+                    8,
+                    18,
+                    0.6
+                );
+                audioController.playSlotLineWin(false);
+                window.dispatchEvent(new CustomEvent('slot-ready'));
+            }
+        });
+    }
+
+    /**
+     * Executes the Provably Fair spin animation of the 3D 1x3 Arcade Mini-Slot Machine.
+     * Features staggered reel stops (CLANK), agonizing near-miss slow crawl on Reel 3,
+     * central laser payline ignition, and digital LED accumulator rollout!
+     */
+    public spinSlotReels(
+        outcome: SlotSpinOutcome,
+        spinsLeft: number,
+        accumulator: number,
+        onComplete: () => void
+    ) {
+        if (this.isSlotSpinning) return;
+        this.isSlotSpinning = true;
+
+        const totalSpins = this.gameState.engine.slotBundle?.spins.length || 5;
+
+        // Sound: continuous mechanical reel spin
+        audioController.playSlotReelSpin();
+
+        // Target angles for each of the 3 reels
+        const tgt0 = this.getSlotReelTargetAngle(this.slotReelAngles[0], outcome.reels[0].symbol, outcome.reels[0].offset);
+        const tgt1 = this.getSlotReelTargetAngle(this.slotReelAngles[1], outcome.reels[1].symbol, outcome.reels[1].offset);
+        const tgt2 = this.getSlotReelTargetAngle(this.slotReelAngles[2], outcome.reels[2].symbol, outcome.reels[2].offset);
+
+        const reel0Obj = { angle: this.slotReelAngles[0] };
+        const reel1Obj = { angle: this.slotReelAngles[1] };
+        const reel2Obj = { angle: this.slotReelAngles[2] };
+
+        // 1. Reel 0 Stops at 0.75s
+        gsap.to(reel0Obj, {
+            angle: tgt0,
+            duration: 0.75,
+            ease: 'back.out(1.4)',
+            onUpdate: () => {
+                this.slotReelAngles[0] = reel0Obj.angle;
+                this.slotReels[0].rotation.x = reel0Obj.angle;
+            },
+            onComplete: () => {
+                audioController.playSlotReelStop(0);
+                this.vfx.triggerScreenShake(0.08, 0.05);
+            }
+        });
+
+        // 2. Reel 1 Stops at 1.35s
+        gsap.to(reel1Obj, {
+            angle: tgt1,
+            duration: 1.35,
+            ease: 'back.out(1.4)',
+            onUpdate: () => {
+                this.slotReelAngles[1] = reel1Obj.angle;
+                this.slotReels[1].rotation.x = reel1Obj.angle;
+            },
+            onComplete: () => {
+                audioController.playSlotReelStop(1);
+                this.vfx.triggerScreenShake(0.12, 0.06);
+
+                if (outcome.isNearMiss) {
+                    // Start Near-Miss high tension audio as Reel 3 crawls agonizingly slow!
+                    audioController.playSlotNearMissTension();
+                    // Flash payline beam and chevrons with warning crimson/amber
+                    const payMat = this.slotPaylineBeam.material as THREE.MeshStandardMaterial;
+                    gsap.to(payMat, {
+                        emissiveIntensity: 2.2,
+                        duration: 0.15,
+                        yoyo: true,
+                        repeat: 6
+                    });
+                }
+            }
+        });
+
+        // 3. Reel 2 Stops with Stagger & Near-Miss / Win Drama
+        const reel2Duration = outcome.isNearMiss ? 3.1 : 1.95;
+        const reel2Ease = outcome.isNearMiss ? 'power1.out' : 'back.out(1.3)';
+
+        gsap.to(reel2Obj, {
+            angle: tgt2,
+            duration: reel2Duration,
+            ease: reel2Ease,
+            onUpdate: () => {
+                this.slotReelAngles[2] = reel2Obj.angle;
+                this.slotReels[2].rotation.x = reel2Obj.angle;
+
+                if (outcome.isNearMiss && reel2Obj.angle > tgt2 - 1.2) {
+                    this.vfx.triggerScreenShake(0.04, 0.04);
+                }
+            },
+            onComplete: () => {
+                audioController.playSlotReelStop(2);
+
+                const slotPos = this.miniSlotGroup.position;
+
+                if (outcome.isWin) {
+                    // Win Animation: Payline laser ignition & electric sparks!
+                    audioController.playSlotLineWin(outcome.multiplier >= 28);
+                    this.vfx.triggerScreenShake(0.35, 0.22);
+                    this.vfx.spawnShockwave3D(slotPos.x, slotPos.y + 0.15, slotPos.z + 1.6, 0xfde047, 8.0, 0.4);
+                    this.vfx.spawnGpuParticleCloud(
+                        slotPos.x,
+                        slotPos.y + 0.15,
+                        slotPos.z + 1.7,
+                        120,
+                        [0xfde047, 0xfacc15, 0x38bdf8, 0xffffff],
+                        10,
+                        22,
+                        0.7
+                    );
+
+                    // Pulse payline beam
+                    gsap.fromTo(
+                        this.slotPaylineBeam.scale,
+                        { y: 3.5, z: 3.5 },
+                        { y: 1.0, z: 1.0, duration: 0.45, ease: 'elastic.out(1.2, 0.4)' }
+                    );
+                } else if (outcome.isNearMiss) {
+                    // Agonizing Near-Miss halt!
+                    this.vfx.triggerScreenShake(0.2, 0.15);
+                    this.vfx.spawnShockwave3D(slotPos.x + 1.5, slotPos.y + 0.15, slotPos.z + 1.6, 0xef4444, 4.0, 0.25);
+                }
+
+                // Update LED screen canvas with updated spins and accumulator
+                updateSlotLedDisplayCanvas(
+                    this.textures.slotLedDisplayCanvas,
+                    spinsLeft,
+                    totalSpins,
+                    accumulator
+                );
+                this.textures.slotLedDisplayTex.needsUpdate = true;
+
+                // Brief pause for tension before handing back control
+                setTimeout(() => {
+                    this.isSlotSpinning = false;
+                    onComplete();
+                }, 650);
+            }
+        });
+    }
+
+    /**
+     * Finishes the 1x3 Arcade Mini-Slot Bonus sequence:
+     * Celebrates total accumulated multiplier payout, returns astronaut to starfighter,
+     * and resumes gameplay flow.
+     */
+    public finishSlotSequence(finalAccumulator: number, onComplete?: () => void) {
+        const slotPos = this.miniSlotGroup.position;
+
+        if (finalAccumulator > 0) {
+            // Big Celebration for accumulated multiplier
+            audioController.playCashout(finalAccumulator >= 10);
+            this.vfx.triggerScreenShake(0.45, 0.35);
+            this.vfx.spawnShockwave3D(slotPos.x, slotPos.y, slotPos.z, 0xfacc15, 12.0, 0.6);
+            this.vfx.spawnGpuParticleCloud(
+                slotPos.x,
+                slotPos.y,
+                slotPos.z,
+                200,
+                [0xfde047, 0xfacc15, 0xa855f7, 0x38bdf8, 0xffffff],
+                14,
+                30,
+                0.9
+            );
+            this.vfx.spawnGraffitiMultiplierTag3D(
+                slotPos.x,
+                slotPos.y + 1.6,
+                slotPos.z + 1.0,
+                this.gameState.engine.currentMultiplier,
+                this.gameState.engine.currentRow
+            );
+        } else {
+            // 0x (Direct Bonus Buy loss)
+            audioController.playWheelWipeout();
+            this.vfx.spawnCrashExplosion3D(slotPos.x, SHIP_FLIGHT_Y, slotPos.z);
+        }
+
+        // Mini-Slot rises smoothly out of frame
+        gsap.to(this.miniSlotGroup.position, {
+            y: this.miniSlotGroup.position.y + 18,
+            duration: 0.65,
+            ease: 'power2.in',
+            onComplete: () => {
+                this.miniSlotGroup.visible = false;
+                this.isSlotActive = false;
+            }
+        });
+
+        // Astronaut floats back and boards starfighter
+        gsap.to(this.floatingAstronautGroup.position, {
+            y: SHIP_FLIGHT_Y + 1.8,
+            duration: 0.50,
+            ease: 'power2.in',
+            onComplete: () => {
+                this.floatingAstronautGroup.visible = false;
+                this.floatingAstronautGroup.rotation.y = 0;
+                this.ship.root.visible = true;
+                this.ship.cockpitAstronaut.visible = true;
+                this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
+
+                this.ship.closeCockpitCanopy(0.38, () => {
+                    this.ship.cockpitAstronaut.visible = false;
+                });
+
+                this.ship.triggerSpeedBurst(0.65);
+                if (onComplete) onComplete();
             }
         });
     }
@@ -3024,7 +3529,10 @@ export class PixiRenderer {
                 this.ship.root.visible = true;
                 this.isRouletteActive = false;
                 this.isWheelSpinning = false;
+                this.isSlotActive = false;
+                this.isSlotSpinning = false;
                 this.giantRouletteGroup.visible = false;
+                if (this.miniSlotGroup) this.miniSlotGroup.visible = false;
                 this.floatingAstronautGroup.visible = false;
                 this.ship.resetCockpit();
                 this.rowSlots.flat().forEach(slot => {
@@ -3043,7 +3551,10 @@ export class PixiRenderer {
                 this.ship.root.visible = true;
                 this.isRouletteActive = false;
                 this.isWheelSpinning = false;
+                this.isSlotActive = false;
+                this.isSlotSpinning = false;
                 this.giantRouletteGroup.visible = false;
+                if (this.miniSlotGroup) this.miniSlotGroup.visible = false;
                 this.floatingAstronautGroup.visible = false;
                 this.ship.resetCockpit();
                 this.rowSlots.flat().forEach(slot => {
@@ -3434,12 +3945,12 @@ export class PixiRenderer {
 
         const targetShipX = PixiRenderer.laneToWorldX(shipLane);
         const targetShipZ = PixiRenderer.rowToWorldZ(shipRow);
-        if (!this.isAbductionActive && !this.isRouletteActive) {
+        if (!this.isAbductionActive && !this.isRouletteActive && !this.isSlotActive) {
             this.ship.setTargetPosition(targetShipX, SHIP_FLIGHT_Y, targetShipZ);
         }
 
-        // Zero-G cosmic void drift for 3D volumetric astronaut facing the giant prize wheel
-        if (this.isRouletteActive && this.floatingAstronautGroup.visible && this.astro3D) {
+        // Zero-G cosmic void drift for 3D volumetric astronaut facing the giant prize wheel or arcade slot
+        if ((this.isRouletteActive || this.isSlotActive) && this.floatingAstronautGroup.visible && this.astro3D) {
             const bob = Math.sin(this.elapsed * 1.8) * 0.10;
             const roll = Math.cos(this.elapsed * 1.4) * 0.04;
             const pitch = Math.sin(this.elapsed * 1.6) * 0.03;
@@ -3543,10 +4054,11 @@ export class PixiRenderer {
         const aspect = this.width / Math.max(1, this.height);
         const isPortrait916 = aspect < 1.0;
 
-        // Cinematic framing for Cosmic Prize Wheel & Floating Astronaut in Zero-G
-        if (this.isRouletteActive) {
-            const rouZ = this.giantRouletteGroup.position.z;
-            const rouX = this.giantRouletteGroup.position.x;
+        // Cinematic framing for Cosmic Prize Wheel / Arcade Mini-Slot & Floating Astronaut in Zero-G
+        if (this.isRouletteActive || this.isSlotActive) {
+            const activeGroup = this.isSlotActive ? this.miniSlotGroup : this.giantRouletteGroup;
+            const rouZ = activeGroup.position.z;
+            const rouX = activeGroup.position.x;
             const camTargetZ = rouZ + (isPortrait916 ? 14.8 : 12.8);
             const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.6 : 1.20);
             const camTargetX = rouX * 0.15;
@@ -3674,7 +4186,7 @@ export class PixiRenderer {
                     plat.diffuseHazeSprite.visible = false;
                     plat.badgeSprite.visible = false;
                 }
-                if (this.isRouletteActive) {
+                if (this.isRouletteActive || this.isSlotActive) {
                     plat.group.visible = false;
                     continue;
                 }
@@ -3943,7 +4455,7 @@ export class PixiRenderer {
                 }
 
                 if (isCurrentRow) {
-                    plat.badgeSprite.visible = !this.isRouletteActive;
+                    plat.badgeSprite.visible = !this.isRouletteActive && !this.isSlotActive;
                     const isFirst = engine.currentRow === 1;
                     const nextM = calculateNextStepMultiplier(
                         engine.currentMultiplier,
