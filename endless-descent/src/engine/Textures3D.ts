@@ -55,6 +55,12 @@ export interface PBRTexturePack {
     slotCabinetMarqueeTex: THREE.CanvasTexture;
     slotLedDisplayTex: THREE.CanvasTexture;
     slotLedDisplayCanvas: HTMLCanvasElement;
+    pathWheelFaceTex: THREE.CanvasTexture;
+    pathWheelWoodRingTex: THREE.CanvasTexture;
+    pathWheelWoodPlankTex: THREE.CanvasTexture;
+    pathWheelBrassTex: THREE.CanvasTexture;
+    pathWheelIronTex: THREE.CanvasTexture;
+    pathWheelArrowTex: THREE.CanvasTexture;
 }
 
 // =============================================================================
@@ -1293,6 +1299,432 @@ export function createPBRTexturePack(): PBRTexturePack {
         return canvas;
     }
 
+    /**
+     * 1024x1024 Gouache-Painted 24-Wedge Comic Wheel Face matching Assets/Ruleta.jpeg 1:1
+     */
+    function createPathWheelFaceCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d')!;
+        const cx = 512;
+        const cy = 512;
+        const R = 508;
+
+        // Exact 24 clockwise sector colors starting immediately right of 12 o'clock from Ruleta.jpeg
+        const sectorColors = [
+            '#279b37', '#e5251c', '#218ae6', '#ffd60a', '#279b37', '#218ae6',
+            '#f78318', '#e5251c', '#279b37', '#ffd60a', '#279b37', '#218ae6',
+            '#e5251c', '#218ae6', '#279b37', '#ffd60a', '#e5251c', '#218ae6',
+            '#279b37', '#ffd60a', '#e5251c', '#218ae6', '#f78318', '#ffd60a'
+        ];
+
+        ctx.fillStyle = '#140c06';
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        const step = (Math.PI * 2) / 24;
+        for (let i = 0; i < 24; i++) {
+            const startA = -Math.PI / 2 + i * step;
+            const endA = startA + step;
+            const midA = (startA + endA) * 0.5;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, R, startA, endA);
+            ctx.closePath();
+            ctx.clip();
+
+            // Base saturated gouache fill
+            ctx.fillStyle = sectorColors[i];
+            ctx.fillRect(0, 0, 1024, 1024);
+
+            // Subtle radial painterly brush strokes for illustrated comic texture
+            for (let b = 0; b < 7; b++) {
+                const frac = (b + 0.5) / 7;
+                const a1 = startA + step * (frac - 0.06);
+                const a2 = startA + step * (frac + 0.06);
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, R, a1, a2);
+                ctx.closePath();
+                ctx.fillStyle =
+                    b % 2 === 0
+                        ? 'rgba(255, 255, 255, 0.075)'
+                        : 'rgba(20, 12, 6, 0.065)';
+                ctx.fill();
+            }
+
+            // Soft sunlit gouache lift in mid-outer zone
+            const gx = cx + Math.cos(midA) * (R * 0.68);
+            const gy = cy + Math.sin(midA) * (R * 0.68);
+            const hl = ctx.createRadialGradient(gx, gy, 8, gx, gy, R * 0.34);
+            hl.addColorStop(0, 'rgba(255, 255, 255, 0.16)');
+            hl.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = hl;
+            ctx.fillRect(0, 0, 1024, 1024);
+
+            ctx.restore();
+        }
+
+        // Ambient occlusion rings around center brass hub & inner edge of outer gold bezel
+        const hubShadow = ctx.createRadialGradient(cx, cy, R * 0.42, cx, cy, R * 0.54);
+        hubShadow.addColorStop(0, 'rgba(15, 9, 4, 0.45)');
+        hubShadow.addColorStop(0.55, 'rgba(15, 9, 4, 0.18)');
+        hubShadow.addColorStop(1, 'rgba(15, 9, 4, 0)');
+        ctx.fillStyle = hubShadow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fill();
+
+        const rimShadow = ctx.createRadialGradient(cx, cy, R * 0.90, cx, cy, R);
+        rimShadow.addColorStop(0, 'rgba(15, 9, 4, 0)');
+        rimShadow.addColorStop(0.72, 'rgba(15, 9, 4, 0.14)');
+        rimShadow.addColorStop(1, 'rgba(15, 9, 4, 0.42)');
+        ctx.fillStyle = rimShadow;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Bold comic black ink radial divider lines for all 24 sectors
+        ctx.strokeStyle = '#0d0907';
+        ctx.lineWidth = 6.5;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < 24; i++) {
+            const ang = -Math.PI / 2 + i * step;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(ang) * R, cy + Math.sin(ang) * R);
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+    /**
+     * 1024x1024 Concentric Bent-Oak Tavern Barrel Wood Texture for the Outer Ring (Ruleta.jpeg)
+     */
+    function createPathWheelWoodRingCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d')!;
+        const cx = 512;
+        const cy = 512;
+
+        // Warm dark-oak base with top-left sunlit warmth and lower-right umber depth
+        const baseGrad = ctx.createLinearGradient(120, 100, 920, 940);
+        baseGrad.addColorStop(0, '#8b572c');
+        baseGrad.addColorStop(0.42, '#6c411e');
+        baseGrad.addColorStop(0.78, '#533015');
+        baseGrad.addColorStop(1, '#3b200c');
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Concentric radial bevel shading across ring thickness (r ≈ 330..505)
+        const ringProfile = ctx.createRadialGradient(cx, cy, 320, cx, cy, 508);
+        ringProfile.addColorStop(0, 'rgba(22, 11, 4, 0.42)');
+        ringProfile.addColorStop(0.14, 'rgba(190, 128, 72, 0.18)');
+        ringProfile.addColorStop(0.52, 'rgba(255, 200, 140, 0.12)');
+        ringProfile.addColorStop(0.84, 'rgba(60, 32, 12, 0.18)');
+        ringProfile.addColorStop(1, 'rgba(18, 9, 3, 0.48)');
+        ctx.fillStyle = ringProfile;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Hand-inked concentric wavy bent-oak grain lines
+        let rng = 918273;
+        const nextRand = () => {
+            rng = (rng * 1664525 + 1013904223) >>> 0;
+            return rng / 4294967296;
+        };
+
+        for (let g = 0; g < 115; g++) {
+            const baseR = 305 + (g / 115) * 205;
+            const startA = nextRand() * Math.PI * 2;
+            const spanA = 0.45 + nextRand() * 1.65;
+            const freq = 3 + Math.floor(nextRand() * 6);
+            const amp = 1.2 + nextRand() * 3.2;
+            const isDark = nextRand() > 0.28;
+
+            ctx.beginPath();
+            const segs = 36;
+            for (let s = 0; s <= segs; s++) {
+                const a = startA + (s / segs) * spanA;
+                const r = baseR + Math.sin(a * freq + g) * amp;
+                const px = cx + Math.cos(a) * r;
+                const py = cy + Math.sin(a) * r;
+                if (s === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.strokeStyle = isDark
+                ? `rgba(26, 13, 5, ${0.32 + nextRand() * 0.42})`
+                : `rgba(196, 136, 78, ${0.16 + nextRand() * 0.20})`;
+            ctx.lineWidth = isDark ? 1.8 + nextRand() * 2.6 : 1.5 + nextRand() * 2.0;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        // Bold concentric barrel stave groove ink lines (matching Ruleta.jpeg)
+        for (const grooveR of [392, 442, 480]) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, grooveR, 0.15, Math.PI * 1.88);
+            ctx.strokeStyle = 'rgba(20, 10, 4, 0.52)';
+            ctx.lineWidth = 3.0;
+            ctx.stroke();
+        }
+
+        // Comic ink cross-hatching in shaded lower-right & underside arcs
+        ctx.strokeStyle = 'rgba(18, 9, 3, 0.34)';
+        ctx.lineWidth = 2.0;
+        for (let i = 0; i < 56; i++) {
+            const a = 0.25 + (i / 56) * 2.15;
+            const r1 = 380 + (i % 3) * 14;
+            const r2 = 492 - ((i + 1) % 3) * 12;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+            ctx.lineTo(cx + Math.cos(a + 0.055) * r2, cy + Math.sin(a + 0.055) * r2);
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+    /**
+     * 512x512 Hand-Inked Dark-Oak Plank Texture for Support Legs & Beveled Foot Blocks
+     */
+    function createPathWheelWoodPlankCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        const grad = ctx.createLinearGradient(0, 0, 512, 512);
+        grad.addColorStop(0, '#855228');
+        grad.addColorStop(0.5, '#653c1b');
+        grad.addColorStop(1, '#3e220d');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        let rng = 445566;
+        const nextRand = () => {
+            rng = (rng * 1664525 + 1013904223) >>> 0;
+            return rng / 4294967296;
+        };
+
+        // Vertical wood grain fibers & ink crevices
+        for (let i = 0; i < 75; i++) {
+            const x = nextRand() * 512;
+            const y0 = nextRand() * 140;
+            const y1 = y0 + 180 + nextRand() * 280;
+            const drift = (nextRand() - 0.5) * 18;
+            ctx.beginPath();
+            ctx.moveTo(x, y0);
+            ctx.bezierCurveTo(x + drift, (y0 + y1) * 0.35, x - drift, (y0 + y1) * 0.7, x + drift * 0.4, y1);
+            const dark = nextRand() > 0.26;
+            ctx.strokeStyle = dark
+                ? `rgba(22, 11, 4, ${0.36 + nextRand() * 0.42})`
+                : `rgba(195, 134, 76, ${0.18 + nextRand() * 0.20})`;
+            ctx.lineWidth = dark ? 2.0 + nextRand() * 2.8 : 1.8 + nextRand() * 2.0;
+            ctx.stroke();
+        }
+
+        // Top joint comic cross-hatching shadow (where legs tuck under the barrel ring)
+        const topShade = ctx.createLinearGradient(0, 0, 0, 145);
+        topShade.addColorStop(0, 'rgba(12, 6, 2, 0.65)');
+        topShade.addColorStop(1, 'rgba(12, 6, 2, 0)');
+        ctx.fillStyle = topShade;
+        ctx.fillRect(0, 0, 512, 145);
+
+        ctx.strokeStyle = 'rgba(12, 6, 2, 0.48)';
+        ctx.lineWidth = 2.4;
+        for (let x = -40; x < 540; x += 16) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x + 48, 96);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + 48, 0);
+            ctx.lineTo(x, 96);
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+    /**
+     * 512x512 Antique Brushed-Brass & Warm Bronze Comic Texture for the 4-Handle Capstan Hub & Bezel
+     */
+    function createPathWheelBrassCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+        const cx = 256;
+        const cy = 256;
+
+        const rad = ctx.createRadialGradient(cx - 58, cy - 58, 18, cx, cy, 260);
+        rad.addColorStop(0, '#fff7c4');
+        rad.addColorStop(0.32, '#ecc05a');
+        rad.addColorStop(0.68, '#c89132');
+        rad.addColorStop(0.92, '#946318');
+        rad.addColorStop(1, '#66400c');
+        ctx.fillStyle = rad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Concentric lathe-turned brass brushing rings
+        for (let r = 24; r < 252; r += 7) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.strokeStyle =
+                r % 14 === 0 ? 'rgba(255, 248, 205, 0.14)' : 'rgba(52, 30, 6, 0.16)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        // Subtle comic cross-hatching in the shaded lower-right arc (matching Ruleta.jpeg hub)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 248, -0.15, Math.PI * 0.72);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+        ctx.clip();
+
+        ctx.strokeStyle = 'rgba(38, 22, 4, 0.34)';
+        ctx.lineWidth = 2.2;
+        for (let i = -260; i < 520; i += 13) {
+            ctx.beginPath();
+            ctx.moveTo(i, 180);
+            ctx.lineTo(i + 220, 512);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(i + 220, 180);
+            ctx.lineTo(i, 512);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // Engraved double inner ink rim on the circular brass hub plate
+        ctx.beginPath();
+        ctx.arc(cx, cy, 218, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(24, 14, 4, 0.78)';
+        ctx.lineWidth = 4.5;
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    /**
+     * 512x512 Forged Gunmetal Iron Comic Texture for the 6 Heavy Riveted U-Clamps
+     */
+    function createPathWheelIronCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        const ironGrad = ctx.createLinearGradient(0, 0, 512, 512);
+        ironGrad.addColorStop(0, '#c2bcb0');
+        ironGrad.addColorStop(0.38, '#9e988c');
+        ironGrad.addColorStop(0.76, '#7a756b');
+        ironGrad.addColorStop(1, '#58544c');
+        ctx.fillStyle = ironGrad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Brushed forged-steel scratches & comic edge hatching
+        let rng = 773311;
+        const nextRand = () => {
+            rng = (rng * 1664525 + 1013904223) >>> 0;
+            return rng / 4294967296;
+        };
+
+        for (let i = 0; i < 90; i++) {
+            const x = nextRand() * 512;
+            const y = nextRand() * 512;
+            const len = 24 + nextRand() * 70;
+            const ang = -0.35 + nextRand() * 0.7;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+            ctx.strokeStyle =
+                i % 3 === 0 ? 'rgba(235, 233, 226, 0.22)' : 'rgba(28, 27, 25, 0.26)';
+            ctx.lineWidth = 1.6 + nextRand() * 1.8;
+            ctx.stroke();
+        }
+
+        // Cross-hatched bevel border along right/bottom
+        ctx.strokeStyle = 'rgba(20, 20, 18, 0.36)';
+        ctx.lineWidth = 2.2;
+        for (let i = 0; i < 512; i += 15) {
+            ctx.beginPath();
+            ctx.moveTo(390, i);
+            ctx.lineTo(512, i + 75);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(i, 400);
+            ctx.lineTo(i + 75, 512);
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+    /**
+     * 512x512 Glossy Comic Gouache Crimson Arrow Texture matching Assets/Ruleta.jpeg
+     */
+    function createPathWheelArrowCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        // Rich crimson gradient from bright left-top coral-red to deep right-side ruby
+        const redGrad = ctx.createLinearGradient(40, 30, 470, 480);
+        redGrad.addColorStop(0, '#f4362d');
+        redGrad.addColorStop(0.45, '#e32219');
+        redGrad.addColorStop(0.82, '#bd1711');
+        redGrad.addColorStop(1, '#8c0f0b');
+        ctx.fillStyle = redGrad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Signature comic glossy coral-pink highlight ribbon down left side of shaft & left wing
+        const hlGrad = ctx.createLinearGradient(85, 0, 225, 0);
+        hlGrad.addColorStop(0, 'rgba(255, 165, 158, 0.0)');
+        hlGrad.addColorStop(0.35, 'rgba(255, 168, 160, 0.72)');
+        hlGrad.addColorStop(0.7, 'rgba(255, 120, 112, 0.32)');
+        hlGrad.addColorStop(1, 'rgba(255, 120, 112, 0.0)');
+        ctx.fillStyle = hlGrad;
+        ctx.fillRect(75, 24, 155, 450);
+
+        // Right-edge dark crimson comic shading & subtle cross-hatching
+        const shadeGrad = ctx.createLinearGradient(320, 0, 512, 0);
+        shadeGrad.addColorStop(0, 'rgba(70, 6, 4, 0.0)');
+        shadeGrad.addColorStop(1, 'rgba(55, 4, 3, 0.55)');
+        ctx.fillStyle = shadeGrad;
+        ctx.fillRect(320, 0, 192, 512);
+
+        ctx.strokeStyle = 'rgba(42, 4, 3, 0.35)';
+        ctx.lineWidth = 3.0;
+        for (let y = 40; y < 490; y += 20) {
+            ctx.beginPath();
+            ctx.moveTo(355, y);
+            ctx.lineTo(485, y + 48);
+            ctx.stroke();
+        }
+
+        // Subtle inner comic ink V-contour near lower arrow tip (seen in Ruleta.jpeg)
+        ctx.strokeStyle = 'rgba(58, 6, 4, 0.55)';
+        ctx.lineWidth = 5.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(195, 355);
+        ctx.lineTo(256, 438);
+        ctx.lineTo(322, 348);
+        ctx.stroke();
+
+        return canvas;
+    }
+
     function createAstronautBackCanvas(): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
         canvas.width = 512;
@@ -2046,6 +2478,32 @@ export function createPBRTexturePack(): PBRTexturePack {
     const miniWheelTex = new THREE.CanvasTexture(miniWheelCanvas);
     miniWheelTex.colorSpace = THREE.SRGBColorSpace;
 
+    const pathWheelFaceTex = new THREE.CanvasTexture(createPathWheelFaceCanvas());
+    pathWheelFaceTex.colorSpace = THREE.SRGBColorSpace;
+    pathWheelFaceTex.anisotropy = 8;
+
+    const pathWheelWoodRingTex = new THREE.CanvasTexture(createPathWheelWoodRingCanvas());
+    pathWheelWoodRingTex.colorSpace = THREE.SRGBColorSpace;
+    pathWheelWoodRingTex.anisotropy = 8;
+
+    const pathWheelWoodPlankTex = new THREE.CanvasTexture(createPathWheelWoodPlankCanvas());
+    pathWheelWoodPlankTex.colorSpace = THREE.SRGBColorSpace;
+    pathWheelWoodPlankTex.wrapS = THREE.RepeatWrapping;
+    pathWheelWoodPlankTex.wrapT = THREE.RepeatWrapping;
+
+    const pathWheelBrassTex = new THREE.CanvasTexture(createPathWheelBrassCanvas());
+    pathWheelBrassTex.colorSpace = THREE.SRGBColorSpace;
+    pathWheelBrassTex.anisotropy = 8;
+
+    const pathWheelIronTex = new THREE.CanvasTexture(createPathWheelIronCanvas());
+    pathWheelIronTex.colorSpace = THREE.SRGBColorSpace;
+    pathWheelIronTex.wrapS = THREE.RepeatWrapping;
+    pathWheelIronTex.wrapT = THREE.RepeatWrapping;
+
+    const pathWheelArrowTex = new THREE.CanvasTexture(createPathWheelArrowCanvas());
+    pathWheelArrowTex.colorSpace = THREE.SRGBColorSpace;
+    pathWheelArrowTex.anisotropy = 8;
+
     const astronautBackCanvas = createAstronautBackCanvas();
     const astronautBackTex = new THREE.CanvasTexture(astronautBackCanvas);
     astronautBackTex.colorSpace = THREE.SRGBColorSpace;
@@ -2525,7 +2983,13 @@ export function createPBRTexturePack(): PBRTexturePack {
         slotReelStripTex,
         slotCabinetMarqueeTex,
         slotLedDisplayTex,
-        slotLedDisplayCanvas
+        slotLedDisplayCanvas,
+        pathWheelFaceTex,
+        pathWheelWoodRingTex,
+        pathWheelWoodPlankTex,
+        pathWheelBrassTex,
+        pathWheelIronTex,
+        pathWheelArrowTex
     };
 }
 

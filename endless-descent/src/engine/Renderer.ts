@@ -60,7 +60,7 @@ interface FloatingMultiplierCard3D {
     miniWheelPropGroup: THREE.Group;
     miniWheelMesh: THREE.Mesh;
     wheelStandGroup: THREE.Group;
-    wheelStandDisc: THREE.Mesh;
+    wheelStandDisc: THREE.Group;
     wheelStandFlapper: THREE.Group;
     mineGroup: THREE.Group;
 
@@ -1490,132 +1490,537 @@ export class PixiRenderer {
             blending: THREE.AdditiveBlending
         });
 
-        // 3D Comic Prize Wheel on Wooden Stand (Matching Ruleta.jpeg)
-        const basePlankGeo = new THREE.BoxGeometry(2.35, 0.22, 0.44);
-        const woodMat = new THREE.MeshStandardMaterial({
-            color: 0x92400e,
-            roughness: 0.55,
-            metalness: 0.08
-        });
-        const boltGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.24, 8);
-        const boltMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4, metalness: 0.8 });
-        const legGeo = new THREE.BoxGeometry(0.20, 2.35, 0.20);
-        const crossGeo = new THREE.BoxGeometry(1.65, 0.18, 0.20);
-        const rimGeo = new THREE.TorusGeometry(1.38, 0.14, 12, 32);
-        const rimMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.5, metalness: 0.15 });
-        const studGeo = new THREE.SphereGeometry(0.042, 8, 8);
-        const studMat = new THREE.MeshStandardMaterial({
-            color: 0xfde047,
-            emissive: 0xd97706,
-            emissiveIntensity: 0.35,
-            roughness: 0.2,
-            metalness: 0.9
-        });
-        const wheelDiscGeo = new THREE.CylinderGeometry(1.34, 1.34, 0.10, 32);
-        wheelDiscGeo.rotateX(Math.PI / 2);
-        const hubGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.14, 16);
-        hubGeo.rotateX(Math.PI / 2);
-        const hubMat = new THREE.MeshStandardMaterial({
-            color: 0xfacc15,
-            emissive: 0xb45309,
-            emissiveIntensity: 0.3,
-            roughness: 0.2,
-            metalness: 0.85
+        // =========================================================================
+        // 3D Comic Prize Wheel on Wooden Stand (1:1 Faithful Sculpture of Assets/Ruleta.jpeg)
+        // Shared geometries, planar comic UVs & airtight smooth inverted-hull ink outlines
+        // =========================================================================
+        const wheelInkOutlineMat = new THREE.MeshBasicMaterial({
+            color: 0x060505,
+            side: THREE.BackSide,
+            depthWrite: true
         });
 
-        const flapperShape = new THREE.Shape();
-        flapperShape.moveTo(-0.14, 0.18);
-        flapperShape.lineTo(0.14, 0.18);
-        flapperShape.lineTo(0.0, -0.38);
-        flapperShape.closePath();
-        const flapperGeo = new THREE.ExtrudeGeometry(flapperShape, {
-            depth: 0.08,
+        const makeSmoothOutlineGeo = (
+            srcGeo: THREE.BufferGeometry,
+            thickness: number
+        ): THREE.BufferGeometry => {
+            const outlineGeo = srcGeo.clone();
+            outlineGeo.computeVertexNormals();
+            const posAttr = outlineGeo.attributes.position;
+            const normAttr = outlineGeo.attributes.normal;
+            const dirMap = new Map<string, Map<string, [number, number, number]>>();
+
+            for (let i = 0; i < posAttr.count; i++) {
+                const pKey = `${Math.round(posAttr.getX(i) * 2000)},${Math.round(posAttr.getY(i) * 2000)},${Math.round(posAttr.getZ(i) * 2000)}`;
+                const nx = normAttr.getX(i);
+                const ny = normAttr.getY(i);
+                const nz = normAttr.getZ(i);
+                const nKey = `${Math.round(nx * 50)},${Math.round(ny * 50)},${Math.round(nz * 50)}`;
+                let bucket = dirMap.get(pKey);
+                if (!bucket) {
+                    bucket = new Map();
+                    dirMap.set(pKey, bucket);
+                }
+                if (!bucket.has(nKey)) {
+                    bucket.set(nKey, [nx, ny, nz]);
+                }
+            }
+
+            const avgMap = new Map<string, [number, number, number]>();
+            for (const [pKey, bucket] of dirMap.entries()) {
+                let sx = 0;
+                let sy = 0;
+                let sz = 0;
+                for (const [nx, ny, nz] of bucket.values()) {
+                    sx += nx;
+                    sy += ny;
+                    sz += nz;
+                }
+                const len = Math.hypot(sx, sy, sz) || 1;
+                avgMap.set(pKey, [sx / len, sy / len, sz / len]);
+            }
+
+            for (let i = 0; i < posAttr.count; i++) {
+                const pKey = `${Math.round(posAttr.getX(i) * 2000)},${Math.round(posAttr.getY(i) * 2000)},${Math.round(posAttr.getZ(i) * 2000)}`;
+                const [ox, oy, oz] = avgMap.get(pKey)!;
+                posAttr.setXYZ(
+                    i,
+                    posAttr.getX(i) + ox * thickness,
+                    posAttr.getY(i) + oy * thickness,
+                    posAttr.getZ(i) + oz * thickness
+                );
+            }
+            return outlineGeo;
+        };
+
+        const applyPlanarDiscUVs = (geo: THREE.BufferGeometry, maxRadius: number) => {
+            const pos = geo.attributes.position;
+            const uvs = new Float32Array(pos.count * 2);
+            const invSpan = 1 / (maxRadius * 2);
+            for (let i = 0; i < pos.count; i++) {
+                uvs[i * 2] = 0.5 + pos.getX(i) * invSpan;
+                uvs[i * 2 + 1] = 0.5 + pos.getY(i) * invSpan;
+            }
+            geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        };
+
+        const applyBoundsPlanarUVs = (geo: THREE.BufferGeometry) => {
+            geo.computeBoundingBox();
+            const bb = geo.boundingBox!;
+            const spanX = Math.max(1e-4, bb.max.x - bb.min.x);
+            const spanY = Math.max(1e-4, bb.max.y - bb.min.y);
+            const pos = geo.attributes.position;
+            const uvs = new Float32Array(pos.count * 2);
+            for (let i = 0; i < pos.count; i++) {
+                uvs[i * 2] = (pos.getX(i) - bb.min.x) / spanX;
+                uvs[i * 2 + 1] = (pos.getY(i) - bb.min.y) / spanY;
+            }
+            geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        };
+
+        const WHEEL_CY = 1.52;
+
+        // Materials using the custom hand-illustrated comic PBR maps
+        const pathWoodRingMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelWoodRingTex,
+            emissive: 0x2b1608,
+            emissiveIntensity: 0.16,
+            roughness: 0.62,
+            metalness: 0.04
+        });
+        const pathWoodPlankMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelWoodPlankTex,
+            emissive: 0x2b1608,
+            emissiveIntensity: 0.14,
+            roughness: 0.65,
+            metalness: 0.04
+        });
+        const pathWoodBackMat = new THREE.MeshStandardMaterial({
+            color: 0x361d0a,
+            roughness: 0.72,
+            metalness: 0.04
+        });
+        const pathIronMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelIronTex,
+            color: 0xe7e2d8,
+            emissive: 0x3b3832,
+            emissiveIntensity: 0.18,
+            roughness: 0.48,
+            metalness: 0.22
+        });
+        const pathGoldBezelMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelBrassTex,
+            color: 0xffe46b,
+            emissive: 0xb45309,
+            emissiveIntensity: 0.24,
+            roughness: 0.36,
+            metalness: 0.28
+        });
+        const pathBrassHubMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelBrassTex,
+            color: 0xf7d57c,
+            emissive: 0x78350f,
+            emissiveIntensity: 0.20,
+            roughness: 0.38,
+            metalness: 0.24
+        });
+        const pathWheelFaceMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelFaceTex,
+            emissive: 0xffffff,
+            emissiveMap: this.textures.pathWheelFaceTex,
+            emissiveIntensity: 0.14,
+            roughness: 0.38,
+            metalness: 0.04
+        });
+        const pathPegMat = new THREE.MeshStandardMaterial({
+            color: 0xffe552,
+            emissive: 0xd97706,
+            emissiveIntensity: 0.32,
+            roughness: 0.28,
+            metalness: 0.28
+        });
+        const pathArrowMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelArrowTex,
+            emissive: 0xb91c1c,
+            emissiveIntensity: 0.26,
+            roughness: 0.28,
+            metalness: 0.08
+        });
+
+        // 1. Two Separate Beveled Dark-Oak Foot Blocks (open center gap, matching Ruleta.jpeg)
+        const footShape = new THREE.Shape();
+        footShape.moveTo(-0.29, 0.018);
+        footShape.lineTo(0.29, 0.018);
+        footShape.lineTo(0.275, 0.135);
+        footShape.quadraticCurveTo(0.268, 0.175, 0.225, 0.178);
+        footShape.lineTo(-0.225, 0.178);
+        footShape.quadraticCurveTo(-0.268, 0.175, -0.275, 0.135);
+        footShape.closePath();
+        const footGeo = new THREE.ExtrudeGeometry(footShape, {
+            depth: 0.46,
             bevelEnabled: true,
-            bevelSegments: 1,
+            bevelSegments: 2,
             steps: 1,
-            bevelSize: 0.02,
-            bevelThickness: 0.02
+            bevelSize: 0.018,
+            bevelThickness: 0.018
         });
-        const flapperMat = new THREE.MeshStandardMaterial({
-            color: 0xdc2626,
-            emissive: 0x991b1b,
-            emissiveIntensity: 0.45,
-            roughness: 0.2,
-            metalness: 0.6
+        footGeo.translate(0, 0, -0.23);
+        applyBoundsPlanarUVs(footGeo);
+        const footOutlineGeo = makeSmoothOutlineGeo(footGeo, 0.032);
+
+        // Foot horizontal trim groove bar on front face (matching beveled base detail in Ruleta.jpeg)
+        const footTrimGeo = new THREE.BoxGeometry(0.50, 0.018, 0.51);
+        const footInkBarMat = new THREE.MeshBasicMaterial({ color: 0x160b04 });
+
+        // 2. Two Thick Inward-Angled Splayed Oak Support Legs
+        const legShape = new THREE.Shape();
+        legShape.moveTo(-0.185, -0.25);
+        legShape.lineTo(0.185, -0.25);
+        legShape.lineTo(0.165, 0.25);
+        legShape.lineTo(-0.165, 0.25);
+        legShape.closePath();
+        const legGeo = new THREE.ExtrudeGeometry(legShape, {
+            depth: 0.28,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.016,
+            bevelThickness: 0.016
         });
+        legGeo.translate(0, 0, -0.14);
+        applyBoundsPlanarUVs(legGeo);
+        const legOutlineGeo = makeSmoothOutlineGeo(legGeo, 0.032);
+
+        // 3. Massive Wide Dark-Oak Outer Barrel Ring (CCW Lathe profile -> outward normals)
+        const barrelRingPoints = [
+            new THREE.Vector2(0.912, -0.185),
+            new THREE.Vector2(1.155, -0.185),
+            new THREE.Vector2(1.198, -0.145),
+            new THREE.Vector2(1.206, -0.055),
+            new THREE.Vector2(1.206, 0.055),
+            new THREE.Vector2(1.198, 0.145),
+            new THREE.Vector2(1.155, 0.185),
+            new THREE.Vector2(0.942, 0.185),
+            new THREE.Vector2(0.912, 0.148),
+            new THREE.Vector2(0.912, -0.148),
+            new THREE.Vector2(0.912, -0.185)
+        ];
+        const woodBarrelRingGeo = new THREE.LatheGeometry(barrelRingPoints, 56);
+        woodBarrelRingGeo.rotateX(Math.PI / 2);
+        applyPlanarDiscUVs(woodBarrelRingGeo, 1.22);
+        const woodBarrelRingOutlineGeo = makeSmoothOutlineGeo(woodBarrelRingGeo, 0.036);
+
+        // Solid dark-wood backing plate behind the wheel face
+        const woodBackPlateGeo = new THREE.CylinderGeometry(0.935, 0.935, 0.12, 44);
+        woodBackPlateGeo.rotateX(Math.PI / 2);
+
+        // 4. Six Heavy Riveted Forged-Iron U-Clamps wrapping around the oak barrel ring
+        const createCurvedIronClampGeo = (halfAngleRad: number) => {
+            const rIn = 0.898;
+            const rOut = 1.236;
+            const s = new THREE.Shape();
+            s.moveTo(Math.cos(-halfAngleRad) * rIn, Math.sin(-halfAngleRad) * rIn);
+            s.absarc(0, 0, rOut, -halfAngleRad, halfAngleRad, false);
+            s.absarc(0, 0, rIn, halfAngleRad, -halfAngleRad, true);
+            s.closePath();
+            const g = new THREE.ExtrudeGeometry(s, {
+                depth: 0.392,
+                bevelEnabled: true,
+                bevelSegments: 2,
+                steps: 1,
+                bevelSize: 0.015,
+                bevelThickness: 0.016
+            });
+            g.translate(0, 0, -0.196);
+            applyBoundsPlanarUVs(g);
+            return g;
+        };
+
+        const horizClampGeo = createCurvedIronClampGeo((9.4 * Math.PI) / 180);
+        const horizClampOutlineGeo = makeSmoothOutlineGeo(horizClampGeo, 0.026);
+        const diagClampGeo = createCurvedIronClampGeo((6.8 * Math.PI) / 180);
+        const diagClampOutlineGeo = makeSmoothOutlineGeo(diagClampGeo, 0.026);
+
+        const clampRivetGeo = new THREE.SphereGeometry(0.031, 10, 8);
+        clampRivetGeo.scale(1, 1, 0.68);
+        const clampRivetOutlineGeo = makeSmoothOutlineGeo(clampRivetGeo, 0.016);
+
+        // 5. Raised Inner Golden Brass Bezel Ring (r = 0.850 .. 0.914)
+        const goldBezelPoints = [
+            new THREE.Vector2(0.850, 0.035),
+            new THREE.Vector2(0.914, 0.035),
+            new THREE.Vector2(0.914, 0.095),
+            new THREE.Vector2(0.896, 0.122),
+            new THREE.Vector2(0.866, 0.122),
+            new THREE.Vector2(0.850, 0.095),
+            new THREE.Vector2(0.850, 0.035)
+        ];
+        const goldBezelGeo = new THREE.LatheGeometry(goldBezelPoints, 56);
+        goldBezelGeo.rotateX(Math.PI / 2);
+        applyPlanarDiscUVs(goldBezelGeo, 0.94);
+        const goldBezelOutlineGeo = makeSmoothOutlineGeo(goldBezelGeo, 0.022);
+
+        // 6. Spinning 24-Wedge Gouache Wheel Face + 24 Radial Golden Rim Pegs
+        const wheelFaceDiscGeo = new THREE.CircleGeometry(0.858, 64);
+        const rimPegGeo = new THREE.CapsuleGeometry(0.023, 0.038, 5, 10);
+        const rimPegOutlineGeo = makeSmoothOutlineGeo(rimPegGeo, 0.014);
+
+        // 7. Sculpted 3D Antique-Brass 4-Handle Capstan Center Hub (matching Ruleta.jpeg)
+        const hubPlatePoints = [
+            new THREE.Vector2(0.001, 0.055),
+            new THREE.Vector2(0.406, 0.055),
+            new THREE.Vector2(0.406, 0.088),
+            new THREE.Vector2(0.382, 0.114),
+            new THREE.Vector2(0.315, 0.132),
+            new THREE.Vector2(0.210, 0.142),
+            new THREE.Vector2(0.001, 0.145)
+        ];
+        const hubPlateGeo = new THREE.LatheGeometry(hubPlatePoints, 44);
+        hubPlateGeo.rotateX(Math.PI / 2);
+        applyPlanarDiscUVs(hubPlateGeo, 0.415);
+        const hubPlateOutlineGeo = makeSmoothOutlineGeo(hubPlateGeo, 0.024);
+
+        const hubCollarPoints = [
+            new THREE.Vector2(0.132, 0.125),
+            new THREE.Vector2(0.204, 0.125),
+            new THREE.Vector2(0.204, 0.168),
+            new THREE.Vector2(0.184, 0.192),
+            new THREE.Vector2(0.148, 0.192),
+            new THREE.Vector2(0.132, 0.168),
+            new THREE.Vector2(0.132, 0.125)
+        ];
+        const hubCollarGeo = new THREE.LatheGeometry(hubCollarPoints, 32);
+        hubCollarGeo.rotateX(Math.PI / 2);
+        applyPlanarDiscUVs(hubCollarGeo, 0.24);
+        const hubCollarOutlineGeo = makeSmoothOutlineGeo(hubCollarGeo, 0.020);
+
+        const hubBossPoints = [
+            new THREE.Vector2(0.001, 0.165),
+            new THREE.Vector2(0.142, 0.165),
+            new THREE.Vector2(0.142, 0.198),
+            new THREE.Vector2(0.118, 0.228),
+            new THREE.Vector2(0.072, 0.246),
+            new THREE.Vector2(0.001, 0.252)
+        ];
+        const hubBossGeo = new THREE.LatheGeometry(hubBossPoints, 32);
+        hubBossGeo.rotateX(Math.PI / 2);
+        applyPlanarDiscUVs(hubBossGeo, 0.16);
+        const hubBossOutlineGeo = makeSmoothOutlineGeo(hubBossGeo, 0.020);
+
+        // Lathe-turned radial brass baluster handle with tapered waist & bulbous knob tip
+        const capstanHandlePoints = [
+            new THREE.Vector2(0.001, 0.175),
+            new THREE.Vector2(0.052, 0.180),
+            new THREE.Vector2(0.044, 0.215),
+            new THREE.Vector2(0.034, 0.275),
+            new THREE.Vector2(0.038, 0.330),
+            new THREE.Vector2(0.064, 0.378),
+            new THREE.Vector2(0.073, 0.415),
+            new THREE.Vector2(0.062, 0.452),
+            new THREE.Vector2(0.034, 0.474),
+            new THREE.Vector2(0.001, 0.480)
+        ];
+        const capstanHandleGeo = new THREE.LatheGeometry(capstanHandlePoints, 20);
+        const capstanHandleOutlineGeo = makeSmoothOutlineGeo(capstanHandleGeo, 0.020);
+
+        // 8. Chunky Sculpted 3D Crimson Top Arrow Pointer (12 o'clock, matching Ruleta.jpeg)
+        const arrowShape = new THREE.Shape();
+        arrowShape.moveTo(-0.088, 0.312);
+        arrowShape.lineTo(0.088, 0.312);
+        arrowShape.quadraticCurveTo(0.134, 0.312, 0.130, 0.262);
+        arrowShape.lineTo(0.104, -0.128);
+        arrowShape.lineTo(0.212, -0.106);
+        arrowShape.quadraticCurveTo(0.264, -0.098, 0.254, -0.156);
+        arrowShape.quadraticCurveTo(0.162, -0.345, 0.032, -0.506);
+        arrowShape.quadraticCurveTo(0.0, -0.542, -0.032, -0.506);
+        arrowShape.quadraticCurveTo(-0.162, -0.345, -0.254, -0.156);
+        arrowShape.quadraticCurveTo(-0.264, -0.098, -0.212, -0.106);
+        arrowShape.lineTo(-0.104, -0.128);
+        arrowShape.lineTo(-0.130, 0.262);
+        arrowShape.quadraticCurveTo(-0.134, 0.312, -0.088, 0.312);
+        arrowShape.closePath();
+
+        const arrowGeo = new THREE.ExtrudeGeometry(arrowShape, {
+            depth: 0.086,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.020,
+            bevelThickness: 0.020
+        });
+        arrowGeo.translate(0, 0, -0.043);
+        applyBoundsPlanarUVs(arrowGeo);
+        const arrowOutlineGeo = makeSmoothOutlineGeo(arrowGeo, 0.030);
 
         const buildWheelStandForTile = () => {
             const wheelStandGroup = new THREE.Group();
             wheelStandGroup.position.set(0, 0, 0);
             wheelStandGroup.visible = false;
 
-            // 1. Base Footing Plank
-            const basePlankMesh = new THREE.Mesh(basePlankGeo, woodMat);
-            basePlankMesh.position.set(0, 0.11, 0);
-            const baseOutline = this.createOutline(basePlankGeo, 0.04, basePlankMesh.position);
-            wheelStandGroup.add(basePlankMesh, baseOutline);
+            // Inner root aligns front silhouette with adjacent mystery crates & gives heroic path presence
+            const standRoot = new THREE.Group();
+            standRoot.position.set(0, 0, 0.36);
+            standRoot.scale.setScalar(1.07);
+            wheelStandGroup.add(standRoot);
 
-            for (const bx of [-0.95, -0.65, 0.65, 0.95]) {
-                const bolt = new THREE.Mesh(boltGeo, boltMat);
-                bolt.position.set(bx, 0.12, 0);
-                wheelStandGroup.add(bolt);
+            // 1. Two Separate Beveled Wooden Foot Blocks (NO single bottom plank)
+            for (const side of [-1, 1]) {
+                const footGroup = new THREE.Group();
+                footGroup.position.set(side * 0.65, 0.012, 0);
+                const footMesh = new THREE.Mesh(footGeo, pathWoodPlankMat);
+                const footOut = new THREE.Mesh(footOutlineGeo, wheelInkOutlineMat);
+                footOut.renderOrder = -1;
+                const trimBar = new THREE.Mesh(footTrimGeo, footInkBarMat);
+                trimBar.position.set(0, 0.125, 0);
+                footGroup.add(footMesh, footOut, trimBar);
+                standRoot.add(footGroup);
+
+                // Inward-angled thick wooden support leg
+                const legGroup = new THREE.Group();
+                legGroup.position.set(side * 0.56, 0.38, -0.03);
+                legGroup.rotation.z = -side * 0.28;
+                const legMesh = new THREE.Mesh(legGeo, pathWoodPlankMat);
+                const legOut = new THREE.Mesh(legOutlineGeo, wheelInkOutlineMat);
+                legOut.renderOrder = -1;
+                legGroup.add(legMesh, legOut);
+                standRoot.add(legGroup);
             }
 
-            // 2. Upright Legs (A-frame)
-            const leftLeg = new THREE.Mesh(legGeo, woodMat);
-            leftLeg.position.set(-0.54, 1.18, -0.05);
-            leftLeg.rotation.z = -0.21;
-            const leftLegOutline = this.createOutline(legGeo, 0.038, leftLeg.position, leftLeg.rotation);
-            wheelStandGroup.add(leftLeg, leftLegOutline);
+            // 2. Massive Dark-Oak Outer Barrel Ring + Solid Wood Backing
+            const frameGroup = new THREE.Group();
+            frameGroup.position.set(0, WHEEL_CY, 0);
+            standRoot.add(frameGroup);
 
-            const rightLeg = new THREE.Mesh(legGeo, woodMat);
-            rightLeg.position.set(0.54, 1.18, -0.05);
-            rightLeg.rotation.z = 0.21;
-            const rightLegOutline = this.createOutline(legGeo, 0.038, rightLeg.position, rightLeg.rotation);
-            wheelStandGroup.add(rightLeg, rightLegOutline);
+            const backPlateMesh = new THREE.Mesh(woodBackPlateGeo, pathWoodBackMat);
+            backPlateMesh.position.z = -0.09;
+            frameGroup.add(backPlateMesh);
 
-            // 3. Crossbeam
-            const crossMesh = new THREE.Mesh(crossGeo, woodMat);
-            crossMesh.position.set(0, 0.72, -0.04);
-            const crossOutline = this.createOutline(crossGeo, 0.035, crossMesh.position);
-            wheelStandGroup.add(crossMesh, crossOutline);
+            const barrelRingMesh = new THREE.Mesh(woodBarrelRingGeo, pathWoodRingMat);
+            const barrelRingOut = new THREE.Mesh(woodBarrelRingOutlineGeo, wheelInkOutlineMat);
+            barrelRingOut.renderOrder = -1;
+            frameGroup.add(barrelRingMesh, barrelRingOut);
 
-            // 4. Circular Wooden Rim with golden studs
-            const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-            rimMesh.position.set(0, 1.95, 0.08);
-            const rimOutline = this.createOutline(rimGeo, 0.035, rimMesh.position);
-            wheelStandGroup.add(rimMesh, rimOutline);
+            // 3. Six Heavy Riveted Forged-Iron U-Clamps (2 horizontal w/ 3 rivets + 4 diagonal w/ 2 rivets)
+            const clampConfigs = [
+                { deg: 0, isHoriz: true },
+                { deg: 180, isHoriz: true },
+                { deg: 43, isHoriz: false },
+                { deg: 137, isHoriz: false },
+                { deg: 223, isHoriz: false },
+                { deg: 317, isHoriz: false }
+            ];
+            for (const cfg of clampConfigs) {
+                const clampPivot = new THREE.Group();
+                clampPivot.rotation.z = (cfg.deg * Math.PI) / 180;
+                const cMesh = new THREE.Mesh(
+                    cfg.isHoriz ? horizClampGeo : diagClampGeo,
+                    pathIronMat
+                );
+                const cOut = new THREE.Mesh(
+                    cfg.isHoriz ? horizClampOutlineGeo : diagClampOutlineGeo,
+                    wheelInkOutlineMat
+                );
+                cOut.renderOrder = -1;
+                clampPivot.add(cMesh, cOut);
 
-            for (let i = 0; i < 12; i++) {
-                const ang = (i * Math.PI * 2) / 12;
-                const stud = new THREE.Mesh(studGeo, studMat);
-                stud.position.set(Math.cos(ang) * 1.38, 1.95 + Math.sin(ang) * 1.38, 0.21);
-                wheelStandGroup.add(stud);
+                if (cfg.isHoriz) {
+                    // 3 tangential rivets (o o o)
+                    for (const dDeg of [-5.2, 0, 5.2]) {
+                        const a = (dDeg * Math.PI) / 180;
+                        const r = 1.068;
+                        const rv = new THREE.Mesh(clampRivetGeo, pathIronMat);
+                        rv.position.set(Math.cos(a) * r, Math.sin(a) * r, 0.214);
+                        const rvOut = new THREE.Mesh(clampRivetOutlineGeo, wheelInkOutlineMat);
+                        rvOut.position.copy(rv.position);
+                        rvOut.renderOrder = -1;
+                        clampPivot.add(rv, rvOut);
+                    }
+                } else {
+                    // 2 radial rivets (inner + outer)
+                    for (const r of [0.985, 1.148]) {
+                        const rv = new THREE.Mesh(clampRivetGeo, pathIronMat);
+                        rv.position.set(r, 0, 0.214);
+                        const rvOut = new THREE.Mesh(clampRivetOutlineGeo, wheelInkOutlineMat);
+                        rvOut.position.copy(rv.position);
+                        rvOut.renderOrder = -1;
+                        clampPivot.add(rv, rvOut);
+                    }
+                }
+                frameGroup.add(clampPivot);
             }
 
-            // 5. Rotating Wheel Disc
-            const wheelDiscMesh = new THREE.Mesh(wheelDiscGeo, miniWheelMats);
-            wheelDiscMesh.position.set(0, 1.95, 0.08);
-            const wheelDiscOutline = this.createOutline(wheelDiscGeo, 0.035);
-            wheelDiscMesh.add(wheelDiscOutline);
-            wheelStandGroup.add(wheelDiscMesh);
+            // 4. Raised Inner Golden Brass Bezel Ring
+            const bezelMesh = new THREE.Mesh(goldBezelGeo, pathGoldBezelMat);
+            const bezelOut = new THREE.Mesh(goldBezelOutlineGeo, wheelInkOutlineMat);
+            bezelOut.renderOrder = -1;
+            frameGroup.add(bezelMesh, bezelOut);
 
-            const hubMesh = new THREE.Mesh(hubGeo, hubMat);
-            hubMesh.position.set(0, 0, 0.08);
-            wheelDiscMesh.add(hubMesh);
+            // 5. Rotating Wheel Disc Assembly (24-wedge gouache face + 24 pegs + 4-handle brass capstan)
+            const wheelDiscGroup = new THREE.Group();
+            wheelDiscGroup.position.set(0, WHEEL_CY, 0);
+            standRoot.add(wheelDiscGroup);
 
-            // 6. Flapper pointer at 12 o'clock
+            const faceMesh = new THREE.Mesh(wheelFaceDiscGeo, pathWheelFaceMat);
+            faceMesh.position.z = 0.052;
+            wheelDiscGroup.add(faceMesh);
+
+            // 24 Golden Rim Pegs aligned with the 24 sector divider lines
+            for (let i = 0; i < 24; i++) {
+                const canvasAng = -Math.PI / 2 + (i * Math.PI * 2) / 24;
+                const px = Math.cos(canvasAng) * 0.818;
+                const py = -Math.sin(canvasAng) * 0.818;
+                const rotZ = Math.atan2(py, px) - Math.PI / 2;
+
+                const pegMesh = new THREE.Mesh(rimPegGeo, pathPegMat);
+                pegMesh.position.set(px, py, 0.074);
+                pegMesh.rotation.z = rotZ;
+                const pegOut = new THREE.Mesh(rimPegOutlineGeo, wheelInkOutlineMat);
+                pegOut.position.copy(pegMesh.position);
+                pegOut.rotation.copy(pegMesh.rotation);
+                pegOut.renderOrder = -1;
+                wheelDiscGroup.add(pegMesh, pegOut);
+            }
+
+            // Sculpted 3D Antique-Brass 4-Handle Capstan Hub
+            const hubPlateMesh = new THREE.Mesh(hubPlateGeo, pathBrassHubMat);
+            const hubPlateOut = new THREE.Mesh(hubPlateOutlineGeo, wheelInkOutlineMat);
+            hubPlateOut.renderOrder = -1;
+            wheelDiscGroup.add(hubPlateMesh, hubPlateOut);
+
+            const hubCollarMesh = new THREE.Mesh(hubCollarGeo, pathBrassHubMat);
+            const hubCollarOut = new THREE.Mesh(hubCollarOutlineGeo, wheelInkOutlineMat);
+            hubCollarOut.renderOrder = -1;
+            wheelDiscGroup.add(hubCollarMesh, hubCollarOut);
+
+            const hubBossMesh = new THREE.Mesh(hubBossGeo, pathGoldBezelMat);
+            const hubBossOut = new THREE.Mesh(hubBossOutlineGeo, wheelInkOutlineMat);
+            hubBossOut.renderOrder = -1;
+            wheelDiscGroup.add(hubBossMesh, hubBossOut);
+
+            for (let h = 0; h < 4; h++) {
+                const handleRotZ = (-h * Math.PI) / 2;
+                const handleMesh = new THREE.Mesh(capstanHandleGeo, pathBrassHubMat);
+                handleMesh.position.z = 0.156;
+                handleMesh.rotation.z = handleRotZ;
+                const handleOut = new THREE.Mesh(capstanHandleOutlineGeo, wheelInkOutlineMat);
+                handleOut.position.copy(handleMesh.position);
+                handleOut.rotation.copy(handleMesh.rotation);
+                handleOut.renderOrder = -1;
+                wheelDiscGroup.add(handleMesh, handleOut);
+            }
+
+            // 6. Chunky Sculpted 3D Crimson Top Arrow Pointer at 12 o'clock
             const flapperGroup = new THREE.Group();
-            flapperGroup.position.set(0, 3.42, 0.18);
-            const flapperMesh = new THREE.Mesh(flapperGeo, flapperMat);
-            flapperMesh.position.z = -0.04;
-            const flapperOutline = this.createOutline(flapperGeo, 0.03);
-            flapperGroup.add(flapperMesh, flapperOutline);
-            wheelStandGroup.add(flapperGroup);
+            flapperGroup.position.set(0, WHEEL_CY + 1.26, 0.258);
+            const flapperMesh = new THREE.Mesh(arrowGeo, pathArrowMat);
+            const flapperOut = new THREE.Mesh(arrowOutlineGeo, wheelInkOutlineMat);
+            flapperOut.renderOrder = -1;
+            flapperGroup.add(flapperMesh, flapperOut);
+            standRoot.add(flapperGroup);
 
             return {
                 wheelStandGroup,
-                wheelStandDisc: wheelDiscMesh,
+                wheelStandDisc: wheelDiscGroup,
                 wheelStandFlapper: flapperGroup
             };
         };
@@ -2937,10 +3342,10 @@ export class PixiRenderer {
                     );
                 if (hitCard && hitCard.wheelStandGroup) {
                     audioController.playWheelPop();
-                    this.vfx.spawnShockwave3D(worldX, 1.95, worldZ, 0xfacc15, 6.0, 0.35);
+                    this.vfx.spawnShockwave3D(worldX, 1.55, worldZ, 0xfacc15, 6.0, 0.35);
                     this.vfx.spawnGpuParticleCloud(
                         worldX,
-                        1.95,
+                        1.55,
                         worldZ,
                         90,
                         [0xfde047, 0xfacc15, 0xeab308, 0xffffff],
@@ -4592,7 +4997,12 @@ export class PixiRenderer {
                         (!this.isRouletteActive || engine.currentRow !== rowNumber);
                     plat.wheelStandGroup.visible = shouldShowWheelStand;
                     if (shouldShowWheelStand) {
-                        plat.wheelStandDisc.rotation.z = this.elapsed * 1.2;
+                        plat.wheelStandDisc.rotation.z = -this.elapsed * 1.35;
+                        const pegPhase =
+                            ((Math.abs(plat.wheelStandDisc.rotation.z) * 24) / (Math.PI * 2)) % 1;
+                        const tickKick =
+                            Math.pow(1 - pegPhase, 3.2) * Math.sin(pegPhase * Math.PI * 3.5);
+                        plat.wheelStandFlapper.rotation.z = 0.13 * Math.max(-0.2, tickKick);
                     }
                 } else {
                     plat.diffuseHazeSprite.visible = false;
@@ -4740,6 +5150,7 @@ export class PixiRenderer {
 
                 if (isCurrentRow) {
                     plat.badgeSprite.visible = !this.isRouletteActive && !this.isSlotActive;
+                    plat.badgeSprite.position.y = boxType === 'wheel' ? 3.76 : 2.85;
                     const isFirst = engine.currentRow === 1;
                     const nextM = calculateNextStepMultiplier(
                         engine.currentMultiplier,
