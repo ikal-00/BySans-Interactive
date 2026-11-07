@@ -53,6 +53,7 @@ export interface PBRTexturePack {
     astronautNormalTex: THREE.Texture;
     slotReelStripTex: THREE.CanvasTexture;
     slotCabinetMarqueeTex: THREE.CanvasTexture;
+    slotMarqueeCrestTex: THREE.CanvasTexture;
     slotLedDisplayTex: THREE.CanvasTexture;
     slotLedDisplayCanvas: HTMLCanvasElement;
     pathWheelFaceTex: THREE.CanvasTexture;
@@ -3135,117 +3136,701 @@ export function createPBRTexturePack(): PBRTexturePack {
     }
 
     // =========================================================================
-    // 5E. 1x3 ARCADE MINI-SLOT REEL STRIP & CABINET CANVASES
+    // 5E. 1x3 ARCADE MINI-SLOT REEL STRIP & CABINET CANVASES (ZERO TEXT, ZERO EMOJIS)
     // =========================================================================
     function createSlotReelStripCanvas(): HTMLCanvasElement {
+        const tileSize = 512;
         const canvas = document.createElement('canvas');
-        canvas.width = 3072;
-        canvas.height = 256;
+        canvas.width = tileSize * 12; // 6144 x 512 Retina Strip
+        canvas.height = tileSize;
         const ctx = canvas.getContext('2d')!;
+        const INK = '#0d0907';
 
-        const sectors = [
-            { mult: 'x88', tag: 'JACKPOT', bg1: '#7f1d1d', bg2: '#dc2626', col: '#fef08a', starCol: '#facc15' }, // 0
-            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }, // 1
-            { mult: 'x10', tag: 'HIGH',    bg1: '#0c4a6e', bg2: '#0284c7', col: '#e0f2fe', starCol: '#38bdf8' }, // 2
-            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }, // 3
-            { mult: 'x28', tag: 'MEGA',    bg1: '#4c1d95', bg2: '#7c3aed', col: '#f5d0fe', starCol: '#ec4899' }, // 4
-            { mult: 'x8',  tag: 'MID',     bg1: '#064e3b', bg2: '#059669', col: '#ecfdf5', starCol: '#34d399' }, // 5
-            { mult: 'x88', tag: 'JACKPOT', bg1: '#7f1d1d', bg2: '#dc2626', col: '#fef08a', starCol: '#facc15' }, // 6
-            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }, // 7
-            { mult: 'x10', tag: 'HIGH',    bg1: '#0c4a6e', bg2: '#0284c7', col: '#e0f2fe', starCol: '#38bdf8' }, // 8
-            { mult: 'x28', tag: 'MEGA',    bg1: '#4c1d95', bg2: '#7c3aed', col: '#f5d0fe', starCol: '#ec4899' }, // 9
-            { mult: 'x8',  tag: 'MID',     bg1: '#064e3b', bg2: '#059669', col: '#ecfdf5', starCol: '#34d399' }, // 10
-            { mult: 'x4',  tag: 'BASE',    bg1: '#78350f', bg2: '#d97706', col: '#ffffff', starCol: '#fde047' }  // 11
+        type SlotTileEmblemId =
+            | 'SLOT_X88_CROWN_DIAMOND'
+            | 'SLOT_X28_AMETHYST_CLUSTER'
+            | 'SLOT_X10_GRAND_STAR'
+            | 'SLOT_X8_TWIN_GOLD_COINS'
+            | 'SLOT_X4_EMERALD_GEM';
+
+        // Exact 12 sectors matching getSlotReelTargetAngle indicesMap in Renderer.ts:
+        // X88: [0, 6] | X28: [4, 9] | X10: [2, 8] | X8: [5, 10] | X4: [1, 3, 7, 11]
+        const sectors: { emblem: SlotTileEmblemId; auraHex: string; isJackpot?: boolean }[] = [
+            { emblem: 'SLOT_X88_CROWN_DIAMOND', auraHex: 'rgba(229, 37, 28, 0.22)', isJackpot: true }, // 0: X88
+            { emblem: 'SLOT_X4_EMERALD_GEM', auraHex: 'rgba(39, 155, 55, 0.20)' },                     // 1: X4
+            { emblem: 'SLOT_X10_GRAND_STAR', auraHex: 'rgba(33, 138, 230, 0.22)' },                    // 2: X10
+            { emblem: 'SLOT_X4_EMERALD_GEM', auraHex: 'rgba(39, 155, 55, 0.20)' },                     // 3: X4
+            { emblem: 'SLOT_X28_AMETHYST_CLUSTER', auraHex: 'rgba(124, 58, 237, 0.24)' },              // 4: X28
+            { emblem: 'SLOT_X8_TWIN_GOLD_COINS', auraHex: 'rgba(247, 131, 24, 0.22)' },                // 5: X8
+            { emblem: 'SLOT_X88_CROWN_DIAMOND', auraHex: 'rgba(229, 37, 28, 0.22)', isJackpot: true }, // 6: X88
+            { emblem: 'SLOT_X4_EMERALD_GEM', auraHex: 'rgba(39, 155, 55, 0.20)' },                     // 7: X4
+            { emblem: 'SLOT_X10_GRAND_STAR', auraHex: 'rgba(33, 138, 230, 0.22)' },                    // 8: X10
+            { emblem: 'SLOT_X28_AMETHYST_CLUSTER', auraHex: 'rgba(124, 58, 237, 0.24)' },              // 9: X28
+            { emblem: 'SLOT_X8_TWIN_GOLD_COINS', auraHex: 'rgba(247, 131, 24, 0.22)' },                // 10: X8
+            { emblem: 'SLOT_X4_EMERALD_GEM', auraHex: 'rgba(39, 155, 55, 0.20)' }                      // 11: X4
         ];
 
-        const secW = 256;
+        const traceRoundRect = (x: number, y: number, w: number, h: number, r: number) => {
+            const rr = Math.min(r, w * 0.5, h * 0.5);
+            ctx.beginPath();
+            ctx.moveTo(x + rr, y);
+            ctx.lineTo(x + w - rr, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+            ctx.lineTo(x + w, y + h - rr);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+            ctx.lineTo(x + rr, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+            ctx.lineTo(x, y + rr);
+            ctx.quadraticCurveTo(x, y, x + rr, y);
+            ctx.closePath();
+        };
+
+        const drawSparkle = (sx: number, sy: number, rOuter: number, rInner = rOuter * 0.24, col = '#ffffff') => {
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.beginPath();
+            for (let k = 0; k < 8; k++) {
+                const a = (k * Math.PI) / 4;
+                const rad = k % 2 === 0 ? rOuter : rInner;
+                const px = Math.cos(a) * rad;
+                const py = Math.sin(a) * rad;
+                if (k === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fillStyle = col;
+            ctx.fill();
+            ctx.strokeStyle = INK;
+            ctx.lineWidth = 5.5;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+            ctx.restore();
+        };
+
+        // 1. Base Warm Ivory-Parchment Gouache Drum Surface across all 12 tiles
+        const drumGrad = ctx.createLinearGradient(0, 0, 0, tileSize);
+        drumGrad.addColorStop(0.0, '#d6bf8e');
+        drumGrad.addColorStop(0.09, '#f6e7c1');
+        drumGrad.addColorStop(0.25, '#fffbeb');
+        drumGrad.addColorStop(0.50, '#fffdf7');
+        drumGrad.addColorStop(0.75, '#fffbeb');
+        drumGrad.addColorStop(0.91, '#f6e7c1');
+        drumGrad.addColorStop(1.0, '#d6bf8e');
+        ctx.fillStyle = drumGrad;
+        ctx.fillRect(0, 0, canvas.width, tileSize);
+
+        // Subtle painterly horizontal paper brush streaks along cylinder circumference
+        for (let b = 0; b < 22; b++) {
+            const py = ((b + 0.5) / 22) * tileSize;
+            ctx.fillStyle = b % 2 === 0 ? 'rgba(255, 255, 255, 0.22)' : 'rgba(180, 130, 60, 0.055)';
+            ctx.fillRect(0, py - 6, canvas.width, 12);
+        }
+
+        const drawSlotTileEmblem = (emblem: SlotTileEmblemId, isJackpot: boolean) => {
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            if (isJackpot) {
+                // Royal Crimson-and-Gold Beveled Plaque for X88 Ultra Jackpot Tile (pre-compensated for 0.60 X cylinder aspect)
+                ctx.save();
+                traceRoundRect(-284, -196, 568, 392, 48);
+                const jpBg = ctx.createRadialGradient(0, 0, 24, 0, 0, 290);
+                jpBg.addColorStop(0, '#ef4444');
+                jpBg.addColorStop(0.68, '#dc2626');
+                jpBg.addColorStop(1, '#7f1d1d');
+                ctx.fillStyle = jpBg;
+                ctx.fill();
+
+                ctx.clip();
+                for (let r = 0; r < 12; r++) {
+                    const a = (r * Math.PI * 2) / 12;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, 340, a - 0.11, a + 0.11);
+                    ctx.closePath();
+                    ctx.fillStyle = 'rgba(254, 240, 138, 0.22)';
+                    ctx.fill();
+                }
+                ctx.restore();
+
+                // Stepped Gold Inner Bezel + Ink Frame
+                traceRoundRect(-284, -196, 568, 392, 48);
+                ctx.strokeStyle = INK;
+                ctx.lineWidth = 15;
+                ctx.stroke();
+
+                traceRoundRect(-266, -182, 532, 364, 38);
+                ctx.strokeStyle = '#fde047';
+                ctx.lineWidth = 11;
+                ctx.stroke();
+                ctx.strokeStyle = INK;
+                ctx.lineWidth = 4.5;
+                ctx.stroke();
+
+                for (const [cxR, cyR] of [[-234, -154], [234, -154], [234, 154], [-234, 154]]) {
+                    ctx.beginPath();
+                    ctx.arc(cxR, cyR, 10, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fef08a';
+                    ctx.fill();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 4.5;
+                    ctx.stroke();
+                }
+            }
+
+            // Soft drop shadow beneath symbol
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(0, 18, 138, 128, 0, 0, Math.PI * 2);
+            const shG = ctx.createRadialGradient(0, 18, 22, 0, 18, 142);
+            shG.addColorStop(0, 'rgba(13, 9, 7, 0.34)');
+            shG.addColorStop(0.68, 'rgba(13, 9, 7, 0.14)');
+            shG.addColorStop(1, 'rgba(13, 9, 7, 0)');
+            ctx.fillStyle = shG;
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.scale(1.56, 1.56);
+
+            switch (emblem) {
+                case 'SLOT_X88_CROWN_DIAMOND': {
+                    const topY = -12;
+                    const midY = 24;
+                    const botY = 98;
+                    const wTop = 52;
+                    const wMid = 94;
+
+                    ctx.beginPath();
+                    ctx.moveTo(-wTop, topY);
+                    ctx.lineTo(wTop, topY);
+                    ctx.lineTo(wMid, midY);
+                    ctx.lineTo(0, botY);
+                    ctx.lineTo(-wMid, midY);
+                    ctx.closePath();
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-wTop, topY);
+                    ctx.lineTo(wTop, topY);
+                    ctx.lineTo(38, midY);
+                    ctx.lineTo(-38, midY);
+                    ctx.closePath();
+                    const tblG = ctx.createLinearGradient(0, topY, 0, midY);
+                    tblG.addColorStop(0, '#ffffff');
+                    tblG.addColorStop(1, '#bae6fd');
+                    ctx.fillStyle = tblG;
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-wTop, topY);
+                    ctx.lineTo(-38, midY);
+                    ctx.lineTo(-wMid, midY);
+                    ctx.closePath();
+                    ctx.fillStyle = '#e0f2fe';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(wTop, topY);
+                    ctx.lineTo(wMid, midY);
+                    ctx.lineTo(38, midY);
+                    ctx.closePath();
+                    ctx.fillStyle = '#38bdf8';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-wMid, midY);
+                    ctx.lineTo(-38, midY);
+                    ctx.lineTo(0, botY);
+                    ctx.closePath();
+                    ctx.fillStyle = '#7dd3fc';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-38, midY);
+                    ctx.lineTo(38, midY);
+                    ctx.lineTo(0, botY);
+                    ctx.closePath();
+                    const pavG = ctx.createLinearGradient(0, midY, 0, botY);
+                    pavG.addColorStop(0, '#38bdf8');
+                    pavG.addColorStop(1, '#0284c7');
+                    ctx.fillStyle = pavG;
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(38, midY);
+                    ctx.lineTo(wMid, midY);
+                    ctx.lineTo(0, botY);
+                    ctx.closePath();
+                    ctx.fillStyle = '#0369a1';
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#082f49';
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(-wMid, midY); ctx.lineTo(wMid, midY);
+                    ctx.moveTo(-wTop, topY); ctx.lineTo(-38, midY); ctx.lineTo(0, botY);
+                    ctx.moveTo(wTop, topY);  ctx.lineTo(38, midY);  ctx.lineTo(0, botY);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-wTop, topY);
+                    ctx.lineTo(wTop, topY);
+                    ctx.lineTo(wMid, midY);
+                    ctx.lineTo(0, botY);
+                    ctx.lineTo(-wMid, midY);
+                    ctx.closePath();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 10.5;
+                    ctx.stroke();
+
+                    // Imperial 3-Peak Golden Crown
+                    ctx.beginPath();
+                    ctx.moveTo(-54, -20);
+                    ctx.lineTo(-68, -74);
+                    ctx.lineTo(-28, -48);
+                    ctx.lineTo(0, -94);
+                    ctx.lineTo(28, -48);
+                    ctx.lineTo(68, -74);
+                    ctx.lineTo(54, -20);
+                    ctx.closePath();
+                    const crG = ctx.createLinearGradient(-60, -94, 60, -20);
+                    crG.addColorStop(0, '#fef9c3');
+                    crG.addColorStop(0.48, '#facc15');
+                    crG.addColorStop(1, '#b45309');
+                    ctx.fillStyle = crG;
+                    ctx.fill();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 9.5;
+                    ctx.stroke();
+
+                    traceRoundRect(-56, -28, 112, 16, 6);
+                    ctx.fillStyle = '#eab308';
+                    ctx.fill();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 7.5;
+                    ctx.stroke();
+
+                    for (const [px, py] of [[-68, -78], [0, -98], [68, -78]]) {
+                        ctx.beginPath();
+                        ctx.arc(px, py, 9.5, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fef08a';
+                        ctx.fill();
+                        ctx.strokeStyle = INK;
+                        ctx.lineWidth = 6.5;
+                        ctx.stroke();
+                    }
+
+                    ctx.beginPath();
+                    ctx.moveTo(0, -63);
+                    ctx.lineTo(11, -49);
+                    ctx.lineTo(0, -35);
+                    ctx.lineTo(-11, -49);
+                    ctx.closePath();
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fill();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+
+                    drawSparkle(-88, -36, 18);
+                    drawSparkle(88, -28, 15);
+                    break;
+                }
+
+                case 'SLOT_X28_AMETHYST_CLUSTER': {
+                    const drawPrism = (px: number, py: number, rot: number, w: number, h: number) => {
+                        ctx.save();
+                        ctx.translate(px, py);
+                        ctx.rotate(rot);
+
+                        const apexY = -h;
+                        const shldrY = -h * 0.62;
+                        const baseY = 18;
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, apexY);
+                        ctx.lineTo(-w, shldrY);
+                        ctx.lineTo(-w * 0.78, baseY);
+                        ctx.lineTo(0, baseY);
+                        ctx.closePath();
+                        ctx.fillStyle = '#f5d0fe';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, apexY);
+                        ctx.lineTo(-w * 0.26, shldrY);
+                        ctx.lineTo(w * 0.26, shldrY);
+                        ctx.closePath();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, apexY);
+                        ctx.lineTo(w, shldrY);
+                        ctx.lineTo(w * 0.78, baseY);
+                        ctx.lineTo(0, baseY);
+                        ctx.closePath();
+                        const rg = ctx.createLinearGradient(0, apexY, w, baseY);
+                        rg.addColorStop(0, '#c084fc');
+                        rg.addColorStop(1, '#6d28d9');
+                        ctx.fillStyle = rg;
+                        ctx.fill();
+
+                        ctx.strokeStyle = '#3b0764';
+                        ctx.lineWidth = 4.5;
+                        ctx.beginPath();
+                        ctx.moveTo(0, apexY); ctx.lineTo(0, baseY);
+                        ctx.moveTo(-w, shldrY); ctx.lineTo(0, shldrY + 10); ctx.lineTo(w, shldrY);
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, apexY);
+                        ctx.lineTo(w, shldrY);
+                        ctx.lineTo(w * 0.78, baseY);
+                        ctx.lineTo(-w * 0.78, baseY);
+                        ctx.lineTo(-w, shldrY);
+                        ctx.closePath();
+                        ctx.strokeStyle = INK;
+                        ctx.lineWidth = 9.5;
+                        ctx.stroke();
+                        ctx.restore();
+                    };
+
+                    drawPrism(-38, 48, -0.34, 28, 108);
+                    drawPrism(38, 48, 0.34, 28, 108);
+                    drawPrism(0, 52, 0, 36, 144);
+
+                    // Sculpted Antique-Gold Pedestal Clasp
+                    ctx.beginPath();
+                    ctx.moveTo(-66, 46);
+                    ctx.lineTo(66, 46);
+                    ctx.lineTo(52, 82);
+                    ctx.lineTo(-52, 82);
+                    ctx.closePath();
+                    const baseG = ctx.createLinearGradient(-60, 46, 60, 82);
+                    baseG.addColorStop(0, '#fef08a');
+                    baseG.addColorStop(0.5, '#eab308');
+                    baseG.addColorStop(1, '#92400e');
+                    ctx.fillStyle = baseG;
+                    ctx.fill();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 9.5;
+                    ctx.stroke();
+
+                    for (const rx of [-28, 0, 28]) {
+                        ctx.beginPath();
+                        ctx.arc(rx, 64, 5.5, 0, Math.PI * 2);
+                        ctx.fillStyle = '#fef9c3';
+                        ctx.fill();
+                        ctx.strokeStyle = INK;
+                        ctx.lineWidth = 3.5;
+                        ctx.stroke();
+                    }
+
+                    drawSparkle(-74, -52, 16);
+                    drawSparkle(74, -44, 14);
+                    break;
+                }
+
+                case 'SLOT_X10_GRAND_STAR': {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 80, 0, Math.PI * 2);
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 23;
+                    ctx.stroke();
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 10;
+                    ctx.stroke();
+
+                    for (let r = 0; r < 5; r++) {
+                        const ra = -Math.PI / 2 + ((r + 0.5) * Math.PI * 2) / 5;
+                        const oxR = Math.cos(ra) * 96;
+                        const oyR = Math.sin(ra) * 96;
+                        ctx.beginPath();
+                        ctx.moveTo(Math.cos(ra - 0.14) * 56, Math.sin(ra - 0.14) * 56);
+                        ctx.lineTo(oxR, oyR);
+                        ctx.lineTo(Math.cos(ra + 0.14) * 56, Math.sin(ra + 0.14) * 56);
+                        ctx.closePath();
+                        ctx.fillStyle = '#f59e0b';
+                        ctx.fill();
+                        ctx.strokeStyle = INK;
+                        ctx.lineWidth = 7;
+                        ctx.stroke();
+                    }
+
+                    const outerR = 100;
+                    const innerR = 42;
+                    for (let p = 0; p < 5; p++) {
+                        const tipA = -Math.PI / 2 + (p * Math.PI * 2) / 5;
+                        const prevValA = tipA - Math.PI / 5;
+                        const nextValA = tipA + Math.PI / 5;
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(Math.cos(prevValA) * innerR, Math.sin(prevValA) * innerR);
+                        ctx.lineTo(Math.cos(tipA) * outerR, Math.sin(tipA) * outerR);
+                        ctx.closePath();
+                        ctx.fillStyle = p === 0 || p === 4 ? '#fef9c3' : '#fde047';
+                        ctx.fill();
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(Math.cos(tipA) * outerR, Math.sin(tipA) * outerR);
+                        ctx.lineTo(Math.cos(nextValA) * innerR, Math.sin(nextValA) * innerR);
+                        ctx.closePath();
+                        ctx.fillStyle = p === 1 || p === 2 ? '#b45309' : '#eab308';
+                        ctx.fill();
+                    }
+
+                    ctx.strokeStyle = '#713f12';
+                    ctx.lineWidth = 4.5;
+                    ctx.beginPath();
+                    for (let p = 0; p < 5; p++) {
+                        const tipA = -Math.PI / 2 + (p * Math.PI * 2) / 5;
+                        const valA = tipA + Math.PI / 5;
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(Math.cos(tipA) * outerR, Math.sin(tipA) * outerR);
+                        ctx.moveTo(0, 0);
+                        ctx.lineTo(Math.cos(valA) * innerR, Math.sin(valA) * innerR);
+                    }
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    for (let k = 0; k < 10; k++) {
+                        const a = -Math.PI / 2 + (k * Math.PI) / 5;
+                        const rad = k % 2 === 0 ? outerR : innerR;
+                        const px = Math.cos(a) * rad;
+                        const py = Math.sin(a) * rad;
+                        if (k === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 10.5;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fill();
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 7;
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(-6, -6, 6.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
+                    break;
+                }
+
+                case 'SLOT_X8_TWIN_GOLD_COINS': {
+                    const drawCoin = (mx: number, my: number, r: number) => {
+                        ctx.save();
+                        ctx.translate(mx, my);
+
+                        const cg = ctx.createLinearGradient(-r, -r, r, r);
+                        cg.addColorStop(0, '#fef9c3');
+                        cg.addColorStop(0.42, '#facc15');
+                        cg.addColorStop(1, '#b45309');
+
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r, 0, Math.PI * 2);
+                        ctx.fillStyle = cg;
+                        ctx.fill();
+                        ctx.strokeStyle = INK;
+                        ctx.lineWidth = 9.5;
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(0, 0, r * 0.70, 0, Math.PI * 2);
+                        ctx.fillStyle = '#d97706';
+                        ctx.fill();
+                        ctx.strokeStyle = '#451a03';
+                        ctx.lineWidth = 5;
+                        ctx.stroke();
+
+                        drawSparkle(0, 0, r * 0.48, r * 0.16, '#fef9c3');
+                        ctx.restore();
+                    };
+
+                    drawCoin(-28, -22, 62);
+                    drawCoin(26, 20, 66);
+                    break;
+                }
+
+                case 'SLOT_X4_EMERALD_GEM': {
+                    const oxE = 72;
+                    const oyE = 88;
+                    const cCut = 38;
+                    const txE = 40;
+                    const tyE = 52;
+                    const tCut = 20;
+
+                    const traceOct = (w: number, h: number, c: number) => {
+                        ctx.beginPath();
+                        ctx.moveTo(-w + c, -h);
+                        ctx.lineTo(w - c, -h);
+                        ctx.lineTo(w, -h + c);
+                        ctx.lineTo(w, h - c);
+                        ctx.lineTo(w - c, h);
+                        ctx.lineTo(-w + c, h);
+                        ctx.lineTo(-w, h - c);
+                        ctx.lineTo(-w, -h + c);
+                        ctx.closePath();
+                    };
+
+                    traceOct(oxE, oyE, cCut);
+                    ctx.fillStyle = '#16a34a';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-oxE + cCut, -oyE);
+                    ctx.lineTo(oxE - cCut, -oyE);
+                    ctx.lineTo(txE - tCut, -tyE);
+                    ctx.lineTo(-txE + tCut, -tyE);
+                    ctx.closePath();
+                    ctx.fillStyle = '#dcfce7';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-oxE, -oyE + cCut);
+                    ctx.lineTo(-txE, -tyE + tCut);
+                    ctx.lineTo(-txE, tyE - tCut);
+                    ctx.lineTo(-oxE, oyE - cCut);
+                    ctx.closePath();
+                    ctx.fillStyle = '#86efac';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(oxE, -oyE + cCut);
+                    ctx.lineTo(oxE, oyE - cCut);
+                    ctx.lineTo(txE, tyE - tCut);
+                    ctx.lineTo(txE, -tyE + tCut);
+                    ctx.closePath();
+                    ctx.fillStyle = '#15803d';
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-oxE + cCut, oyE);
+                    ctx.lineTo(-txE + tCut, tyE);
+                    ctx.lineTo(txE - tCut, tyE);
+                    ctx.lineTo(oxE - cCut, oyE);
+                    ctx.closePath();
+                    ctx.fillStyle = '#14532d';
+                    ctx.fill();
+
+                    traceOct(txE, tyE, tCut);
+                    const etG = ctx.createLinearGradient(-txE, -tyE, txE, tyE);
+                    etG.addColorStop(0, '#bbf7d0');
+                    etG.addColorStop(0.45, '#22c55e');
+                    etG.addColorStop(1, '#15803d');
+                    ctx.fillStyle = etG;
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#052e16';
+                    ctx.lineWidth = 4.8;
+                    traceOct(txE, tyE, tCut);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(-oxE + cCut, -oyE); ctx.lineTo(-txE + tCut, -tyE);
+                    ctx.moveTo(oxE - cCut, -oyE);  ctx.lineTo(txE - tCut, -tyE);
+                    ctx.moveTo(oxE, -oyE + cCut);  ctx.lineTo(txE, -tyE + tCut);
+                    ctx.moveTo(oxE, oyE - cCut);   ctx.lineTo(txE, tyE - tCut);
+                    ctx.moveTo(oxE - cCut, oyE);   ctx.lineTo(txE - tCut, tyE);
+                    ctx.moveTo(-oxE + cCut, oyE);  ctx.lineTo(-txE + tCut, tyE);
+                    ctx.moveTo(-oxE, oyE - cCut);  ctx.lineTo(-txE, tyE - tCut);
+                    ctx.moveTo(-oxE, -oyE + cCut); ctx.lineTo(-txE, -tyE + tCut);
+                    ctx.stroke();
+
+                    traceOct(oxE, oyE, cCut);
+                    ctx.strokeStyle = INK;
+                    ctx.lineWidth = 10.5;
+                    ctx.stroke();
+
+                    for (const [sx, sy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+                        ctx.beginPath();
+                        ctx.arc(sx * 54, sy * 68, 12, 0, Math.PI * 2);
+                        ctx.fillStyle = '#facc15';
+                        ctx.fill();
+                        ctx.strokeStyle = INK;
+                        ctx.lineWidth = 6.5;
+                        ctx.stroke();
+                    }
+
+                    drawSparkle(-18, -22, 15);
+                    break;
+                }
+            }
+
+            ctx.restore();
+        };
+
+        // 2. Render each of the 12 stops with subtle gouache aura, upright rotated emblem, and brass rib dividers
         for (let i = 0; i < 12; i++) {
             const s = sectors[i];
-            const ox = i * secW;
+            const ox = i * tileSize;
+            const cxTile = ox + tileSize * 0.5;
+            const cyTile = tileSize * 0.5;
 
-            // Background gradient
-            const bgGrad = ctx.createLinearGradient(ox, 0, ox, 256);
-            bgGrad.addColorStop(0, s.bg1);
-            bgGrad.addColorStop(0.5, s.bg2);
-            bgGrad.addColorStop(1, s.bg1);
-            ctx.fillStyle = bgGrad;
-            ctx.fillRect(ox, 0, secW, 256);
-
-            // Comic Sunburst Rays
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(ox, 0, secW, 256);
-            ctx.clip();
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-            for (let a = 0; a < 8; a++) {
-                const angle = (a * Math.PI) / 4;
-                ctx.beginPath();
-                ctx.moveTo(ox + 128, 128);
-                ctx.arc(ox + 128, 128, 180, angle - 0.16, angle + 0.16);
-                ctx.closePath();
-                ctx.fill();
+            // Soft gouache color aura behind non-jackpot tiles
+            if (!s.isJackpot) {
+                const aura = ctx.createRadialGradient(cxTile, cyTile, 24, cxTile, cyTile, 205);
+                aura.addColorStop(0, s.auraHex);
+                aura.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = aura;
+                ctx.fillRect(ox, 0, tileSize, tileSize);
             }
-            ctx.restore();
 
-            // Inner Comic Inset Bevel Frame, Badge & Symbols (Rotated 180 to face upright on 3D cylinder)
+            // Rotate +PI/2 so symbol's -Y points +X_canvas (+Y_3D UP) and +X points +Y_canvas (+X_3D RIGHT),
+            // and pre-compensate (0.60, 1.05) for the 1.24w x 0.691h drum stop UV aspect so all icons & ink strokes are 1:1 isotropic!
             ctx.save();
-            ctx.translate(ox + 128, 128);
-            ctx.rotate(Math.PI);
-
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 6;
-            ctx.strokeRect(-125, -125, 250, 250);
-
-            ctx.strokeStyle = s.starCol;
-            ctx.lineWidth = 2.5;
-            ctx.strokeRect(-120, -120, 240, 240);
-
-            // Top Pill Badge with Category Tag
-            ctx.fillStyle = '#0f172a';
-            ctx.beginPath();
-            ctx.roundRect(-64, -112, 128, 28, 14);
-            ctx.fill();
-            ctx.strokeStyle = s.starCol;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            ctx.font = '900 14px "Arial Black", Impact, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = s.starCol;
-            ctx.fillText(s.tag, 0, -98);
-
-            // Central Massive Multiplier Text
-            const fontSize = s.mult.length > 3 ? 82 : 96;
-            ctx.font = `900 ${fontSize}px "Arial Black", Impact, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            // Thick Comic Drop Shadow & Stroke
-            ctx.lineWidth = 14;
-            ctx.strokeStyle = '#000000';
-            ctx.lineJoin = 'round';
-            ctx.strokeText(s.mult, 0, 10);
-
-            ctx.fillStyle = s.col;
-            ctx.fillText(s.mult, 0, 10);
-
-            // Highlight glint
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
-            ctx.strokeText(s.mult, 0, 7);
-
+            ctx.translate(cxTile, cyTile);
+            ctx.rotate(Math.PI / 2);
+            ctx.scale(0.60, 1.05);
+            drawSlotTileEmblem(s.emblem, Boolean(s.isJackpot));
             ctx.restore();
 
-            // Sector Vertical Divider Bars with Rivets
-            ctx.fillStyle = '#1e293b';
-            ctx.fillRect(ox + secW - 4, 0, 8, 256);
-            ctx.fillStyle = '#facc15';
+            // Forged Brass & Comic Ink Divider Rib between adjacent stops on drum
+            const divGrad = ctx.createLinearGradient(0, 0, 0, tileSize);
+            divGrad.addColorStop(0, '#92400e');
+            divGrad.addColorStop(0.5, '#fde047');
+            divGrad.addColorStop(1, '#92400e');
+            ctx.fillStyle = INK;
+            ctx.fillRect(ox - 9, 0, 18, tileSize);
+            ctx.fillStyle = divGrad;
+            ctx.fillRect(ox - 4, 0, 8, tileSize);
+
+            for (const ry of [54, 256, 458]) {
+                ctx.beginPath();
+                ctx.arc(ox, ry, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#fef08a';
+                ctx.fill();
+                ctx.strokeStyle = INK;
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+        }
+
+        // 3. Left/Right Reel Edge Brass Rim Striping & Comic Cross-Hatch AO
+        ctx.fillStyle = INK;
+        ctx.fillRect(0, 0, canvas.width, 12);
+        ctx.fillRect(0, tileSize - 12, canvas.width, 12);
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(0, 12, canvas.width, 8);
+        ctx.fillRect(0, tileSize - 20, canvas.width, 8);
+
+        ctx.strokeStyle = 'rgba(20, 12, 6, 0.22)';
+        ctx.lineWidth = 3;
+        for (let hx = 0; hx < canvas.width; hx += 22) {
             ctx.beginPath();
-            ctx.arc(ox + secW, 20, 3, 0, Math.PI * 2);
-            ctx.arc(ox + secW, 128, 3, 0, Math.PI * 2);
-            ctx.arc(ox + secW, 236, 3, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.moveTo(hx, 20);
+            ctx.lineTo(hx + 14, 44);
+            ctx.moveTo(hx, tileSize - 20);
+            ctx.lineTo(hx + 14, tileSize - 44);
+            ctx.stroke();
         }
 
         return canvas;
@@ -3254,53 +3839,264 @@ export function createPBRTexturePack(): PBRTexturePack {
     function createSlotCabinetMarqueeCanvas(): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
         canvas.width = 1024;
-        canvas.height = 256;
+        canvas.height = 512;
         const ctx = canvas.getContext('2d')!;
+        const cx = 512;
+        const cy = 460;
 
-        // Deep cyber slate-purple background
-        const bgGrad = ctx.createLinearGradient(0, 0, 1024, 256);
-        bgGrad.addColorStop(0, '#0f0b1e');
-        bgGrad.addColorStop(0.5, '#1e1b4b');
-        bgGrad.addColorStop(1, '#0f0b1e');
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, 1024, 256);
+        // Gouache Royal Amethyst & Crimson Sunburst Arch (zero text, zero emojis)
+        const baseGrad = ctx.createRadialGradient(cx, cy, 30, cx, cy, 560);
+        baseGrad.addColorStop(0.0, '#fde047');
+        baseGrad.addColorStop(0.24, '#e11d48');
+        baseGrad.addColorStop(0.62, '#6d28d9');
+        baseGrad.addColorStop(1.0, '#2e1065');
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(0, 0, 1024, 512);
 
-        // Cyber grid scanlines
-        ctx.strokeStyle = 'rgba(168, 85, 247, 0.15)';
-        ctx.lineWidth = 2;
-        for (let y = 10; y < 256; y += 16) {
+        const rayCount = 18;
+        for (let r = 0; r < rayCount; r++) {
+            const a1 = -Math.PI + (r / rayCount) * Math.PI;
+            const a2 = a1 + (Math.PI / rayCount) * 0.52;
             ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(1024, y);
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, 680, a1, a2);
+            ctx.closePath();
+            ctx.fillStyle = r % 2 === 0 ? 'rgba(254, 240, 138, 0.22)' : 'rgba(13, 9, 7, 0.18)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(a1) * 680, cy + Math.sin(a1) * 680);
+            ctx.strokeStyle = 'rgba(13, 9, 7, 0.42)';
+            ctx.lineWidth = 5;
             ctx.stroke();
         }
 
-        // Glowing outer neon border
-        ctx.strokeStyle = '#a855f7';
-        ctx.lineWidth = 8;
-        ctx.strokeRect(12, 12, 1000, 232);
-        ctx.strokeStyle = '#38bdf8';
+        // Subtle comic cross-hatching along outer corners
+        ctx.strokeStyle = 'rgba(13, 9, 7, 0.28)';
         ctx.lineWidth = 3;
-        ctx.strokeRect(20, 20, 984, 216);
+        for (let k = 0; k < 44; k++) {
+            const x = k * 24;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x - 28, 48);
+            ctx.stroke();
+        }
 
-        // Header Title
-        ctx.font = '900 58px "Arial Black", Impact, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        return canvas;
+    }
+
+    function createSlotMarqueeCrestCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+        const INK = '#0d0907';
+        const cx = 256;
+        const cy = 256;
+
+        // Royal Crimson-Gold Gouache Medallion Backdrop
+        const bgGrad = ctx.createRadialGradient(cx, cy, 18, cx, cy, 256);
+        bgGrad.addColorStop(0.0, '#fde047');
+        bgGrad.addColorStop(0.32, '#ef4444');
+        bgGrad.addColorStop(0.75, '#991b1b');
+        bgGrad.addColorStop(1.0, '#450a0a');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 512, 512);
+
+        for (let r = 0; r < 16; r++) {
+            const a = (r * Math.PI * 2) / 16;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, 270, a - 0.09, a + 0.09);
+            ctx.closePath();
+            ctx.fillStyle = r % 2 === 0 ? 'rgba(254, 240, 138, 0.26)' : 'rgba(13, 9, 7, 0.16)';
+            ctx.fill();
+        }
+
+        // Inner decorative gold ring + comic ink line
+        ctx.beginPath();
+        ctx.arc(cx, cy, 224, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fde047';
         ctx.lineWidth = 12;
-        ctx.strokeStyle = '#000000';
-        ctx.strokeText('★ MINI-SLOT 1x3 ARCADE ★', 512, 92);
-        ctx.fillStyle = '#fde047';
-        ctx.fillText('★ MINI-SLOT 1x3 ARCADE ★', 512, 92);
+        ctx.stroke();
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 5;
+        ctx.stroke();
 
-        // Sub-Header
-        ctx.font = '900 24px "Plus Jakarta Sans", sans-serif';
-        ctx.lineWidth = 6;
-        ctx.strokeStyle = '#000000';
-        ctx.strokeText('LÍNEA DE PAGO CENTRAL • SINGLE-LINE PROVABLY FAIR', 512, 175);
+        // Hand-inked Cel-Shaded Imperial 3-Peak Crown + Multi-Faceted Brilliant Cyan Diamond
+        ctx.save();
+        ctx.translate(cx, cy + 10);
+        ctx.scale(1.62, 1.62);
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        // Drop shadow
+        ctx.beginPath();
+        ctx.ellipse(0, 16, 98, 92, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(13, 9, 7, 0.34)';
+        ctx.fill();
+
+        const topY = -10;
+        const midY = 26;
+        const botY = 98;
+        const wTop = 52;
+        const wMid = 92;
+
+        ctx.beginPath();
+        ctx.moveTo(-wTop, topY);
+        ctx.lineTo(wTop, topY);
+        ctx.lineTo(wMid, midY);
+        ctx.lineTo(0, botY);
+        ctx.lineTo(-wMid, midY);
+        ctx.closePath();
         ctx.fillStyle = '#38bdf8';
-        ctx.fillText('LÍNEA DE PAGO CENTRAL • SINGLE-LINE PROVABLY FAIR', 512, 175);
+        ctx.fill();
 
+        ctx.beginPath();
+        ctx.moveTo(-wTop, topY);
+        ctx.lineTo(wTop, topY);
+        ctx.lineTo(38, midY);
+        ctx.lineTo(-38, midY);
+        ctx.closePath();
+        const tblG = ctx.createLinearGradient(0, topY, 0, midY);
+        tblG.addColorStop(0, '#ffffff');
+        tblG.addColorStop(1, '#bae6fd');
+        ctx.fillStyle = tblG;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-wTop, topY);
+        ctx.lineTo(-38, midY);
+        ctx.lineTo(-wMid, midY);
+        ctx.closePath();
+        ctx.fillStyle = '#e0f2fe';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(wTop, topY);
+        ctx.lineTo(wMid, midY);
+        ctx.lineTo(38, midY);
+        ctx.closePath();
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-wMid, midY);
+        ctx.lineTo(-38, midY);
+        ctx.lineTo(0, botY);
+        ctx.closePath();
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-38, midY);
+        ctx.lineTo(38, midY);
+        ctx.lineTo(0, botY);
+        ctx.closePath();
+        const pavG = ctx.createLinearGradient(0, midY, 0, botY);
+        pavG.addColorStop(0, '#38bdf8');
+        pavG.addColorStop(1, '#0284c7');
+        ctx.fillStyle = pavG;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(38, midY);
+        ctx.lineTo(wMid, midY);
+        ctx.lineTo(0, botY);
+        ctx.closePath();
+        ctx.fillStyle = '#0369a1';
+        ctx.fill();
+
+        ctx.strokeStyle = INK;
+        ctx.lineWidth = 6.5;
+        ctx.beginPath();
+        ctx.moveTo(-wMid, midY);
+        ctx.lineTo(wMid, midY);
+        ctx.moveTo(-wTop, topY);
+        ctx.lineTo(-38, midY);
+        ctx.lineTo(0, botY);
+        ctx.moveTo(wTop, topY);
+        ctx.lineTo(38, midY);
+        ctx.lineTo(0, botY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-wTop, topY);
+        ctx.lineTo(wTop, topY);
+        ctx.lineTo(wMid, midY);
+        ctx.lineTo(0, botY);
+        ctx.lineTo(-wMid, midY);
+        ctx.closePath();
+        ctx.lineWidth = 11;
+        ctx.stroke();
+
+        // Imperial 3-Peak Gold Crown
+        ctx.beginPath();
+        ctx.moveTo(-58, -22);
+        ctx.lineTo(-72, -74);
+        ctx.lineTo(-28, -48);
+        ctx.lineTo(0, -92);
+        ctx.lineTo(28, -48);
+        ctx.lineTo(72, -74);
+        ctx.lineTo(58, -22);
+        ctx.closePath();
+        const crG = ctx.createLinearGradient(-64, -90, 64, -20);
+        crG.addColorStop(0, '#fef08a');
+        crG.addColorStop(0.5, '#facc15');
+        crG.addColorStop(1, '#ca8a04');
+        ctx.fillStyle = crG;
+        ctx.fill();
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = INK;
+        ctx.stroke();
+
+        // Crown base band
+        ctx.beginPath();
+        ctx.roundRect(-60, -32, 120, 16, 6);
+        ctx.fillStyle = '#eab308';
+        ctx.fill();
+        ctx.lineWidth = 6.5;
+        ctx.stroke();
+
+        // Crown jewels
+        for (const [jx, jy, jCol] of [[0, -50, '#ef4444'], [-36, -42, '#38bdf8'], [36, -42, '#38bdf8']] as [number, number, string][]) {
+            ctx.beginPath();
+            ctx.arc(jx, jy, 8.5, 0, Math.PI * 2);
+            ctx.fillStyle = jCol;
+            ctx.fill();
+            ctx.lineWidth = 4.5;
+            ctx.stroke();
+        }
+        for (const [px, py] of [[-72, -76], [0, -94], [72, -76]]) {
+            ctx.beginPath();
+            ctx.arc(px, py, 9, 0, Math.PI * 2);
+            ctx.fillStyle = '#fef9c3';
+            ctx.fill();
+            ctx.lineWidth = 5;
+            ctx.stroke();
+        }
+
+        // 4-point comic star sparkles
+        for (const [sx, sy, sr] of [[-86, -12, 15], [86, -4, 13], [-52, 62, 12]]) {
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.beginPath();
+            for (let k = 0; k < 8; k++) {
+                const a = (k * Math.PI) / 4;
+                const rad = k % 2 === 0 ? sr : sr * 0.25;
+                if (k === 0) ctx.moveTo(Math.cos(a) * rad, Math.sin(a) * rad);
+                else ctx.lineTo(Math.cos(a) * rad, Math.sin(a) * rad);
+            }
+            ctx.closePath();
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.lineWidth = 4;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        ctx.restore();
         return canvas;
     }
 
@@ -3900,10 +4696,17 @@ export function createPBRTexturePack(): PBRTexturePack {
     slotReelStripTex.colorSpace = THREE.SRGBColorSpace;
     slotReelStripTex.wrapS = THREE.RepeatWrapping;
     slotReelStripTex.wrapT = THREE.ClampToEdgeWrapping;
+    slotReelStripTex.anisotropy = 8;
 
     const slotCabinetMarqueeCanvas = createSlotCabinetMarqueeCanvas();
     const slotCabinetMarqueeTex = new THREE.CanvasTexture(slotCabinetMarqueeCanvas);
     slotCabinetMarqueeTex.colorSpace = THREE.SRGBColorSpace;
+    slotCabinetMarqueeTex.anisotropy = 8;
+
+    const slotMarqueeCrestCanvas = createSlotMarqueeCrestCanvas();
+    const slotMarqueeCrestTex = new THREE.CanvasTexture(slotMarqueeCrestCanvas);
+    slotMarqueeCrestTex.colorSpace = THREE.SRGBColorSpace;
+    slotMarqueeCrestTex.anisotropy = 8;
 
     const slotLedDisplayCanvas = createSlotLedDisplayCanvas(5, 5, 0);
     const slotLedDisplayTex = new THREE.CanvasTexture(slotLedDisplayCanvas);
@@ -4357,6 +5160,7 @@ export function createPBRTexturePack(): PBRTexturePack {
         astronautNormalTex,
         slotReelStripTex,
         slotCabinetMarqueeTex,
+        slotMarqueeCrestTex,
         slotLedDisplayTex,
         slotLedDisplayCanvas,
         pathWheelFaceTex,

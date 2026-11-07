@@ -179,7 +179,9 @@ export class PixiRenderer {
     private slotReelAngles: number[] = [0, 0, 0];
     private slotPaylineBeam!: THREE.Mesh;
     private slotPaylineChevrons: THREE.Group[] = [];
-    private slotLedDisplayMesh!: THREE.Mesh;
+    private slotLeverPivot!: THREE.Group;
+    private slotSpinOrbs: THREE.Mesh[] = [];
+    private slotMarqueeBulbs: THREE.Mesh[] = [];
     public isSlotActive = false;
     public isSlotSpinning = false;
 
@@ -4472,185 +4474,810 @@ export class PixiRenderer {
     }
 
     /**
-     * Builds the 3D Arcade Mini-Slot Machine (1x3 Single-Line)
-     * Cyberpunk retro cabinet housing, 3 rotating cylinders, neon laser payline,
-     * chevron guides, overhead spotlights, and real-time digital LED display.
+     * Builds the Volumetric Cel-Shaded 3D Comic Slot Machine (1x3 Single-Line)
+     * Sculpted cathedral-arch dark-oak hull, riveted forged-iron armor straps,
+     * antique-brass reel bezel & curved mullions, 3D diamond-crown marquee w/ 9 glass bulbs,
+     * 3 high-DPI ivory gouache reels, twin crimson arrow pointers, 5 3D spin-charge gems,
+     * and an articulated mechanical side pull-lever.
      */
     private buildArcadeMiniSlotMachine() {
         this.miniSlotGroup = new THREE.Group();
         this.miniSlotGroup.visible = false;
         this.scene.add(this.miniSlotGroup);
 
-        // 1. Main Cabinet Chassis (Cyber Slate Body with beveled metallic trim)
-        const cabinetWidth = 5.6;
-        const cabinetHeight = 3.6;
-        const cabinetDepth = 1.4;
-
-        const cabinetGeo = new THREE.BoxGeometry(cabinetWidth, cabinetHeight, cabinetDepth);
-        const cabinetMat = new THREE.MeshStandardMaterial({
-            color: 0x090d16,
-            roughness: 0.35,
-            metalness: 0.65
+        const slotInkOutlineMat = new THREE.MeshBasicMaterial({
+            color: 0x060505,
+            side: THREE.BackSide,
+            depthWrite: true
         });
-        const cabinetMesh = new THREE.Mesh(cabinetGeo, cabinetMat);
-        const cabinetOutline = this.createOutline(cabinetGeo, 0.05);
-        this.miniSlotGroup.add(cabinetMesh, cabinetOutline);
 
-        // 2. Top Marquee Header (Slanted forward slightly with Glowing Neon Arcade Sign)
-        const marqueeGeo = new THREE.BoxGeometry(cabinetWidth - 0.2, 0.92, 0.45);
-        const marqueeMat = new THREE.MeshStandardMaterial({
+        const makeSmoothOutlineGeo = (
+            srcGeo: THREE.BufferGeometry,
+            thickness: number
+        ): THREE.BufferGeometry => {
+            const outlineGeo = srcGeo.clone();
+            outlineGeo.computeVertexNormals();
+            const posAttr = outlineGeo.attributes.position;
+            const normAttr = outlineGeo.attributes.normal;
+            const dirMap = new Map<string, Map<string, [number, number, number]>>();
+
+            for (let i = 0; i < posAttr.count; i++) {
+                const pKey = `${Math.round(posAttr.getX(i) * 1000)},${Math.round(posAttr.getY(i) * 1000)},${Math.round(posAttr.getZ(i) * 1000)}`;
+                const nx = normAttr.getX(i);
+                const ny = normAttr.getY(i);
+                const nz = normAttr.getZ(i);
+                const nKey = `${Math.round(nx * 50)},${Math.round(ny * 50)},${Math.round(nz * 50)}`;
+                let bucket = dirMap.get(pKey);
+                if (!bucket) {
+                    bucket = new Map();
+                    dirMap.set(pKey, bucket);
+                }
+                if (!bucket.has(nKey)) {
+                    bucket.set(nKey, [nx, ny, nz]);
+                }
+            }
+
+            const avgMap = new Map<string, [number, number, number]>();
+            for (const [pKey, bucket] of dirMap.entries()) {
+                let sx = 0;
+                let sy = 0;
+                let sz = 0;
+                for (const [nx, ny, nz] of bucket.values()) {
+                    sx += nx;
+                    sy += ny;
+                    sz += nz;
+                }
+                const len = Math.hypot(sx, sy, sz) || 1;
+                avgMap.set(pKey, [sx / len, sy / len, sz / len]);
+            }
+
+            for (let i = 0; i < posAttr.count; i++) {
+                const pKey = `${Math.round(posAttr.getX(i) * 1000)},${Math.round(posAttr.getY(i) * 1000)},${Math.round(posAttr.getZ(i) * 1000)}`;
+                const [ox, oy, oz] = avgMap.get(pKey)!;
+                posAttr.setXYZ(
+                    i,
+                    posAttr.getX(i) + ox * thickness,
+                    posAttr.getY(i) + oy * thickness,
+                    posAttr.getZ(i) + oz * thickness
+                );
+            }
+            return outlineGeo;
+        };
+
+        const applyBoundsPlanarUVs = (geo: THREE.BufferGeometry, scaleU = 1, scaleV = 1) => {
+            geo.computeBoundingBox();
+            const bb = geo.boundingBox!;
+            const spanX = Math.max(1e-4, bb.max.x - bb.min.x);
+            const spanY = Math.max(1e-4, bb.max.y - bb.min.y);
+            const pos = geo.attributes.position;
+            const uvs = new Float32Array(pos.count * 2);
+            for (let i = 0; i < pos.count; i++) {
+                uvs[i * 2] = ((pos.getX(i) - bb.min.x) / spanX) * scaleU;
+                uvs[i * 2 + 1] = ((pos.getY(i) - bb.min.y) / spanY) * scaleV;
+            }
+            geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+        };
+
+        // Artisan Comic PBR Materials (cohesive with Giant Roulette & Astronaut)
+        const slotOakMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelWoodPlankTex,
+            emissive: 0x3b1d0a,
+            emissiveIntensity: 0.24,
+            roughness: 0.60,
+            metalness: 0.05
+        });
+        const slotOakArchMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelWoodRingTex,
+            emissive: 0x3b1d0a,
+            emissiveIntensity: 0.24,
+            roughness: 0.58,
+            metalness: 0.05
+        });
+        const slotCavityDarkMat = new THREE.MeshBasicMaterial({
+            color: 0x09060c
+        });
+        const slotIronMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelIronTex,
+            color: 0xeae5dc,
+            emissive: 0x45413a,
+            emissiveIntensity: 0.24,
+            roughness: 0.44,
+            metalness: 0.25
+        });
+        const slotGoldBezelMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelBrassTex,
+            color: 0xffe875,
+            emissive: 0xb45309,
+            emissiveIntensity: 0.30,
+            roughness: 0.32,
+            metalness: 0.32
+        });
+        const slotBrassMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelBrassTex,
+            color: 0xf9db84,
+            emissive: 0x78350f,
+            emissiveIntensity: 0.26,
+            roughness: 0.36,
+            metalness: 0.28
+        });
+        const slotCrimsonMat = new THREE.MeshStandardMaterial({
+            map: this.textures.pathWheelArrowTex,
+            emissive: 0xb91c1c,
+            emissiveIntensity: 0.32,
+            roughness: 0.24,
+            metalness: 0.08
+        });
+        const slotChromeShaftMat = new THREE.MeshStandardMaterial({
+            color: 0xf1f5f9,
+            emissive: 0x64748b,
+            emissiveIntensity: 0.20,
+            roughness: 0.20,
+            metalness: 0.72
+        });
+
+        const REEL_Y = -0.02;
+        const REEL_Z = -0.44;
+        const REEL_RADIUS = 1.32;
+        const REEL_WIDTH = 1.18;
+
+        // Helper to trace the outer Cathedral-Arch Slot Cabinet silhouette
+        const createCathedralOuterShape = () => {
+            const s = new THREE.Shape();
+            s.moveTo(-2.68, -1.76);
+            s.lineTo(2.68, -1.76);
+            s.quadraticCurveTo(2.78, -1.76, 2.78, -1.64);
+            s.lineTo(2.78, 1.02);
+            s.quadraticCurveTo(2.78, 1.24, 2.60, 1.42);
+            s.absarc(0, 0.76, 2.68, 0.25, Math.PI - 0.25, false);
+            s.quadraticCurveTo(-2.78, 1.24, -2.78, 1.02);
+            s.lineTo(-2.78, -1.64);
+            s.quadraticCurveTo(-2.78, -1.76, -2.68, -1.76);
+            s.closePath();
+            return s;
+        };
+
+        // 1A. Solid Rear Vault Wall (seals z = -1.94 .. -1.76 completely)
+        const rearBackShape = createCathedralOuterShape();
+        const rearBackGeo = new THREE.ExtrudeGeometry(rearBackShape, {
+            depth: 0.20,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.05,
+            bevelThickness: 0.05
+        });
+        rearBackGeo.translate(0, 0, -1.94);
+        applyBoundsPlanarUVs(rearBackGeo, 2, 2);
+        const rearBackMesh = new THREE.Mesh(rearBackGeo, slotOakMat);
+        const rearBackOut = new THREE.Mesh(makeSmoothOutlineGeo(rearBackGeo, 0.058), slotInkOutlineMat);
+        rearBackOut.renderOrder = -1;
+        this.miniSlotGroup.add(rearBackMesh, rearBackOut);
+
+        // 1B. Deep Mid-Hull Cathedral Shell (z = -1.78 .. +0.48) with oversized internal drum cavity
+        const midHullShape = createCathedralOuterShape();
+        const drumCavityHole = new THREE.Path();
+        drumCavityHole.moveTo(-2.18, -1.42);
+        drumCavityHole.lineTo(-2.18, 1.36);
+        drumCavityHole.lineTo(2.18, 1.36);
+        drumCavityHole.lineTo(2.18, -1.42);
+        drumCavityHole.closePath();
+        midHullShape.holes.push(drumCavityHole);
+
+        const midHullGeo = new THREE.ExtrudeGeometry(midHullShape, {
+            depth: 2.24,
+            bevelEnabled: false,
+            steps: 1
+        });
+        midHullGeo.translate(0, 0, -1.78);
+        applyBoundsPlanarUVs(midHullGeo, 2, 2);
+        const midHullMesh = new THREE.Mesh(midHullGeo, slotOakMat);
+        const midHullOut = new THREE.Mesh(makeSmoothOutlineGeo(midHullGeo, 0.058), slotInkOutlineMat);
+        midHullOut.renderOrder = -1;
+        this.miniSlotGroup.add(midHullMesh, midHullOut);
+
+        // 1C. Sculpted Front Cathedral Oak Facade (z = +0.44 .. +0.68) with precision 3-Reel Window Cutout
+        const frontFacadeShape = createCathedralOuterShape();
+        const windowCutoutHole = new THREE.Path();
+        windowCutoutHole.moveTo(-2.14, -0.90);
+        windowCutoutHole.lineTo(-2.14, 0.86);
+        windowCutoutHole.lineTo(2.14, 0.86);
+        windowCutoutHole.lineTo(2.14, -0.90);
+        windowCutoutHole.closePath();
+        frontFacadeShape.holes.push(windowCutoutHole);
+
+        const frontFacadeGeo = new THREE.ExtrudeGeometry(frontFacadeShape, {
+            depth: 0.22,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.055,
+            bevelThickness: 0.055
+        });
+        frontFacadeGeo.translate(0, 0, 0.46);
+        applyBoundsPlanarUVs(frontFacadeGeo, 1.2, 1.2);
+        const frontFacadeMesh = new THREE.Mesh(frontFacadeGeo, slotOakArchMat);
+        const frontFacadeOut = new THREE.Mesh(makeSmoothOutlineGeo(frontFacadeGeo, 0.058), slotInkOutlineMat);
+        frontFacadeOut.renderOrder = -1;
+        this.miniSlotGroup.add(frontFacadeMesh, frontFacadeOut);
+
+        // Dark light-proof interior liner behind the reels so no starlight ever leaks through seams
+        const linerBackGeo = new THREE.PlaneGeometry(4.48, 2.86);
+        const linerBackMesh = new THREE.Mesh(linerBackGeo, slotCavityDarkMat);
+        linerBackMesh.position.set(0, REEL_Y, -1.74);
+        this.miniSlotGroup.add(linerBackMesh);
+
+        // 2. Heavy Stepped Dark-Oak Plinth Base + Forged-Iron Base Shoes
+        const plinthShape = new THREE.Shape();
+        plinthShape.moveTo(-3.04, -2.08);
+        plinthShape.lineTo(3.04, -2.08);
+        plinthShape.lineTo(2.96, -1.75);
+        plinthShape.lineTo(-2.96, -1.75);
+        plinthShape.closePath();
+        const plinthGeo = new THREE.ExtrudeGeometry(plinthShape, {
+            depth: 2.84,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.048,
+            bevelThickness: 0.048
+        });
+        plinthGeo.translate(0, 0, -2.02);
+        applyBoundsPlanarUVs(plinthGeo, 2, 1);
+        const plinthMesh = new THREE.Mesh(plinthGeo, slotOakMat);
+        const plinthOut = new THREE.Mesh(makeSmoothOutlineGeo(plinthGeo, 0.058), slotInkOutlineMat);
+        plinthOut.renderOrder = -1;
+        this.miniSlotGroup.add(plinthMesh, plinthOut);
+
+        // 3. Riveted Forged-Iron Armor Clamps (matching Ruleta.jpeg ironwork!)
+        const rivetGeo = new THREE.SphereGeometry(0.088, 12, 10);
+        rivetGeo.scale(1, 1, 0.65);
+        const rivetOutGeo = makeSmoothOutlineGeo(rivetGeo, 0.032);
+
+        const sideClampGeo = new THREE.BoxGeometry(0.56, 0.68, 2.74);
+        applyBoundsPlanarUVs(sideClampGeo, 1, 1);
+        const sideClampOutGeo = makeSmoothOutlineGeo(sideClampGeo, 0.048);
+
+        for (const sx of [-1, 1]) {
+            for (const cy of [0.64, -0.74]) {
+                const clampGrp = new THREE.Group();
+                clampGrp.position.set(sx * 2.66, cy, -0.58);
+                const cMesh = new THREE.Mesh(sideClampGeo, slotIronMat);
+                const cOut = new THREE.Mesh(sideClampOutGeo, slotInkOutlineMat);
+                cOut.renderOrder = -1;
+                clampGrp.add(cMesh, cOut);
+
+                for (const ry of [-0.19, 0, 0.19]) {
+                    const rv = new THREE.Mesh(rivetGeo, slotIronMat);
+                    rv.position.set(sx * -0.04, ry, 1.39);
+                    const rvOut = new THREE.Mesh(rivetOutGeo, slotInkOutlineMat);
+                    rvOut.position.copy(rv.position);
+                    rvOut.renderOrder = -1;
+                    clampGrp.add(rv, rvOut);
+                }
+                this.miniSlotGroup.add(clampGrp);
+            }
+
+            // Base corner forged-iron shoes
+            const shoeGeo = new THREE.BoxGeometry(0.76, 0.36, 2.94);
+            applyBoundsPlanarUVs(shoeGeo, 1, 1);
+            const shoeOutGeo = makeSmoothOutlineGeo(shoeGeo, 0.046);
+            const shoeGrp = new THREE.Group();
+            shoeGrp.position.set(sx * 2.74, -1.91, -0.60);
+            const sMesh = new THREE.Mesh(shoeGeo, slotIronMat);
+            const sOut = new THREE.Mesh(shoeOutGeo, slotInkOutlineMat);
+            sOut.renderOrder = -1;
+            shoeGrp.add(sMesh, sOut);
+
+            for (const rx of [-0.16, 0.16]) {
+                const rv = new THREE.Mesh(rivetGeo, slotIronMat);
+                rv.position.set(rx, 0, 1.49);
+                const rvOut = new THREE.Mesh(rivetOutGeo, slotInkOutlineMat);
+                rvOut.position.copy(rv.position);
+                rvOut.renderOrder = -1;
+                shoeGrp.add(rv, rvOut);
+            }
+            this.miniSlotGroup.add(shoeGrp);
+        }
+
+        // Top Cathedral Arch Forged-Iron Crest Strap + 7 Radial Rivets
+        const archIronShape = new THREE.Shape();
+        const archCenterY = 0.76;
+        const rArchIn = 2.48;
+        const rArchOut = 2.90;
+        const aLeft = Math.PI - 0.34;
+        const aRight = 0.34;
+        archIronShape.moveTo(Math.cos(aRight) * rArchIn, archCenterY + Math.sin(aRight) * rArchIn);
+        archIronShape.absarc(0, archCenterY, rArchOut, aRight, aLeft, false);
+        archIronShape.absarc(0, archCenterY, rArchIn, aLeft, aRight, true);
+        archIronShape.closePath();
+
+        const archIronGeo = new THREE.ExtrudeGeometry(archIronShape, {
+            depth: 0.44,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.04,
+            bevelThickness: 0.04
+        });
+        archIronGeo.translate(0, 0, 0.40);
+        applyBoundsPlanarUVs(archIronGeo, 2, 1);
+        const archIronMesh = new THREE.Mesh(archIronGeo, slotIronMat);
+        const archIronOut = new THREE.Mesh(makeSmoothOutlineGeo(archIronGeo, 0.052), slotInkOutlineMat);
+        archIronOut.renderOrder = -1;
+        this.miniSlotGroup.add(archIronMesh, archIronOut);
+
+        for (let rIdx = 0; rIdx < 7; rIdx++) {
+            const ang = 0.46 + (rIdx / 6) * (Math.PI - 0.92);
+            const rMid = (rArchIn + rArchOut) * 0.5;
+            const rv = new THREE.Mesh(rivetGeo, slotIronMat);
+            rv.position.set(Math.cos(ang) * rMid, archCenterY + Math.sin(ang) * rMid, 0.89);
+            const rvOut = new THREE.Mesh(rivetOutGeo, slotInkOutlineMat);
+            rvOut.position.copy(rv.position);
+            rvOut.renderOrder = -1;
+            this.miniSlotGroup.add(rv, rvOut);
+        }
+
+        // 4. Arched Royal Sunburst Marquee + Brass Frame + 9 3D Bulbs + 3D Diamond-Crown Crest (ZERO TEXT)
+        const marqueeArchShape = new THREE.Shape();
+        const mqCy = 0.98;
+        const mqRadius = 2.16;
+        marqueeArchShape.moveTo(-2.06, 1.12);
+        marqueeArchShape.lineTo(2.06, 1.12);
+        marqueeArchShape.absarc(0, mqCy, mqRadius, 0.16, Math.PI - 0.16, false);
+        marqueeArchShape.closePath();
+
+        const marqueePanelGeo = new THREE.ShapeGeometry(marqueeArchShape, 36);
+        applyBoundsPlanarUVs(marqueePanelGeo, 1, 1);
+        const marqueePanelMat = new THREE.MeshStandardMaterial({
             map: this.textures.slotCabinetMarqueeTex,
-            roughness: 0.25,
-            metalness: 0.15,
-            emissive: 0x4c1d95,
-            emissiveIntensity: 0.4
+            emissive: 0xffffff,
+            emissiveMap: this.textures.slotCabinetMarqueeTex,
+            emissiveIntensity: 0.28,
+            roughness: 0.36,
+            metalness: 0.06
         });
-        const marqueeMesh = new THREE.Mesh(marqueeGeo, marqueeMat);
-        marqueeMesh.position.set(0, 2.12, 0.38);
-        marqueeMesh.rotation.x = -0.10;
-        const marqueeOutline = this.createOutline(marqueeGeo, 0.035);
-        this.miniSlotGroup.add(marqueeMesh, marqueeOutline);
+        const marqueePanelMesh = new THREE.Mesh(marqueePanelGeo, marqueePanelMat);
+        marqueePanelMesh.position.z = 0.75;
+        this.miniSlotGroup.add(marqueePanelMesh);
 
-        // 3. Central Slot Aperture / Bezel Window
-        const windowFrameGeo = new THREE.BoxGeometry(4.8, 1.9, 0.22);
-        const windowFrameMat = new THREE.MeshStandardMaterial({
-            color: 0x1e293b,
-            roughness: 0.28,
-            metalness: 0.85
+        // Raised Antique-Brass Arched Marquee Bezel
+        const mqBezelOuter = new THREE.Shape();
+        mqBezelOuter.moveTo(-2.22, 1.04);
+        mqBezelOuter.lineTo(2.22, 1.04);
+        mqBezelOuter.absarc(0, mqCy, mqRadius + 0.15, 0.09, Math.PI - 0.09, false);
+        mqBezelOuter.closePath();
+
+        const mqBezelHole = new THREE.Path();
+        mqBezelHole.moveTo(-2.02, 1.16);
+        mqBezelHole.absarc(0, mqCy, mqRadius - 0.04, Math.PI - 0.18, 0.18, true);
+        mqBezelHole.lineTo(-2.02, 1.16);
+        mqBezelHole.closePath();
+        mqBezelOuter.holes.push(mqBezelHole);
+
+        const mqBezelGeo = new THREE.ExtrudeGeometry(mqBezelOuter, {
+            depth: 0.14,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.032,
+            bevelThickness: 0.032
         });
-        const windowFrameMesh = new THREE.Mesh(windowFrameGeo, windowFrameMat);
-        windowFrameMesh.position.set(0, 0.15, 0.65);
-        this.miniSlotGroup.add(windowFrameMesh);
+        mqBezelGeo.translate(0, 0, 0.72);
+        applyBoundsPlanarUVs(mqBezelGeo, 1.5, 1);
+        const mqBezelMesh = new THREE.Mesh(mqBezelGeo, slotGoldBezelMat);
+        const mqBezelOut = new THREE.Mesh(makeSmoothOutlineGeo(mqBezelGeo, 0.042), slotInkOutlineMat);
+        mqBezelOut.renderOrder = -1;
+        this.miniSlotGroup.add(mqBezelMesh, mqBezelOut);
 
-        // Vertical Mullion Dividers between the 3 reels
-        const dividerGeo = new THREE.BoxGeometry(0.12, 1.85, 0.28);
-        const dividerMat = new THREE.MeshStandardMaterial({
-            color: 0x0f172a,
-            emissive: 0x38bdf8,
-            emissiveIntensity: 0.45,
-            roughness: 0.2,
-            metalness: 0.9
+        // 9 Glowing 3D Glass Marquee Bulbs along the Arch
+        this.slotMarqueeBulbs = [];
+        const bulbCupGeo = new THREE.CylinderGeometry(0.095, 0.105, 0.08, 14);
+        bulbCupGeo.rotateX(Math.PI / 2);
+        const bulbGlassGeo = new THREE.SphereGeometry(0.076, 14, 12);
+        const bulbGlassOutGeo = makeSmoothOutlineGeo(bulbGlassGeo, 0.024);
+        const bulbPalette = [0xfde047, 0x38bdf8, 0xef4444, 0x22c55e];
+
+        for (let b = 0; b < 9; b++) {
+            const bAng = 0.24 + (b / 8) * (Math.PI - 0.48);
+            const rBulb = mqRadius + 0.055;
+            const bx = Math.cos(bAng) * rBulb;
+            const by = mqCy + Math.sin(bAng) * rBulb;
+            const colHex = bulbPalette[b % bulbPalette.length];
+
+            const cup = new THREE.Mesh(bulbCupGeo, slotBrassMat);
+            cup.position.set(bx, by, 0.87);
+            this.miniSlotGroup.add(cup);
+
+            const bMat = new THREE.MeshStandardMaterial({
+                color: colHex,
+                emissive: colHex,
+                emissiveIntensity: 0.95,
+                roughness: 0.16,
+                metalness: 0.10
+            });
+            const bulbMesh = new THREE.Mesh(bulbGlassGeo, bMat);
+            bulbMesh.position.set(bx, by, 0.92);
+            const bulbOut = new THREE.Mesh(bulbGlassOutGeo, slotInkOutlineMat);
+            bulbOut.position.copy(bulbMesh.position);
+            bulbOut.renderOrder = -1;
+            this.miniSlotGroup.add(bulbMesh, bulbOut);
+            this.slotMarqueeBulbs.push(bulbMesh);
+        }
+
+        // Sculpted 3D Central Royal Crest Medallion on Marquee Arch (Forged Iron + Brass Bezel + Hand-Inked Crown-Diamond Crest)
+        const crestGroup = new THREE.Group();
+        crestGroup.position.set(0, 1.70, 0.80);
+        this.miniSlotGroup.add(crestGroup);
+
+        const crestBaseGeo = new THREE.CylinderGeometry(0.58, 0.62, 0.10, 36);
+        crestBaseGeo.rotateX(Math.PI / 2);
+        applyBoundsPlanarUVs(crestBaseGeo, 1, 1);
+        const crestBaseMesh = new THREE.Mesh(crestBaseGeo, slotIronMat);
+        const crestBaseOut = new THREE.Mesh(makeSmoothOutlineGeo(crestBaseGeo, 0.038), slotInkOutlineMat);
+        crestBaseOut.renderOrder = -1;
+        crestGroup.add(crestBaseMesh, crestBaseOut);
+
+        const crestFaceGeo = new THREE.CircleGeometry(0.47, 40);
+        const crestFaceMat = new THREE.MeshStandardMaterial({
+            map: this.textures.slotMarqueeCrestTex,
+            emissive: 0xffffff,
+            emissiveMap: this.textures.slotMarqueeCrestTex,
+            emissiveIntensity: 0.28,
+            roughness: 0.45,
+            metalness: 0.05
         });
-        const divLeft = new THREE.Mesh(dividerGeo, dividerMat);
-        divLeft.position.set(-0.76, 0.15, 0.68);
-        const divRight = new THREE.Mesh(dividerGeo, dividerMat);
-        divRight.position.set(0.76, 0.15, 0.68);
-        this.miniSlotGroup.add(divLeft, divRight);
+        const crestFaceMesh = new THREE.Mesh(crestFaceGeo, crestFaceMat);
+        crestFaceMesh.position.z = 0.065;
+        crestGroup.add(crestFaceMesh);
 
-        // 4. The 3 3D Reel Cylinders
-        // Each reel is an authentic 3D cylinder rotated so its rotational axis is the local X axis
-        const reelRadius = 1.45;
-        const reelWidth = 1.15;
-        const reelSegments = 32;
+        const crestRingGeo = new THREE.TorusGeometry(0.49, 0.056, 16, 40);
+        applyBoundsPlanarUVs(crestRingGeo, 1, 1);
+        const crestRingMesh = new THREE.Mesh(crestRingGeo, slotGoldBezelMat);
+        crestRingMesh.position.z = 0.075;
+        const crestRingOut = new THREE.Mesh(makeSmoothOutlineGeo(crestRingGeo, 0.028), slotInkOutlineMat);
+        crestRingOut.position.copy(crestRingMesh.position);
+        crestRingOut.renderOrder = -1;
+        crestGroup.add(crestRingMesh, crestRingOut);
 
-        const reelGeo = new THREE.CylinderGeometry(reelRadius, reelRadius, reelWidth, reelSegments, 1, true);
-        reelGeo.rotateZ(Math.PI / 2); // Align cylinder axis with X axis
+        const crestStudGeo = new THREE.SphereGeometry(0.044, 10, 8);
+        crestStudGeo.scale(1, 1, 0.65);
+        const crestStudOutGeo = makeSmoothOutlineGeo(crestStudGeo, 0.020);
+        for (let cIdx = 0; cIdx < 8; cIdx++) {
+            const cAng = (cIdx * Math.PI * 2) / 8 + Math.PI / 8;
+            const sx = Math.cos(cAng) * 0.545;
+            const sy = Math.sin(cAng) * 0.545;
+            const stud = new THREE.Mesh(crestStudGeo, slotGoldBezelMat);
+            stud.position.set(sx, sy, 0.065);
+            const studOut = new THREE.Mesh(crestStudOutGeo, slotInkOutlineMat);
+            studOut.position.copy(stud.position);
+            studOut.renderOrder = -1;
+            crestGroup.add(stud, studOut);
+        }
 
-        const reelPositionsX = [-1.52, 0.0, 1.52];
+        // 5. Sculpted Antique-Brass 3-Reel Bay Frame & Curved Brass Mullions
+        const bayOuter = new THREE.Shape();
+        bayOuter.moveTo(-2.34, -1.06);
+        bayOuter.lineTo(2.34, -1.06);
+        bayOuter.quadraticCurveTo(2.42, -1.06, 2.42, -0.98);
+        bayOuter.lineTo(2.42, 0.94);
+        bayOuter.quadraticCurveTo(2.42, 1.02, 2.34, 1.02);
+        bayOuter.lineTo(-2.34, 1.02);
+        bayOuter.quadraticCurveTo(-2.42, 1.02, -2.42, 0.94);
+        bayOuter.lineTo(-2.42, -0.98);
+        bayOuter.quadraticCurveTo(-2.42, -1.06, -2.34, -1.06);
+        bayOuter.closePath();
+
+        const bayHole = new THREE.Path();
+        bayHole.moveTo(-2.12, -0.88);
+        bayHole.lineTo(-2.12, 0.84);
+        bayHole.lineTo(2.12, 0.84);
+        bayHole.lineTo(2.12, -0.88);
+        bayHole.closePath();
+        bayOuter.holes.push(bayHole);
+
+        const bayFrameGeo = new THREE.ExtrudeGeometry(bayOuter, {
+            depth: 0.24,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.042,
+            bevelThickness: 0.042
+        });
+        bayFrameGeo.translate(0, 0, 0.60);
+        applyBoundsPlanarUVs(bayFrameGeo, 1.5, 1.2);
+        const bayFrameMesh = new THREE.Mesh(bayFrameGeo, slotGoldBezelMat);
+        const bayFrameOut = new THREE.Mesh(makeSmoothOutlineGeo(bayFrameGeo, 0.046), slotInkOutlineMat);
+        bayFrameOut.renderOrder = -1;
+        this.miniSlotGroup.add(bayFrameMesh, bayFrameOut);
+
+        // 2 Curved Antique-Brass Vertical Mullion Dividers hugging the 3 cylindrical drums
+        const mullionArcShape = new THREE.Shape();
+        const rMulIn = REEL_RADIUS + 0.015;
+        const rMulOut = REEL_RADIUS + 0.095;
+        const mAng = 0.64;
+        mullionArcShape.moveTo(Math.cos(-mAng) * rMulIn, Math.sin(-mAng) * rMulIn);
+        mullionArcShape.absarc(0, 0, rMulOut, -mAng, mAng, false);
+        mullionArcShape.absarc(0, 0, rMulIn, mAng, -mAng, true);
+        mullionArcShape.closePath();
+
+        const mullionGeo = new THREE.ExtrudeGeometry(mullionArcShape, {
+            depth: 0.11,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.018,
+            bevelThickness: 0.018
+        });
+        mullionGeo.translate(0, 0, -0.055);
+        mullionGeo.rotateY(-Math.PI / 2);
+        const mullionOutGeo = makeSmoothOutlineGeo(mullionGeo, 0.028);
+
+        for (const mx of [-0.71, 0.71]) {
+            const mulMesh = new THREE.Mesh(mullionGeo, slotBrassMat);
+            mulMesh.position.set(mx, REEL_Y, REEL_Z);
+            const mulOut = new THREE.Mesh(mullionOutGeo, slotInkOutlineMat);
+            mulOut.position.copy(mulMesh.position);
+            mulOut.renderOrder = -1;
+            this.miniSlotGroup.add(mulMesh, mulOut);
+        }
+
+        // 6. The 3 High-Poly 3D Ivory Gouache Reel Cylinders + Brass Flanges
+        const reelGeo = new THREE.CylinderGeometry(REEL_RADIUS, REEL_RADIUS, REEL_WIDTH, 48, 1, true);
+        reelGeo.rotateZ(Math.PI / 2);
+
+        const flangeGeo = new THREE.CylinderGeometry(REEL_RADIUS + 0.022, REEL_RADIUS + 0.022, 0.055, 40);
+        flangeGeo.rotateZ(Math.PI / 2);
+
+        const reelPositionsX = [-1.42, 0.0, 1.42];
+        const initialRestAngle = (Math.PI * 2) / 24; // Centers Sector 0 (X88 Crowned Diamond) cleanly on payline
         this.slotReels = [];
-        this.slotReelAngles = [0, 0, 0];
+        this.slotReelAngles = [initialRestAngle, initialRestAngle, initialRestAngle];
 
         for (let i = 0; i < 3; i++) {
             const reelMat = new THREE.MeshStandardMaterial({
                 map: this.textures.slotReelStripTex,
-                roughness: 0.24,
-                metalness: 0.15
+                emissive: 0xfff8e7,
+                emissiveMap: this.textures.slotReelStripTex,
+                emissiveIntensity: 0.25,
+                roughness: 0.68,
+                metalness: 0.02
             });
             const reelMesh = new THREE.Mesh(reelGeo, reelMat);
-            reelMesh.position.set(reelPositionsX[i], 0.15, 0.22);
+            reelMesh.position.set(reelPositionsX[i], REEL_Y, REEL_Z);
+            reelMesh.rotation.x = initialRestAngle;
             this.miniSlotGroup.add(reelMesh);
             this.slotReels.push(reelMesh);
 
-            // Add side metallic end-caps to each reel cylinder
-            const capGeo = new THREE.CircleGeometry(reelRadius, 24);
-            capGeo.rotateY(Math.PI / 2);
-            const capMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.8 });
-            const capLeft = new THREE.Mesh(capGeo, capMat);
-            capLeft.position.set(reelPositionsX[i] - reelWidth / 2, 0.15, 0.22);
-            const capRight = new THREE.Mesh(capGeo, capMat);
-            capRight.position.set(reelPositionsX[i] + reelWidth / 2, 0.15, 0.22);
+            const capLeft = new THREE.Mesh(flangeGeo, slotBrassMat);
+            capLeft.position.set(reelPositionsX[i] - REEL_WIDTH * 0.5, REEL_Y, REEL_Z);
+            const capRight = new THREE.Mesh(flangeGeo, slotBrassMat);
+            capRight.position.set(reelPositionsX[i] + REEL_WIDTH * 0.5, REEL_Y, REEL_Z);
             this.miniSlotGroup.add(capLeft, capRight);
         }
 
-        // 5. Central Laser Payline (Single-Line Horizontal at y = 0.15, z = 1.68)
-        const paylineGeo = new THREE.BoxGeometry(4.75, 0.065, 0.04);
+        // 7. Subtle Translucent Payline Hairline (ignites on Win/Near-Miss) & Twin Glossy Crimson 3D Arrow Pointers
+        const paylineGeo = new THREE.BoxGeometry(4.28, 0.022, 0.020);
         const paylineMat = new THREE.MeshStandardMaterial({
-            color: 0x38bdf8,
-            emissive: 0x0284c7,
+            color: 0xfef08a,
+            emissive: 0x38bdf8,
             emissiveIntensity: 0.85,
-            roughness: 0.1,
-            metalness: 0.3
+            roughness: 0.15,
+            metalness: 0.25,
+            transparent: true,
+            opacity: 0.14
         });
         this.slotPaylineBeam = new THREE.Mesh(paylineGeo, paylineMat);
-        this.slotPaylineBeam.position.set(0, 0.15, 1.68);
+        this.slotPaylineBeam.position.set(0, REEL_Y, 0.925);
         this.miniSlotGroup.add(this.slotPaylineBeam);
 
-        // Chevron Pointers pointing at the Central Payline
         this.slotPaylineChevrons = [];
-        const chevronShape = new THREE.Shape();
-        chevronShape.moveTo(-0.18, 0.16);
-        chevronShape.lineTo(0.18, 0.0);
-        chevronShape.lineTo(-0.18, -0.16);
-        chevronShape.closePath();
+        const ptrScale = 1.16;
+        const ptrShape = new THREE.Shape();
+        ptrShape.moveTo(-0.088 * ptrScale, 0.26 * ptrScale);
+        ptrShape.lineTo(0.088 * ptrScale, 0.26 * ptrScale);
+        ptrShape.quadraticCurveTo(0.130 * ptrScale, 0.26 * ptrScale, 0.126 * ptrScale, 0.21 * ptrScale);
+        ptrShape.lineTo(0.104 * ptrScale, -0.10 * ptrScale);
+        ptrShape.lineTo(0.212 * ptrScale, -0.08 * ptrScale);
+        ptrShape.quadraticCurveTo(0.260 * ptrScale, -0.07 * ptrScale, 0.250 * ptrScale, -0.13 * ptrScale);
+        ptrShape.quadraticCurveTo(0.158 * ptrScale, -0.32 * ptrScale, 0.030 * ptrScale, -0.47 * ptrScale);
+        ptrShape.quadraticCurveTo(0.0, -0.50 * ptrScale, -0.030 * ptrScale, -0.47 * ptrScale);
+        ptrShape.quadraticCurveTo(-0.158 * ptrScale, -0.32 * ptrScale, -0.250 * ptrScale, -0.13 * ptrScale);
+        ptrShape.quadraticCurveTo(-0.260 * ptrScale, -0.07 * ptrScale, -0.212 * ptrScale, -0.08 * ptrScale);
+        ptrShape.lineTo(-0.104 * ptrScale, -0.10 * ptrScale);
+        ptrShape.lineTo(-0.126 * ptrScale, 0.21 * ptrScale);
+        ptrShape.quadraticCurveTo(-0.130 * ptrScale, 0.26 * ptrScale, -0.088 * ptrScale, 0.26 * ptrScale);
+        ptrShape.closePath();
 
-        const chevronGeo = new THREE.ExtrudeGeometry(chevronShape, {
-            depth: 0.06,
+        const ptrGeo = new THREE.ExtrudeGeometry(ptrShape, {
+            depth: 0.13,
             bevelEnabled: true,
             bevelSegments: 2,
             steps: 1,
-            bevelSize: 0.02,
-            bevelThickness: 0.02
+            bevelSize: 0.028,
+            bevelThickness: 0.028
         });
-        const chevronMat = new THREE.MeshStandardMaterial({
-            color: 0xfacc15,
-            emissive: 0xd97706,
-            emissiveIntensity: 0.9,
-            roughness: 0.2,
-            metalness: 0.5
-        });
+        ptrGeo.translate(0, 0, -0.065);
+        applyBoundsPlanarUVs(ptrGeo, 1, 1);
+        const ptrOutGeo = makeSmoothOutlineGeo(ptrGeo, 0.042);
 
-        // Left Chevrons: pointing right >>>
+        // Left crimson pointer pointing right (+X) -> rotate +PI/2 around Z (since tip is at -Y)
         const chevLeftGroup = new THREE.Group();
-        chevLeftGroup.position.set(-2.45, 0.15, 1.68);
-        const chevLeft1 = new THREE.Mesh(chevronGeo, chevronMat);
-        chevLeftGroup.add(chevLeft1);
+        chevLeftGroup.position.set(-2.42, REEL_Y, 0.95);
+        const leftPtrMesh = new THREE.Mesh(ptrGeo, slotCrimsonMat);
+        leftPtrMesh.rotation.z = Math.PI / 2;
+        const leftPtrOut = new THREE.Mesh(ptrOutGeo, slotInkOutlineMat);
+        leftPtrOut.rotation.z = Math.PI / 2;
+        leftPtrOut.renderOrder = -1;
+        chevLeftGroup.add(leftPtrMesh, leftPtrOut);
         this.miniSlotGroup.add(chevLeftGroup);
         this.slotPaylineChevrons.push(chevLeftGroup);
 
-        // Right Chevrons: pointing left <<<
+        // Right crimson pointer pointing left (-X) -> rotate -PI/2 around Z
         const chevRightGroup = new THREE.Group();
-        chevRightGroup.position.set(2.45, 0.15, 1.68);
-        const chevRight1 = new THREE.Mesh(chevronGeo, chevronMat);
-        chevRight1.rotation.y = Math.PI; // point left
-        chevRightGroup.add(chevRight1);
+        chevRightGroup.position.set(2.42, REEL_Y, 0.95);
+        const rightPtrMesh = new THREE.Mesh(ptrGeo, slotCrimsonMat);
+        rightPtrMesh.rotation.z = -Math.PI / 2;
+        const rightPtrOut = new THREE.Mesh(ptrOutGeo, slotInkOutlineMat);
+        rightPtrOut.rotation.z = -Math.PI / 2;
+        rightPtrOut.renderOrder = -1;
+        chevRightGroup.add(rightPtrMesh, rightPtrOut);
         this.miniSlotGroup.add(chevRightGroup);
         this.slotPaylineChevrons.push(chevRightGroup);
 
-        // 6. Bottom Digital LED Readout Panel (Spins Left & Central Accumulator)
-        const ledGeo = new THREE.PlaneGeometry(4.75, 0.72);
-        const ledMat = new THREE.MeshStandardMaterial({
-            map: this.textures.slotLedDisplayTex,
-            roughness: 0.35,
-            metalness: 0.2,
-            emissive: 0x0f172a,
-            emissiveIntensity: 0.3
+        // 8. Lower Stepped Brass & Iron Deck with 5 Physical 3D Spin-Charge Cabochon Gems (ZERO TEXT)
+        const deckShape = new THREE.Shape();
+        deckShape.moveTo(-2.12, -1.62);
+        deckShape.lineTo(2.12, -1.62);
+        deckShape.quadraticCurveTo(2.22, -1.62, 2.22, -1.52);
+        deckShape.lineTo(2.22, -1.24);
+        deckShape.quadraticCurveTo(2.22, -1.16, 2.12, -1.16);
+        deckShape.lineTo(-2.12, -1.16);
+        deckShape.quadraticCurveTo(-2.22, -1.16, -2.22, -1.24);
+        deckShape.lineTo(-2.22, -1.52);
+        deckShape.quadraticCurveTo(-2.22, -1.62, -2.12, -1.62);
+        deckShape.closePath();
+
+        const deckGeo = new THREE.ExtrudeGeometry(deckShape, {
+            depth: 0.16,
+            bevelEnabled: true,
+            bevelSegments: 2,
+            steps: 1,
+            bevelSize: 0.032,
+            bevelThickness: 0.032
         });
-        this.slotLedDisplayMesh = new THREE.Mesh(ledGeo, ledMat);
-        this.slotLedDisplayMesh.position.set(0, -1.25, 0.71);
-        this.miniSlotGroup.add(this.slotLedDisplayMesh);
+        deckGeo.translate(0, 0, 0.66);
+        applyBoundsPlanarUVs(deckGeo, 2, 1);
+        const deckMesh = new THREE.Mesh(deckGeo, slotIronMat);
+        const deckOut = new THREE.Mesh(makeSmoothOutlineGeo(deckGeo, 0.042), slotInkOutlineMat);
+        deckOut.renderOrder = -1;
+        this.miniSlotGroup.add(deckMesh, deckOut);
 
-        // 7. Spotlights & Glow Lights for Dramatic Arcade Illumination
-        const overheadLight1 = new THREE.PointLight(0xffffff, 1.2, 10.0, 1.4);
-        overheadLight1.position.set(-1.5, 1.8, 1.8);
-        const overheadLight2 = new THREE.PointLight(0xfef08a, 1.4, 10.0, 1.4);
-        overheadLight2.position.set(0, 1.8, 1.8);
-        const overheadLight3 = new THREE.PointLight(0xffffff, 1.2, 10.0, 1.4);
-        overheadLight3.position.set(1.5, 1.8, 1.8);
-        this.miniSlotGroup.add(overheadLight1, overheadLight2, overheadLight3);
+        this.slotSpinOrbs = [];
+        const orbBezelGeo = new THREE.CylinderGeometry(0.175, 0.195, 0.08, 20);
+        orbBezelGeo.rotateX(Math.PI / 2);
+        const orbBezelOutGeo = makeSmoothOutlineGeo(orbBezelGeo, 0.028);
+        const orbGemGeo = new THREE.SphereGeometry(0.132, 18, 14);
+        orbGemGeo.scale(1, 1, 0.62);
+        const orbGemOutGeo = makeSmoothOutlineGeo(orbGemGeo, 0.024);
 
-        const neonGlow = new THREE.PointLight(0xa855f7, 1.0, 14.0, 1.2);
-        neonGlow.position.set(0, 0, 2.5);
-        this.miniSlotGroup.add(neonGlow);
+        for (let sIdx = 0; sIdx < 5; sIdx++) {
+            const ox = (sIdx - 2) * 0.74;
+            const oy = -1.39;
+
+            const bzMesh = new THREE.Mesh(orbBezelGeo, slotGoldBezelMat);
+            bzMesh.position.set(ox, oy, 0.85);
+            const bzOut = new THREE.Mesh(orbBezelOutGeo, slotInkOutlineMat);
+            bzOut.position.copy(bzMesh.position);
+            bzOut.renderOrder = -1;
+            this.miniSlotGroup.add(bzMesh, bzOut);
+
+            const orbMat = new THREE.MeshStandardMaterial({
+                color: 0x38bdf8,
+                emissive: 0x0ea5e9,
+                emissiveIntensity: 0.95,
+                roughness: 0.14,
+                metalness: 0.15
+            });
+            const orbMesh = new THREE.Mesh(orbGemGeo, orbMat);
+            orbMesh.position.set(ox, oy, 0.89);
+            const orbOut = new THREE.Mesh(orbGemOutGeo, slotInkOutlineMat);
+            orbOut.position.copy(orbMesh.position);
+            orbOut.scale.copy(orbMesh.scale);
+            orbOut.renderOrder = -1;
+            this.miniSlotGroup.add(orbMesh, orbOut);
+            this.slotSpinOrbs.push(orbMesh);
+        }
+
+        // 9. Articulated 3D Mechanical Side Pull-Lever Assembly (Right Flank)
+        const leverMountGroup = new THREE.Group();
+        leverMountGroup.position.set(2.84, -0.28, -0.18);
+        this.miniSlotGroup.add(leverMountGroup);
+
+        const gearboxGeo = new THREE.CylinderGeometry(0.42, 0.46, 0.44, 24);
+        gearboxGeo.rotateZ(Math.PI / 2);
+        applyBoundsPlanarUVs(gearboxGeo, 1, 1);
+        const gearboxMesh = new THREE.Mesh(gearboxGeo, slotIronMat);
+        gearboxMesh.position.x = 0.16;
+        const gearboxOut = new THREE.Mesh(makeSmoothOutlineGeo(gearboxGeo, 0.044), slotInkOutlineMat);
+        gearboxOut.position.copy(gearboxMesh.position);
+        gearboxOut.renderOrder = -1;
+        leverMountGroup.add(gearboxMesh, gearboxOut);
+
+        const hubCapGeo = new THREE.CylinderGeometry(0.28, 0.30, 0.12, 24);
+        hubCapGeo.rotateZ(Math.PI / 2);
+        const hubCapMesh = new THREE.Mesh(hubCapGeo, slotGoldBezelMat);
+        hubCapMesh.position.x = 0.42;
+        const hubCapOut = new THREE.Mesh(makeSmoothOutlineGeo(hubCapGeo, 0.036), slotInkOutlineMat);
+        hubCapOut.position.copy(hubCapMesh.position);
+        hubCapOut.renderOrder = -1;
+        leverMountGroup.add(hubCapMesh, hubCapOut);
+
+        this.slotLeverPivot = new THREE.Group();
+        this.slotLeverPivot.position.set(0.36, 0, 0);
+        leverMountGroup.add(this.slotLeverPivot);
+
+        const shaftCurve = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0.14, 0.42, 0.10),
+            new THREE.Vector3(0.20, 1.08, 0.22),
+            new THREE.Vector3(0.20, 1.68, 0.28)
+        ]);
+        const shaftGeo = new THREE.TubeGeometry(shaftCurve, 20, 0.088, 14, false);
+        const shaftMesh = new THREE.Mesh(shaftGeo, slotChromeShaftMat);
+        const shaftOut = new THREE.Mesh(makeSmoothOutlineGeo(shaftGeo, 0.038), slotInkOutlineMat);
+        shaftOut.renderOrder = -1;
+        this.slotLeverPivot.add(shaftMesh, shaftOut);
+
+        const ferruleGeo = new THREE.CylinderGeometry(0.145, 0.125, 0.16, 18);
+        const ferruleMesh = new THREE.Mesh(ferruleGeo, slotGoldBezelMat);
+        ferruleMesh.position.set(0.20, 1.62, 0.27);
+        const ferruleOut = new THREE.Mesh(makeSmoothOutlineGeo(ferruleGeo, 0.030), slotInkOutlineMat);
+        ferruleOut.position.copy(ferruleMesh.position);
+        ferruleOut.renderOrder = -1;
+        this.slotLeverPivot.add(ferruleMesh, ferruleOut);
+
+        const knobGeo = new THREE.SphereGeometry(0.34, 24, 20);
+        applyBoundsPlanarUVs(knobGeo, 1, 1);
+        const knobMesh = new THREE.Mesh(knobGeo, slotCrimsonMat);
+        knobMesh.position.set(0.20, 1.94, 0.30);
+        const knobOut = new THREE.Mesh(makeSmoothOutlineGeo(knobGeo, 0.048), slotInkOutlineMat);
+        knobOut.position.copy(knobMesh.position);
+        knobOut.renderOrder = -1;
+        this.slotLeverPivot.add(knobMesh, knobOut);
+
+        // 10. Warm Studio Key Illumination for Reels, Brass & Oak Cabinet
+        const slotKeyLight = new THREE.PointLight(0xfff5d6, 1.45, 22.0, 1.25);
+        slotKeyLight.position.set(0, 1.4, 5.4);
+        this.miniSlotGroup.add(slotKeyLight);
+
+        const slotRimAccent = new THREE.PointLight(0xa855f7, 0.75, 16.0, 1.25);
+        slotRimAccent.position.set(0, 2.8, 3.2);
+        this.miniSlotGroup.add(slotRimAccent);
+
+        this.miniSlotGroup.scale.setScalar(1.24);
+    }
+
+    /**
+     * Updates the 5 physical 3D spin-charge cabochon gems on the lower brass slot deck (zero text).
+     */
+    private syncSlotCabinetIndicators(spinsLeft: number, maxSpins: number, accumulator: number) {
+        updateSlotLedDisplayCanvas(this.textures.slotLedDisplayCanvas, spinsLeft, maxSpins, accumulator);
+        this.textures.slotLedDisplayTex.needsUpdate = true;
+
+        const activeCount = Math.max(0, Math.min(this.slotSpinOrbs.length, spinsLeft));
+        const hasAccum = accumulator > 0;
+        for (let i = 0; i < this.slotSpinOrbs.length; i++) {
+            const mat = this.slotSpinOrbs[i].material as THREE.MeshStandardMaterial;
+            if (i < activeCount) {
+                mat.color.setHex(hasAccum ? 0xfde047 : 0x38bdf8);
+                mat.emissive.setHex(hasAccum ? 0xd97706 : 0x0284c7);
+                mat.emissiveIntensity = 0.95;
+            } else {
+                mat.color.setHex(0x1e293b);
+                mat.emissive.setHex(0x090d16);
+                mat.emissiveIntensity = 0.12;
+            }
+        }
     }
 
     /**
@@ -5068,7 +5695,7 @@ export class PixiRenderer {
 
         // Ensure at least 4 full forward revolutions for exhilarating visual spin
         const minRevolutions = 4 * Math.PI * 2;
-        const currentMod = currentAngle % (Math.PI * 2);
+        const currentMod = ((currentAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
         let delta = (targetSectorBase - currentMod) % (Math.PI * 2);
         if (delta < 0) delta += Math.PI * 2;
 
@@ -5086,13 +5713,13 @@ export class PixiRenderer {
         this.isWheelSpinning = false;
         this.gameState.engine.activateSlotBonus();
 
-        const slotZ = worldZ - 7.0;
-        const slotY = SHIP_FLIGHT_Y + 1.15;
+        const slotZ = worldZ - 6.2;
+        const slotY = SHIP_FLIGHT_Y + 1.16;
 
-        // Ensure floating astronaut is visible and facing the arcade slot in the void (flanked to the lower-left so slot and LED are fully visible)
+        // Ensure floating astronaut flanks cleanly to the lower-left without overlapping the slot clamps
         this.floatingAstronautGroup.visible = true;
         this.floatingAstronautGroup.position.set(
-            worldX - 2.85,
+            worldX - 3.92,
             SHIP_FLIGHT_Y - 0.88,
             worldZ - 2.6
         );
@@ -5111,14 +5738,19 @@ export class PixiRenderer {
             });
         }
 
-        // Initialize LED display canvas
-        updateSlotLedDisplayCanvas(
-            this.textures.slotLedDisplayCanvas,
+        // Reset reels to centered hero Jackpot emblem & initialize 3D spin-charge cabochon gems
+        const restAng = (Math.PI * 2) / 24;
+        for (let r = 0; r < this.slotReels.length; r++) {
+            this.slotReelAngles[r] = restAng;
+            this.slotReels[r].rotation.x = restAng;
+        }
+        if (this.slotLeverPivot) this.slotLeverPivot.rotation.set(0, 0, 0);
+
+        this.syncSlotCabinetIndicators(
             spinsLeft,
             this.gameState.engine.slotBundle?.spins.length || 5,
             accumulator
         );
-        this.textures.slotLedDisplayTex.needsUpdate = true;
 
         // Animate Mini-Slot dropping into view in front of the astronaut with high impact
         this.miniSlotGroup.visible = true;
@@ -5163,8 +5795,8 @@ export class PixiRenderer {
 
         const worldX = 0;
         const targetShipZ = -3.0;
-        const slotZ = targetShipZ - 7.0;
-        const slotY = SHIP_FLIGHT_Y + 1.15;
+        const slotZ = targetShipZ - 6.2;
+        const slotY = SHIP_FLIGHT_Y + 1.16;
 
         gsap.killTweensOf(this.ship.pos);
         this.ship.vel.set(0, 0, 0);
@@ -5197,23 +5829,23 @@ export class PixiRenderer {
                         this.ship.cockpitAstronaut.visible = false;
                         this.ship.root.visible = false;
 
-                        // Position floating astronaut facing the arcade slot in zero-G
+                        // Position floating astronaut flanking cleanly to the lower-left of the slot
                         this.floatingAstronautGroup.visible = true;
                         this.floatingAstronautGroup.position.set(
-                            worldX - 2.85,
+                            worldX - 3.92,
                             SHIP_FLIGHT_Y - 0.88,
                             targetShipZ - 2.6
                         );
                         this.floatingAstronautGroup.rotation.y = -0.38;
 
-                        // Initialize LED display canvas
-                        updateSlotLedDisplayCanvas(
-                            this.textures.slotLedDisplayCanvas,
-                            spinsCount,
-                            spinsCount,
-                            0
-                        );
-                        this.textures.slotLedDisplayTex.needsUpdate = true;
+                        const restAng = (Math.PI * 2) / 24;
+                        for (let r = 0; r < this.slotReels.length; r++) {
+                            this.slotReelAngles[r] = restAng;
+                            this.slotReels[r].rotation.x = restAng;
+                        }
+                        if (this.slotLeverPivot) this.slotLeverPivot.rotation.set(0, 0, 0);
+
+                        this.syncSlotCabinetIndicators(spinsCount, spinsCount, 0);
 
                         // Animate Mini-Slot dropping into view in front of astronaut
                         this.miniSlotGroup.visible = true;
@@ -5248,8 +5880,8 @@ export class PixiRenderer {
 
     /**
      * Executes the Provably Fair spin animation of the 3D 1x3 Arcade Mini-Slot Machine.
-     * Features staggered reel stops (CLANK), agonizing near-miss slow crawl on Reel 3,
-     * central laser payline ignition, and digital LED accumulator rollout!
+     * Features tactile 3D side-lever crank, staggered reel stops (CLANK), agonizing near-miss
+     * slow crawl on Reel 3, central payline ignition, and 3D spin-gem indicator updates!
      */
     public spinSlotReels(
         outcome: SlotSpinOutcome,
@@ -5261,6 +5893,22 @@ export class PixiRenderer {
         this.isSlotSpinning = true;
 
         const totalSpins = this.gameState.engine.slotBundle?.spins.length || 5;
+
+        // Tactile 3D Mechanical Side Pull-Lever Crank & Spring Return
+        if (this.slotLeverPivot) {
+            gsap.killTweensOf(this.slotLeverPivot.rotation);
+            gsap.timeline()
+                .to(this.slotLeverPivot.rotation, {
+                    x: 0.92,
+                    duration: 0.14,
+                    ease: 'power2.in'
+                })
+                .to(this.slotLeverPivot.rotation, {
+                    x: 0,
+                    duration: 0.36,
+                    ease: 'back.out(2.4)'
+                });
+        }
 
         // Sound: continuous mechanical reel spin
         audioController.playSlotReelSpin();
@@ -5305,13 +5953,18 @@ export class PixiRenderer {
                 if (outcome.isNearMiss) {
                     // Start Near-Miss high tension audio as Reel 3 crawls agonizingly slow!
                     audioController.playSlotNearMissTension();
-                    // Flash payline beam and chevrons with warning crimson/amber
+                    // Flash payline beam with warning crimson/amber
                     const payMat = this.slotPaylineBeam.material as THREE.MeshStandardMaterial;
                     gsap.to(payMat, {
+                        opacity: 0.82,
                         emissiveIntensity: 2.2,
                         duration: 0.15,
                         yoyo: true,
-                        repeat: 6
+                        repeat: 5,
+                        onComplete: () => {
+                            payMat.opacity = 0.14;
+                            payMat.emissiveIntensity = 0.85;
+                        }
                     });
                 }
             }
@@ -5339,14 +5992,14 @@ export class PixiRenderer {
                 const slotPos = this.miniSlotGroup.position;
 
                 if (outcome.isWin) {
-                    // Win Animation: Payline laser ignition & electric sparks!
+                    // Win Animation: Payline laser ignition, marquee bulb flash & electric sparks!
                     audioController.playSlotLineWin(outcome.multiplier >= 28);
                     this.vfx.triggerScreenShake(0.35, 0.22);
-                    this.vfx.spawnShockwave3D(slotPos.x, slotPos.y + 0.15, slotPos.z + 1.6, 0xfde047, 8.0, 0.4);
+                    this.vfx.spawnShockwave3D(slotPos.x, slotPos.y + 0.05, slotPos.z + 1.0, 0xfde047, 8.0, 0.4);
                     this.vfx.spawnGpuParticleCloud(
                         slotPos.x,
-                        slotPos.y + 0.15,
-                        slotPos.z + 1.7,
+                        slotPos.y + 0.05,
+                        slotPos.z + 1.1,
                         120,
                         [0xfde047, 0xfacc15, 0x38bdf8, 0xffffff],
                         10,
@@ -5354,26 +6007,34 @@ export class PixiRenderer {
                         0.7
                     );
 
-                    // Pulse payline beam
+                    // Pulse payline beam & 9 3D marquee arch bulbs
+                    const payMat = this.slotPaylineBeam.material as THREE.MeshStandardMaterial;
+                    gsap.fromTo(
+                        payMat,
+                        { opacity: 0.96, emissiveIntensity: 2.6 },
+                        { opacity: 0.14, emissiveIntensity: 0.85, duration: 0.65, ease: 'power2.out' }
+                    );
                     gsap.fromTo(
                         this.slotPaylineBeam.scale,
                         { y: 3.5, z: 3.5 },
                         { y: 1.0, z: 1.0, duration: 0.45, ease: 'elastic.out(1.2, 0.4)' }
                     );
+                    this.slotMarqueeBulbs.forEach((bulb, bIdx) => {
+                        const bMat = bulb.material as THREE.MeshStandardMaterial;
+                        gsap.fromTo(
+                            bMat,
+                            { emissiveIntensity: 2.8 },
+                            { emissiveIntensity: 0.95, duration: 0.55, delay: bIdx * 0.03 }
+                        );
+                    });
                 } else if (outcome.isNearMiss) {
                     // Agonizing Near-Miss halt!
                     this.vfx.triggerScreenShake(0.2, 0.15);
-                    this.vfx.spawnShockwave3D(slotPos.x + 1.5, slotPos.y + 0.15, slotPos.z + 1.6, 0xef4444, 4.0, 0.25);
+                    this.vfx.spawnShockwave3D(slotPos.x + 1.4, slotPos.y + 0.05, slotPos.z + 1.0, 0xef4444, 4.0, 0.25);
                 }
 
-                // Update LED screen canvas with updated spins and accumulator
-                updateSlotLedDisplayCanvas(
-                    this.textures.slotLedDisplayCanvas,
-                    spinsLeft,
-                    totalSpins,
-                    accumulator
-                );
-                this.textures.slotLedDisplayTex.needsUpdate = true;
+                // Update 3D spin-charge cabochon gems & backing LED state
+                this.syncSlotCabinetIndicators(spinsLeft, totalSpins, accumulator);
 
                 // Fast, snappy resolution without lingering lag
                 const postSpinDelay = spinsLeft === 0 ? 180 : 380;
