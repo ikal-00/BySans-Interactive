@@ -2911,145 +2911,302 @@ export class PixiRenderer {
             geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
         };
 
-        // Shared Comic PBR Materials (low metalness so cosmic space sky never darkens white comic suit)
-        const suitFabricMat = new THREE.MeshStandardMaterial({
+        // 4-Band Nearest-Filtered Cel-Shading Gradient Ramp for Authentic 2D/3D Comic Book Illustration Shading
+        const celRampData = new Uint8Array([
+            148, 156, 168, 255, // Deep cool slate-blue comic shadow
+            188, 195, 205, 255, // Mid-shadow gouache tone
+            226, 231, 238, 255, // Clean lit comic off-white
+            252, 253, 255, 255  // Crisp comic key-light highlight
+        ]);
+        const celGradientTex = new THREE.DataTexture(celRampData, 4, 1, THREE.RGBAFormat);
+        celGradientTex.minFilter = THREE.NearestFilter;
+        celGradientTex.magFilter = THREE.NearestFilter;
+        celGradientTex.generateMipmaps = false;
+        celGradientTex.needsUpdate = true;
+
+        // Shared Cel-Shaded Comic Toon + Physical Visor Materials
+        const suitFabricMat = new THREE.MeshToonMaterial({
+            color: 0xf6f8fb,
             map: this.textures.astroSuitFabricTex,
-            emissive: 0xdbe4ee,
-            emissiveIntensity: 0.14,
-            roughness: 0.58,
-            metalness: 0.04
+            gradientMap: celGradientTex,
+            emissive: 0x1e293b,
+            emissiveIntensity: 0.08
         });
-        const helmetShellMat = new THREE.MeshStandardMaterial({
+        const helmetShellMat = new THREE.MeshToonMaterial({
+            color: 0xf8fafc,
             map: this.textures.astroHelmetShellTex,
-            emissive: 0xe2e8f0,
-            emissiveIntensity: 0.15,
-            roughness: 0.44,
-            metalness: 0.06
+            gradientMap: celGradientTex,
+            emissive: 0x1e293b,
+            emissiveIntensity: 0.08
         });
-        const visorGlassMat = new THREE.MeshStandardMaterial({
+        const visorGlassMat = new THREE.MeshPhysicalMaterial({
             map: this.textures.astroVisorTex,
             emissive: 0xffffff,
             emissiveMap: this.textures.astroVisorTex,
             emissiveIntensity: 0.24,
-            roughness: 0.14,
-            metalness: 0.18
+            roughness: 0.10,
+            metalness: 0.12,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.06
         });
-        const armorGreyMat = new THREE.MeshStandardMaterial({
-            color: 0xc2cbd4,
-            emissive: 0x334155,
-            emissiveIntensity: 0.12,
-            roughness: 0.46,
-            metalness: 0.18
-        });
-        const bezelMetalMat = new THREE.MeshStandardMaterial({
-            color: 0x9aa4af,
-            emissive: 0x334155,
-            emissiveIntensity: 0.12,
-            roughness: 0.40,
-            metalness: 0.28
-        });
-        const darkStrapMat = new THREE.MeshStandardMaterial({
-            color: 0x525d69,
+        const armorGreyMat = new THREE.MeshToonMaterial({
+            color: 0xc5ced8,
+            gradientMap: celGradientTex,
             emissive: 0x1e293b,
-            emissiveIntensity: 0.10,
-            roughness: 0.56,
-            metalness: 0.14
+            emissiveIntensity: 0.08
         });
-        const wristRingMat = new THREE.MeshStandardMaterial({
-            color: 0x73899e,
-            emissive: 0x1e3a5f,
-            emissiveIntensity: 0.14,
-            roughness: 0.38,
-            metalness: 0.28
-        });
-        const tanPatchMat = new THREE.MeshStandardMaterial({
-            color: 0xd4be8d,
-            emissive: 0x785c2a,
-            emissiveIntensity: 0.12,
-            roughness: 0.68,
-            metalness: 0.04
-        });
-        const bootSoleMat = new THREE.MeshStandardMaterial({
-            color: 0x586472,
+        const bezelMetalMat = new THREE.MeshToonMaterial({
+            color: 0x9aa5b1,
+            gradientMap: celGradientTex,
             emissive: 0x1e293b,
-            emissiveIntensity: 0.12,
-            roughness: 0.70,
-            metalness: 0.08
+            emissiveIntensity: 0.09
         });
-        const hoseBodyMat = new THREE.MeshStandardMaterial({
-            color: 0xbac3cc,
-            emissive: 0x334155,
-            emissiveIntensity: 0.12,
-            roughness: 0.48,
-            metalness: 0.16
+        const darkStrapMat = new THREE.MeshToonMaterial({
+            color: 0x515c68,
+            gradientMap: celGradientTex,
+            emissive: 0x0f172a,
+            emissiveIntensity: 0.08
         });
-        const chestBoxFaceMat = new THREE.MeshStandardMaterial({
+        const wristRingMat = new THREE.MeshToonMaterial({
+            color: 0x748ba3,
+            gradientMap: celGradientTex,
+            emissive: 0x172554,
+            emissiveIntensity: 0.10
+        });
+        const tanPatchMat = new THREE.MeshToonMaterial({
+            color: 0xd6c08f,
+            gradientMap: celGradientTex,
+            emissive: 0x453214,
+            emissiveIntensity: 0.08
+        });
+        const bootSoleMat = new THREE.MeshToonMaterial({
+            color: 0x5c6877,
+            gradientMap: celGradientTex,
+            emissive: 0x0f172a,
+            emissiveIntensity: 0.08
+        });
+        const hoseBodyMat = new THREE.MeshToonMaterial({
+            color: 0xbcc6d0,
+            gradientMap: celGradientTex,
+            emissive: 0x1e293b,
+            emissiveIntensity: 0.08
+        });
+        const chestBoxFaceMat = new THREE.MeshToonMaterial({
             map: this.textures.astroChestBoxTex,
-            emissive: 0x334155,
-            emissiveIntensity: 0.14,
-            roughness: 0.42,
-            metalness: 0.16
+            gradientMap: celGradientTex,
+            emissive: 0x1e293b,
+            emissiveIntensity: 0.09
         });
-        const backpackFaceMat = new THREE.MeshStandardMaterial({
+        const backpackFaceMat = new THREE.MeshToonMaterial({
             map: this.textures.astroBackpackPanelTex,
-            emissive: 0x334155,
-            emissiveIntensity: 0.14,
-            roughness: 0.44,
-            metalness: 0.14
+            gradientMap: celGradientTex,
+            emissive: 0x1e293b,
+            emissiveIntensity: 0.09
         });
-        const flagPatchMat = new THREE.MeshStandardMaterial({
+        const flagPatchMat = new THREE.MeshToonMaterial({
             map: this.textures.astroPatchFlagTex,
-            roughness: 0.55,
-            metalness: 0.05
+            gradientMap: celGradientTex
         });
-        const missionPatchMat = new THREE.MeshStandardMaterial({
+        const missionPatchMat = new THREE.MeshToonMaterial({
             map: this.textures.astroPatchMissionTex,
-            roughness: 0.55,
-            metalness: 0.05
+            gradientMap: celGradientTex
         });
 
         const makePortMat = (hex: number) =>
-            new THREE.MeshStandardMaterial({
+            new THREE.MeshToonMaterial({
                 color: hex,
+                gradientMap: celGradientTex,
                 emissive: hex,
-                emissiveIntensity: 0.18,
-                roughness: 0.36,
-                metalness: 0.22
+                emissiveIntensity: 0.12
             });
 
+        // Sculptural Helper A: Organic asymmetric 3D cloth-fold vertex displacement (periodic in angle so lathe seam stays watertight!)
+        const sculptOrganicClothFolds = (
+            geo: THREE.BufferGeometry,
+            yMin: number,
+            yMax: number,
+            ampRadial: number,
+            freqY: number,
+            phaseSeed: number
+        ) => {
+            const pos = geo.attributes.position;
+            const spanY = Math.max(1e-4, yMax - yMin);
+            for (let i = 0; i < pos.count; i++) {
+                const x = pos.getX(i);
+                const y = pos.getY(i);
+                const z = pos.getZ(i);
+                const r = Math.hypot(x, z);
+                if (r < 0.025) continue; // Keep end caps flat & watertight
+                const ny = Math.max(0, Math.min(1, (y - yMin) / spanY));
+                const endFade = Math.sin(Math.PI * ny);
+                const ang = Math.atan2(z, x);
+                const diagWave1 = Math.sin(ny * freqY * Math.PI * 2 + Math.sin(ang + phaseSeed) * 1.65);
+                const diagWave2 = Math.cos(ny * (freqY * 1.5) * Math.PI * 2 - Math.cos(2 * ang - phaseSeed) * 1.25);
+                const dr = ampRadial * endFade * (0.65 * diagWave1 + 0.35 * diagWave2);
+                const scaleR = (r + dr) / r;
+                pos.setXYZ(i, x * scaleR, y + dr * 0.18 * Math.sin(ang * 2), z * scaleR);
+            }
+            geo.computeVertexNormals();
+        };
+
+        // Sculptural Helper B: Tapered 3D Comic Pen Ink Stroke (sharp calligraphy tips at both ends, bold ink belly in center)
+        const addTaperedInkStroke = (
+            parent: THREE.Object3D,
+            pts: THREE.Vector3[],
+            maxRadius = 0.0072,
+            tubularSegs = 14
+        ) => {
+            const curve = new THREE.CatmullRomCurve3(pts);
+            const frames = curve.computeFrenetFrames(tubularSegs, false);
+            const radialSegs = 6;
+            const vertices: number[] = [];
+            const indices: number[] = [];
+
+            for (let i = 0; i <= tubularSegs; i++) {
+                const u = i / tubularSegs;
+                const p = curve.getPointAt(u);
+                const N = frames.normals[i];
+                const B = frames.binormals[i];
+                const r = maxRadius * Math.sin(Math.PI * u) ** 0.72;
+                for (let j = 0; j <= radialSegs; j++) {
+                    const v = (j / radialSegs) * Math.PI * 2;
+                    const cosV = Math.cos(v);
+                    const sinV = Math.sin(v);
+                    vertices.push(
+                        p.x + r * (cosV * N.x + sinV * B.x),
+                        p.y + r * (cosV * N.y + sinV * B.y),
+                        p.z + r * (cosV * N.z + sinV * B.z)
+                    );
+                }
+            }
+            const stride = radialSegs + 1;
+            for (let i = 0; i < tubularSegs; i++) {
+                for (let j = 0; j < radialSegs; j++) {
+                    const a = i * stride + j;
+                    const b = (i + 1) * stride + j;
+                    const c = (i + 1) * stride + (j + 1);
+                    const d = i * stride + (j + 1);
+                    indices.push(a, b, d, b, c, d);
+                }
+            }
+            const strokeGeo = new THREE.BufferGeometry();
+            strokeGeo.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            strokeGeo.setIndex(indices);
+            strokeGeo.computeVertexNormals();
+            parent.add(new THREE.Mesh(strokeGeo, darkInkSolidMat));
+        };
+
+        // Sculptural Helper C: True Scalloped Corrugated Bellows Hose Geometry
+        const buildCorrugatedHoseGeo = (
+            curve: THREE.CatmullRomCurve3,
+            tubularSegs: number,
+            radialSegs: number,
+            baseR: number,
+            waveAmp: number,
+            waveCount: number
+        ): THREE.BufferGeometry => {
+            const frames = curve.computeFrenetFrames(tubularSegs, false);
+            const vertices: number[] = [];
+            const uvs: number[] = [];
+            const indices: number[] = [];
+
+            for (let i = 0; i <= tubularSegs; i++) {
+                const u = i / tubularSegs;
+                const p = curve.getPointAt(u);
+                const N = frames.normals[i];
+                const B = frames.binormals[i];
+                const endEnvelope = Math.sin(Math.PI * u) ** 0.45;
+                const r = baseR + waveAmp * endEnvelope * Math.cos(u * waveCount * Math.PI * 2);
+                for (let j = 0; j <= radialSegs; j++) {
+                    const vFrac = j / radialSegs;
+                    const v = vFrac * Math.PI * 2;
+                    const cosV = Math.cos(v);
+                    const sinV = Math.sin(v);
+                    vertices.push(
+                        p.x + r * (cosV * N.x + sinV * B.x),
+                        p.y + r * (cosV * N.y + sinV * B.y),
+                        p.z + r * (cosV * N.z + sinV * B.z)
+                    );
+                    uvs.push(u, vFrac);
+                }
+            }
+            const stride = radialSegs + 1;
+            for (let i = 0; i < tubularSegs; i++) {
+                for (let j = 0; j < radialSegs; j++) {
+                    const a = i * stride + j;
+                    const b = (i + 1) * stride + j;
+                    const c = (i + 1) * stride + (j + 1);
+                    const d = i * stride + (j + 1);
+                    indices.push(a, b, d, b, c, d);
+                }
+            }
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+            g.setIndex(indices);
+            g.computeVertexNormals();
+            return g;
+        };
+
+        const rivetDotGeo = new THREE.SphereGeometry(0.0105, 8, 6);
+        const bezelRivetGeo = new THREE.SphereGeometry(0.0125, 8, 6);
+
         // =====================================================================
-        // 1. OVERSIZED CHIBI BUBBLE HELMET (Pivoted snug on shoulders at y = +0.35)
+        // 1. MULTI-TIERED METALLIC NECK COLLAR & ZERO-CLIP CHIBI BUBBLE HELMET
+        //    (Positioned with strict 3D clearance above PLSS backpack top Y=+0.374!)
         // =====================================================================
+        const neckCollarGroup = new THREE.Group();
+        neckCollarGroup.position.set(0, 0.348, -0.032);
+        root.add(neckCollarGroup);
+
+        // Lower Suit Disconnect Flange Ring + Rivets
+        const neckBaseRingGeo = new THREE.TorusGeometry(0.286, 0.028, 12, 32);
+        neckBaseRingGeo.rotateX(Math.PI / 2);
+        addOutlinedMesh(neckCollarGroup, neckBaseRingGeo, bezelMetalMat, 0.016, [0, 0, 0], undefined, [1.08, 1.0, 0.96]);
+        for (let nr = 0; nr < 12; nr++) {
+            const na = (nr * Math.PI * 2) / 12;
+            const nrv = new THREE.Mesh(rivetDotGeo, darkInkSolidMat);
+            nrv.position.set(Math.cos(na) * 0.312 * 1.08, 0.012, Math.sin(na) * 0.312 * 0.96);
+            neckCollarGroup.add(nrv);
+        }
+
+        // Visible Dark Metallic Neck Seal Cylinder (Clearly visible between Helmet & Backpack in Back View AEspaldas.jpeg!)
+        const neckSealCylGeo = new THREE.CylinderGeometry(0.278, 0.286, 0.054, 30);
+        addOutlinedMesh(neckCollarGroup, neckSealCylGeo, darkStrapMat, 0.016, [0, 0.028, 0], undefined, [1.06, 1.0, 0.95]);
+
+        // Upper Helmet Locking Ring
+        const neckTopRingGeo = new THREE.TorusGeometry(0.296, 0.029, 12, 32);
+        neckTopRingGeo.rotateX(Math.PI / 2);
+        addOutlinedMesh(neckCollarGroup, neckTopRingGeo, bezelMetalMat, 0.017, [0, 0.054, 0], undefined, [1.08, 1.0, 0.97]);
+
+        // Articulated Helmet Group pivoted cleanly at the Upper Locking Ring (Y = 0.402, Z = -0.034)
         const helmet = new THREE.Group();
-        helmet.position.set(0, 0.35, 0);
+        helmet.position.set(0, 0.402, -0.034);
         root.add(helmet);
 
-        // Segmented metallic neck collar rings
-        const neckRingGeo1 = new THREE.TorusGeometry(0.315, 0.036, 12, 32);
-        neckRingGeo1.rotateX(Math.PI / 2);
-        addOutlinedMesh(helmet, neckRingGeo1, bezelMetalMat, 0.018, [0, -0.01, 0], undefined, [1.08, 1.0, 0.92]);
-
-        const neckRingGeo2 = new THREE.TorusGeometry(0.335, 0.034, 12, 32);
-        neckRingGeo2.rotateX(Math.PI / 2);
-        addOutlinedMesh(helmet, neckRingGeo2, darkStrapMat, 0.018, [0, 0.034, 0], undefined, [1.08, 1.0, 0.94]);
-
-        // Main oversized chibi spherical helmet shell (15% larger for authentic reference proportions)
-        const helmetCenterY = 0.435;
-        const rxH = 0.555;
-        const ryH = 0.508;
-        const rzH = 0.525;
-        const helmetSphereGeo = new THREE.SphereGeometry(1.0, 42, 34);
+        // Truncated Spherical Helmet Shell (terminates cleanly at neck ring theta = 0.835*PI -> zero downward poke!)
+        const helmetCenterY = 0.432;
+        const rxH = 0.546;
+        const ryH = 0.486;
+        const rzH = 0.496;
+        const helmetSphereGeo = new THREE.SphereGeometry(1.0, 44, 34, 0, Math.PI * 2, 0, Math.PI * 0.835);
         helmetSphereGeo.scale(rxH, ryH, rzH);
-        addOutlinedMesh(helmet, helmetSphereGeo, helmetShellMat, 0.030, [0, helmetCenterY, 0]);
+        addOutlinedMesh(helmet, helmetSphereGeo, helmetShellMat, 0.029, [0, helmetCenterY, 0]);
 
-        // Twin curved riveted panel seams running from front brow over crown down to back neck (Images 1, 2 & 3)
-        const rivetDotGeo = new THREE.SphereGeometry(0.0105, 7, 6);
+        // Watertight dark interior neck-cap disc inside bottom of truncated sphere
+        const helmetBottomCap = new THREE.Mesh(new THREE.CircleGeometry(0.27, 28), darkStrapMat);
+        helmetBottomCap.rotation.x = Math.PI / 2;
+        helmetBottomCap.position.set(0, 0.012, 0);
+        helmet.add(helmetBottomCap);
+
+        // Twin Curved Riveted Panel Seams (terminate cleanly at visor top brow in Front & neck collar in Back!)
         for (const side of [-1, 1]) {
             const seamX = side * 0.205;
             const seamPts: THREE.Vector3[] = [];
-            const steps = 24;
+            const steps = 26;
+            // theta = -0.52 (right at top outer edge of visor bezel!) -> +2.48 (right at back neck locking ring!)
             for (let s = 0; s <= steps; s++) {
-                const theta = -0.68 + (s / steps) * 2.98;
+                const theta = -0.52 + (s / steps) * 3.00;
                 const rem = Math.sqrt(Math.max(0.05, 1 - (seamX / rxH) * (seamX / rxH)));
                 const py = helmetCenterY + Math.cos(theta) * ryH * rem * 1.006;
                 const pz = Math.sin(theta) * rzH * rem * 1.006;
@@ -3057,93 +3214,151 @@ export class PixiRenderer {
 
                 if (s >= 1 && s <= steps - 1 && s % 2 === 1) {
                     const rv = new THREE.Mesh(rivetDotGeo, darkInkSolidMat);
-                    rv.position.set(seamX + side * 0.025, py, pz);
+                    rv.position.set(seamX + side * 0.026, py, pz);
                     helmet.add(rv);
                 }
             }
             const seamCurve = new THREE.CatmullRomCurve3(seamPts);
-            const seamTubeGeo = new THREE.TubeGeometry(seamCurve, 26, 0.0075, 6, false);
+            const seamTubeGeo = new THREE.TubeGeometry(seamCurve, 28, 0.0072, 6, false);
             helmet.add(new THREE.Mesh(seamTubeGeo, darkInkSolidMat));
         }
 
-        // Left & Right Ear-Comm Pods
-        const earPodGeo = new THREE.CylinderGeometry(0.122, 0.114, 0.125, 20);
-        earPodGeo.rotateZ(Math.PI / 2);
-        const earSeamGeo = new THREE.TorusGeometry(0.123, 0.0075, 6, 20);
+        // Stepped Dual-Tier Ear-Comm Pods (Base Mounting Flange + Beveled Comm Cap + Central Ink Seam)
+        const earBaseGeo = new THREE.CylinderGeometry(0.132, 0.136, 0.055, 22);
+        earBaseGeo.rotateZ(Math.PI / 2);
+        const earCapGeo = new THREE.CylinderGeometry(0.112, 0.124, 0.095, 22);
+        earCapGeo.rotateZ(Math.PI / 2);
+        const earSeamGeo = new THREE.TorusGeometry(0.120, 0.0072, 6, 22);
         earSeamGeo.rotateY(Math.PI / 2);
         for (const side of [-1, 1]) {
             addOutlinedMesh(
                 helmet,
-                earPodGeo,
-                armorGreyMat,
-                0.024,
-                [side * 0.548, helmetCenterY - 0.025, 0.01],
+                earBaseGeo,
+                bezelMetalMat,
+                0.020,
+                [side * 0.518, helmetCenterY - 0.022, 0.01],
                 undefined,
                 [1.0, 1.15, 0.92]
             );
+            addOutlinedMesh(
+                helmet,
+                earCapGeo,
+                armorGreyMat,
+                0.022,
+                [side * 0.558, helmetCenterY - 0.022, 0.01],
+                [0, 0, side === 1 ? 0 : Math.PI],
+                [1.0, 1.12, 0.90]
+            );
             const earSeam = new THREE.Mesh(earSeamGeo, darkInkSolidMat);
-            earSeam.position.set(side * 0.566, helmetCenterY - 0.025, 0.01);
-            earSeam.scale.set(0.92, 1.15, 1.0);
+            earSeam.position.set(side * 0.562, helmetCenterY - 0.022, 0.01);
+            earSeam.scale.set(0.90, 1.13, 1.0);
             helmet.add(earSeam);
         }
 
-        // Front Visor Assembly (-Z face of helmet — wide heroic bubble glass)
+        // Front Visor Assembly (-Z face of helmet — Dual-Rim Riveted Bezel + Glossy Clearcoat Bubble Glass)
         const visorGroup = new THREE.Group();
-        visorGroup.position.set(0, helmetCenterY - 0.02, -0.285);
-        visorGroup.rotation.x = 0.05;
+        visorGroup.position.set(0, helmetCenterY - 0.018, -0.268);
+        visorGroup.rotation.x = 0.04;
         helmet.add(visorGroup);
 
-        const visorBezelGeo = new THREE.TorusGeometry(0.382, 0.050, 14, 44);
-        visorBezelGeo.scale(1.09, 0.96, 0.72);
+        // Outer Metallic Bezel Ring flush with helmet shell
+        const visorBezelGeo = new THREE.TorusGeometry(0.376, 0.048, 16, 48);
+        visorBezelGeo.scale(1.09, 0.96, 0.76);
         addOutlinedMesh(visorGroup, visorBezelGeo, bezelMetalMat, 0.022);
 
-        // 18 Dark Rivets around the metallic visor bezel
-        const bezelRivetGeo = new THREE.SphereGeometry(0.0125, 8, 6);
+        // Inner Dark Rubber Gasket Ring framing the glass dome
+        const visorGasketGeo = new THREE.TorusGeometry(0.342, 0.018, 10, 44);
+        visorGasketGeo.scale(1.09, 0.96, 0.65);
+        const visorGasket = new THREE.Mesh(visorGasketGeo, darkInkSolidMat);
+        visorGasket.position.z = -0.022;
+        visorGroup.add(visorGasket);
+
+        // 18 Crisp Rivets around the metallic visor bezel
         for (let i = 0; i < 18; i++) {
             const a = (i * Math.PI * 2) / 18;
             const rv = new THREE.Mesh(bezelRivetGeo, darkInkSolidMat);
-            rv.position.set(Math.cos(a) * 0.382 * 1.09, Math.sin(a) * 0.382 * 0.96, -0.037);
+            rv.position.set(Math.cos(a) * 0.376 * 1.09, Math.sin(a) * 0.376 * 0.96, -0.036);
             visorGroup.add(rv);
         }
 
         // Domed Iridescent Teal-Cyan Bubble Visor Glass
-        const visorCapGeo = new THREE.SphereGeometry(0.380, 38, 28, 0, Math.PI * 2, 0, Math.PI * 0.47);
+        const visorCapGeo = new THREE.SphereGeometry(0.372, 40, 30, 0, Math.PI * 2, 0, Math.PI * 0.47);
         visorCapGeo.rotateX(-Math.PI / 2);
         visorCapGeo.scale(1.09, 0.96, 0.78);
         applyBoundsUVs(visorCapGeo, true);
         const visorMesh = new THREE.Mesh(visorCapGeo, visorGlassMat);
-        visorMesh.position.z = 0.012;
+        visorMesh.position.z = 0.010;
         visorGroup.add(visorMesh);
 
         // =====================================================================
-        // 2. STOCKY CHIBI SPACE-SUIT TORSO, HARNESSES & FRONT CHEST DCM MODULE
+        // 2. ORGANICALLY SCULPTED SPACE-SUIT TORSO, HARNESSES & FRONT DCM MODULE
         // =====================================================================
         const torsoPoints = [
-            new THREE.Vector2(0.001, -0.35),
-            new THREE.Vector2(0.275, -0.34),
-            new THREE.Vector2(0.375, -0.25),
-            new THREE.Vector2(0.405, -0.14),
-            new THREE.Vector2(0.392, -0.06),
-            new THREE.Vector2(0.412, 0.03),
-            new THREE.Vector2(0.398, 0.14),
-            new THREE.Vector2(0.402, 0.24),
-            new THREE.Vector2(0.362, 0.33),
-            new THREE.Vector2(0.295, 0.38),
-            new THREE.Vector2(0.001, 0.39)
+            new THREE.Vector2(0.001, -0.355),
+            new THREE.Vector2(0.275, -0.345),
+            new THREE.Vector2(0.378, -0.250),
+            new THREE.Vector2(0.405, -0.140),
+            new THREE.Vector2(0.394, -0.055),
+            new THREE.Vector2(0.412, 0.035),
+            new THREE.Vector2(0.398, 0.145),
+            new THREE.Vector2(0.398, 0.240),
+            new THREE.Vector2(0.348, 0.315),
+            new THREE.Vector2(0.275, 0.355),
+            new THREE.Vector2(0.001, 0.362)
         ];
-        const torsoGeo = new THREE.LatheGeometry(torsoPoints, 36);
-        torsoGeo.scale(1.10, 1.0, 0.78);
-        addOutlinedMesh(root, torsoGeo, suitFabricMat, 0.028);
+        const torsoGeo = new THREE.LatheGeometry(torsoPoints, 38);
+        sculptOrganicClothFolds(torsoGeo, -0.355, 0.362, 0.010, 3.0, 0.7);
+        torsoGeo.scale(1.11, 1.0, 0.77);
+        addOutlinedMesh(root, torsoGeo, suitFabricMat, 0.027);
+
+        // Front Belly & Back Seat Comic Ink Crease Strokes (matching Flotando.jpeg & AEspaldas.jpeg!)
+        addTaperedInkStroke(
+            root,
+            [
+                new THREE.Vector3(-0.18, -0.21, -0.295),
+                new THREE.Vector3(-0.09, -0.23, -0.312),
+                new THREE.Vector3(-0.03, -0.22, -0.316)
+            ],
+            0.0062
+        );
+        addTaperedInkStroke(
+            root,
+            [
+                new THREE.Vector3(0.03, -0.22, -0.316),
+                new THREE.Vector3(0.09, -0.23, -0.312),
+                new THREE.Vector3(0.18, -0.21, -0.295)
+            ],
+            0.0062
+        );
+        // Back Pelvis Vertical Seat Seam + Horizontal Seat Crease below PLSS (AEspaldas.jpeg!)
+        addTaperedInkStroke(
+            root,
+            [
+                new THREE.Vector3(0, -0.23, 0.295),
+                new THREE.Vector3(0, -0.29, 0.275),
+                new THREE.Vector3(0, -0.345, 0.220)
+            ],
+            0.0068
+        );
+        addTaperedInkStroke(
+            root,
+            [
+                new THREE.Vector3(-0.16, -0.265, 0.272),
+                new THREE.Vector3(0, -0.280, 0.285),
+                new THREE.Vector3(0.16, -0.265, 0.272)
+            ],
+            0.0058
+        );
 
         // Front Center Belly Zipper Track (-Z)
         const zipperStripGeo = new THREE.BoxGeometry(0.024, 0.20, 0.018);
         const zipperStrip = new THREE.Mesh(zipperStripGeo, armorGreyMat);
-        zipperStrip.position.set(0, -0.09, -0.315);
+        zipperStrip.position.set(0, -0.09, -0.312);
         root.add(zipperStrip);
         const zipTickGeo = new THREE.BoxGeometry(0.038, 0.008, 0.022);
         for (let zt = 0; zt < 7; zt++) {
             const tick = new THREE.Mesh(zipTickGeo, darkInkSolidMat);
-            tick.position.set(0, -0.17 + zt * 0.028, -0.318);
+            tick.position.set(0, -0.17 + zt * 0.028, -0.316);
             root.add(tick);
         }
 
@@ -3163,231 +3378,296 @@ export class PixiRenderer {
             bevelThickness: 0.012
         });
         groinGeo.translate(0, 0, -0.024);
-        addOutlinedMesh(root, groinGeo, armorGreyMat, 0.018, [0, -0.245, -0.292]);
+        addOutlinedMesh(root, groinGeo, armorGreyMat, 0.018, [0, -0.245, -0.288]);
         for (const gx of [-0.078, 0.078]) {
             const grv = new THREE.Mesh(bezelRivetGeo, darkInkSolidMat);
-            grv.position.set(gx, -0.195, -0.328);
+            grv.position.set(gx, -0.195, -0.324);
             root.add(grv);
         }
 
         // V-Shaped Leg Harness Straps wrapping from front groin around hips to back pelvis (Front & Back!)
         for (const side of [-1, 1]) {
             const legStrapCurve = new THREE.CatmullRomCurve3([
-                new THREE.Vector3(side * 0.065, -0.305, -0.275),
-                new THREE.Vector3(side * 0.275, -0.215, -0.238),
-                new THREE.Vector3(side * 0.422, -0.145, 0.0),
-                new THREE.Vector3(side * 0.285, -0.215, 0.238),
-                new THREE.Vector3(side * 0.075, -0.300, 0.262)
+                new THREE.Vector3(side * 0.065, -0.305, -0.272),
+                new THREE.Vector3(side * 0.278, -0.215, -0.235),
+                new THREE.Vector3(side * 0.425, -0.150, 0.0),
+                new THREE.Vector3(side * 0.285, -0.220, 0.238),
+                new THREE.Vector3(side * 0.055, -0.315, 0.252)
             ]);
-            const legStrapGeo = new THREE.TubeGeometry(legStrapCurve, 20, 0.025, 8, false);
+            const legStrapGeo = new THREE.TubeGeometry(legStrapCurve, 22, 0.025, 8, false);
             addOutlinedMesh(root, legStrapGeo, darkStrapMat, 0.013);
         }
 
-        // Two Riveted Grey Shoulder Harness Straps curving over shoulders into PLSS backpack
+        // Two Riveted Grey Shoulder Harness Straps curving over sloped shoulders cleanly into PLSS top!
         for (const side of [-1, 1]) {
             const shCurve = new THREE.CatmullRomCurve3([
-                new THREE.Vector3(side * 0.268, 0.01, -0.305),
-                new THREE.Vector3(side * 0.282, 0.21, -0.282),
-                new THREE.Vector3(side * 0.278, 0.385, -0.02),
-                new THREE.Vector3(side * 0.278, 0.30, 0.22)
+                new THREE.Vector3(side * 0.266, 0.015, -0.302),
+                new THREE.Vector3(side * 0.280, 0.205, -0.278),
+                new THREE.Vector3(side * 0.276, 0.358, -0.025),
+                new THREE.Vector3(side * 0.276, 0.285, 0.195)
             ]);
-            const shGeo = new THREE.TubeGeometry(shCurve, 20, 0.034, 8, false);
+            const shGeo = new THREE.TubeGeometry(shCurve, 22, 0.033, 8, false);
             addOutlinedMesh(root, shGeo, bezelMetalMat, 0.015);
 
-            for (const tFrac of [0.12, 0.30, 0.48]) {
+            for (const tFrac of [0.11, 0.28, 0.45]) {
                 const pt = shCurve.getPoint(tFrac);
                 const srv = new THREE.Mesh(bezelRivetGeo, darkInkSolidMat);
                 srv.position.set(pt.x, pt.y, pt.z - 0.032);
                 root.add(srv);
             }
+
+            // Angled V-Suspension Strap from Neck Collar down into top of Chest DCM Module (Flotando.jpeg!)
+            const neckVStrap = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(side * 0.165, 0.342, -0.215),
+                new THREE.Vector3(side * 0.125, 0.275, -0.275),
+                new THREE.Vector3(side * 0.095, 0.215, -0.318)
+            ]);
+            addOutlinedMesh(root, new THREE.TubeGeometry(neckVStrap, 10, 0.014, 6, false), darkStrapMat, 0.008);
         }
 
-        // Small Tan Stitched Repair Patch on Front Chest (viewer's right in Front View = -X)
-        const smallPatchGeo = new THREE.BoxGeometry(0.062, 0.066, 0.020);
-        addOutlinedMesh(root, smallPatchGeo, tanPatchMat, 0.010, [-0.228, 0.185, -0.302], [0, 0.22, -0.1]);
+        // Chest Utility Pocket Flap (+X) & Stitched Tan Repair Patch (-X)
+        addOutlinedMesh(
+            root,
+            new THREE.BoxGeometry(0.088, 0.042, 0.018),
+            suitFabricMat,
+            0.009,
+            [0.215, 0.095, -0.300],
+            [0, -0.18, 0.05]
+        );
+        addOutlinedMesh(
+            root,
+            new THREE.BoxGeometry(0.064, 0.068, 0.020),
+            tanPatchMat,
+            0.010,
+            [-0.222, 0.175, -0.298],
+            [0, 0.22, -0.10]
+        );
 
-        // Front Chest DCM Control Box (-Z) — Group 0 = front/back caps, Group 1 = side bevel
+        // Front Chest DCM Control Box (-Z) — Detailed 3D Instrument Relief!
         const dcmGroup = new THREE.Group();
-        dcmGroup.position.set(0, 0.115, -0.338);
+        dcmGroup.position.set(0, 0.110, -0.334);
         dcmGroup.rotation.y = Math.PI;
         root.add(dcmGroup);
 
         const dcmShape = createRoundedRectShape(0.38, 0.245, 0.026);
         const dcmGeo = new THREE.ExtrudeGeometry(dcmShape, {
-            depth: 0.088,
+            depth: 0.086,
             bevelEnabled: true,
             bevelSegments: 2,
             steps: 1,
             bevelSize: 0.014,
             bevelThickness: 0.014
         });
-        dcmGeo.translate(0, 0, -0.044);
+        dcmGeo.translate(0, 0, -0.043);
         applyBoundsUVs(dcmGeo, false);
         addOutlinedMesh(dcmGroup, dcmGeo, [chestBoxFaceMat, armorGreyMat], 0.020);
 
-        // Raised 3D dial & switch relief on front chest box
-        const dcmGaugeGeo = new THREE.CylinderGeometry(0.058, 0.058, 0.022, 18);
+        // 3D Cobalt-Blue Pressure Dial + Metallic Rim + Diagonal Pointer Bar (matching Flotando.jpeg!)
+        const dcmGaugeGeo = new THREE.CylinderGeometry(0.058, 0.058, 0.022, 20);
         dcmGaugeGeo.rotateX(Math.PI / 2);
-        addOutlinedMesh(dcmGroup, dcmGaugeGeo, makePortMat(0x3b6ea5), 0.011, [-0.088, 0.030, 0.056]);
+        addOutlinedMesh(dcmGroup, dcmGaugeGeo, makePortMat(0x3b6ea5), 0.011, [-0.088, 0.030, 0.055]);
+        const dcmNeedleBar = new THREE.BoxGeometry(0.116, 0.016, 0.014);
+        addOutlinedMesh(dcmGroup, dcmNeedleBar, bezelMetalMat, 0.007, [-0.088, 0.030, 0.068], [0, 0, 0.62]);
 
-        const dcmSwitchGeo = new THREE.BoxGeometry(0.112, 0.034, 0.020);
-        addOutlinedMesh(dcmGroup, dcmSwitchGeo, makePortMat(0xc84239), 0.010, [-0.088, -0.062, 0.054]);
-
-        const dcmKnobGeo = new THREE.CylinderGeometry(0.044, 0.044, 0.022, 16);
+        // 3D Crimson Rocker Switch, Framed Olive LCD Readout & Knurled Rotary Knob
+        addOutlinedMesh(dcmGroup, new THREE.BoxGeometry(0.114, 0.034, 0.020), makePortMat(0xc84239), 0.010, [-0.088, -0.062, 0.054]);
+        addOutlinedMesh(dcmGroup, new THREE.BoxGeometry(0.096, 0.044, 0.014), makePortMat(0x7e906b), 0.009, [0.090, 0.055, 0.052]);
+        const dcmKnobGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.024, 18);
         dcmKnobGeo.rotateX(Math.PI / 2);
-        addOutlinedMesh(dcmGroup, dcmKnobGeo, darkStrapMat, 0.010, [0.092, -0.036, 0.056]);
+        addOutlinedMesh(dcmGroup, dcmKnobGeo, darkStrapMat, 0.010, [0.092, -0.038, 0.056]);
+        const dcmKnobNotch = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.048, 0.012), darkInkSolidMat);
+        dcmKnobNotch.position.set(0.092, -0.038, 0.070);
+        dcmGroup.add(dcmKnobNotch);
 
         // =====================================================================
-        // 3. SCULPTED PLSS LIFE-SUPPORT BACKPACK (+Z HERO BACK VIEW — IMAGE 3)
+        // 3. SCULPTED PLSS LIFE-SUPPORT BACKPACK (+Z HERO BACK VIEW — AEspaldas.jpeg)
+        //    Shoulder-to-Waist Proportions (Y in [-0.346, +0.376]) -> Corners peek in Front, ZERO Helmet Clipping!
         // =====================================================================
         const backpack = new THREE.Group();
-        backpack.position.set(0, 0.105, 0.265);
+        backpack.position.set(0, 0.015, 0.312);
         root.add(backpack);
 
-        const plssShape = createRoundedRectShape(0.84, 0.84, 0.078);
+        const plssShape = createRoundedRectShape(0.80, 0.655, 0.074);
         const plssGeo = new THREE.ExtrudeGeometry(plssShape, {
-            depth: 0.27,
+            depth: 0.23,
             bevelEnabled: true,
             bevelSegments: 3,
             steps: 1,
-            bevelSize: 0.040,
-            bevelThickness: 0.040
+            bevelSize: 0.034,
+            bevelThickness: 0.034
         });
-        plssGeo.translate(0, 0, -0.135);
+        plssGeo.translate(0, 0, -0.115);
         applyBoundsUVs(plssGeo, false);
-        addOutlinedMesh(backpack, plssGeo, suitFabricMat, 0.028);
+        addOutlinedMesh(backpack, plssGeo, suitFabricMat, 0.026);
 
-        // Upper cap seam bar & twin vertical riveted panel lines on PLSS back (+Z)
-        const plssBackZ = 0.178;
-        const capSeamBar = new THREE.Mesh(new THREE.BoxGeometry(0.84, 0.013, 0.012), darkInkSolidMat);
-        capSeamBar.position.set(0, 0.190, plssBackZ);
+        // Upper Cap Seam Bar & Twin Vertical Riveted Panel Seams on PLSS Back (+Z)
+        const plssBackZ = 0.151;
+        const capSeamBar = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.012, 0.012), darkInkSolidMat);
+        capSeamBar.position.set(0, 0.165, plssBackZ);
         backpack.add(capSeamBar);
 
         for (const side of [-1, 1]) {
-            const vSeam = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.245, 0.012), darkInkSolidMat);
-            vSeam.position.set(side * 0.205, 0.312, plssBackZ);
+            const vSeam = new THREE.Mesh(new THREE.BoxGeometry(0.011, 0.185, 0.012), darkInkSolidMat);
+            vSeam.position.set(side * 0.195, 0.258, plssBackZ);
             backpack.add(vSeam);
-            for (let rIdx = 0; rIdx < 5; rIdx++) {
+            for (let rIdx = 0; rIdx < 4; rIdx++) {
                 const rv = new THREE.Mesh(rivetDotGeo, darkInkSolidMat);
-                rv.position.set(side * 0.230, 0.220 + rIdx * 0.046, plssBackZ + 0.004);
+                rv.position.set(side * 0.220, 0.192 + rIdx * 0.042, plssBackZ + 0.004);
                 backpack.add(rv);
             }
         }
 
-        // Top-Center Slate Vent / Status Badge & Small Tan Seam Tab (Image 3)
-        const topVentGeo = new THREE.BoxGeometry(0.165, 0.066, 0.024);
-        addOutlinedMesh(backpack, topVentGeo, darkStrapMat, 0.013, [0, 0.295, plssBackZ + 0.006]);
-        const packTanTab = new THREE.BoxGeometry(0.056, 0.025, 0.018);
-        addOutlinedMesh(backpack, packTanTab, tanPatchMat, 0.009, [-0.255, 0.220, plssBackZ + 0.005]);
+        // Top-Center Slate Vent / Status Badge & Small Tan Seam Tab (AEspaldas.jpeg)
+        addOutlinedMesh(
+            backpack,
+            new THREE.BoxGeometry(0.155, 0.056, 0.022),
+            darkStrapMat,
+            0.012,
+            [0, 0.258, plssBackZ + 0.006]
+        );
+        addOutlinedMesh(
+            backpack,
+            new THREE.BoxGeometry(0.054, 0.024, 0.016),
+            tanPatchMat,
+            0.008,
+            [-0.245, 0.190, plssBackZ + 0.005]
+        );
 
         // Central Raised Backpack Telemetry Control Box (Group 0 = textured panel face, Group 1 = bevel)
-        const teleShape = createRoundedRectShape(0.34, 0.41, 0.028);
+        const teleShape = createRoundedRectShape(0.325, 0.355, 0.026);
         const teleGeo = new THREE.ExtrudeGeometry(teleShape, {
-            depth: 0.074,
+            depth: 0.070,
             bevelEnabled: true,
             bevelSegments: 2,
             steps: 1,
-            bevelSize: 0.014,
-            bevelThickness: 0.014
+            bevelSize: 0.013,
+            bevelThickness: 0.013
         });
-        teleGeo.translate(0, 0, -0.037);
+        teleGeo.translate(0, 0, -0.035);
         applyBoundsUVs(teleGeo, false);
         addOutlinedMesh(
             backpack,
             teleGeo,
             [backpackFaceMat, armorGreyMat],
-            0.020,
-            [0, -0.022, plssBackZ + 0.038]
+            0.019,
+            [0, -0.030, plssBackZ + 0.036]
         );
 
-        // 3D Raised Sub-Modules on Central Telemetry Box (matching Image 3 relief)
-        const teleFrontZ = plssBackZ + 0.090;
+        // 3D Raised Sub-Modules on Central Telemetry Box (matching AEspaldas.jpeg relief!)
+        const teleFrontZ = plssBackZ + 0.084;
+        // Top-left brushed steel slot + vertical slit
         addOutlinedMesh(
             backpack,
-            new THREE.BoxGeometry(0.060, 0.108, 0.018),
+            new THREE.BoxGeometry(0.058, 0.096, 0.018),
             bezelMetalMat,
             0.009,
-            [-0.080, 0.098, teleFrontZ]
+            [-0.076, 0.078, teleFrontZ]
         );
+        const slotSlit = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.068, 0.010), darkInkSolidMat);
+        slotSlit.position.set(-0.076, 0.078, teleFrontZ + 0.008);
+        backpack.add(slotSlit);
+
+        // Top-right olive-brass indicator & mid-right slate module
         addOutlinedMesh(
             backpack,
-            new THREE.BoxGeometry(0.070, 0.054, 0.016),
+            new THREE.BoxGeometry(0.066, 0.048, 0.016),
             makePortMat(0x9f995c),
             0.009,
-            [0.080, 0.105, teleFrontZ]
+            [0.076, 0.086, teleFrontZ]
         );
         addOutlinedMesh(
             backpack,
-            new THREE.BoxGeometry(0.066, 0.084, 0.016),
+            new THREE.BoxGeometry(0.062, 0.074, 0.016),
             makePortMat(0x536f86),
             0.009,
-            [0.082, 0.004, teleFrontZ]
-        );
-        addOutlinedMesh(
-            backpack,
-            new THREE.BoxGeometry(0.122, 0.072, 0.015),
-            makePortMat(0x5e85a1),
-            0.009,
-            [-0.060, -0.132, teleFrontZ]
+            [0.078, -0.004, teleFrontZ]
         );
 
-        // Lower Recessed Bevel Plate below Telemetry Box
+        // Bottom-left glazed sky-blue telemetry screen + diagonal glass glint streaks
         addOutlinedMesh(
             backpack,
-            new THREE.BoxGeometry(0.255, 0.068, 0.024),
-            armorGreyMat,
-            0.013,
-            [0, -0.312, plssBackZ + 0.006]
+            new THREE.BoxGeometry(0.116, 0.064, 0.015),
+            makePortMat(0x5e89a8),
+            0.009,
+            [-0.058, -0.126, teleFrontZ]
         );
-        for (const lx of [-0.10, 0.10]) {
+        const screenGlint = new THREE.Mesh(
+            new THREE.BoxGeometry(0.052, 0.010, 0.006),
+            new THREE.MeshBasicMaterial({ color: 0xe0f2fe })
+        );
+        screenGlint.position.set(-0.064, -0.124, teleFrontZ + 0.009);
+        screenGlint.rotation.z = 0.65;
+        backpack.add(screenGlint);
+
+        // Lower Recessed Waist Plate below Telemetry Box
+        addOutlinedMesh(
+            backpack,
+            new THREE.BoxGeometry(0.240, 0.056, 0.022),
+            armorGreyMat,
+            0.012,
+            [0, -0.285, plssBackZ + 0.006]
+        );
+        for (const lx of [-0.095, 0.095]) {
             const lrv = new THREE.Mesh(rivetDotGeo, darkInkSolidMat);
-            lrv.position.set(lx, -0.312, plssBackZ + 0.020);
+            lrv.position.set(lx, -0.285, plssBackZ + 0.019);
             backpack.add(lrv);
         }
 
-        // Upper-Right Circular Grommet + Twin Braided Looping Cables into Central Box (Image 3!)
-        const grommetGeo = new THREE.CylinderGeometry(0.046, 0.050, 0.028, 16);
+        // Upper-Right Stepped Circular Grommet + 4 Segmented Braided Looping Cables into Central Box (AEspaldas.jpeg!)
+        const grommetGeo = new THREE.CylinderGeometry(0.044, 0.050, 0.028, 18);
         grommetGeo.rotateX(Math.PI / 2);
-        addOutlinedMesh(backpack, grommetGeo, bezelMetalMat, 0.013, [0.285, 0.262, plssBackZ + 0.008]);
+        addOutlinedMesh(backpack, grommetGeo, bezelMetalMat, 0.012, [0.272, 0.228, plssBackZ + 0.008]);
 
-        const addBackpackCable = (pts: THREE.Vector3[]) => {
+        const cableRibGeo = new THREE.TorusGeometry(0.0145, 0.0036, 5, 10);
+        const cableZAxis = new THREE.Vector3(0, 0, 1);
+        const addBackpackBraidedCable = (pts: THREE.Vector3[]) => {
             const cCurve = new THREE.CatmullRomCurve3(pts);
-            const cGeo = new THREE.TubeGeometry(cCurve, 16, 0.0135, 7, false);
+            const cGeo = new THREE.TubeGeometry(cCurve, 18, 0.013, 8, false);
             addOutlinedMesh(backpack, cGeo, darkStrapMat, 0.008);
+            for (let b = 1; b <= 6; b++) {
+                const u = b / 7;
+                const cp = cCurve.getPoint(u);
+                const ct = cCurve.getTangent(u).normalize();
+                const crib = new THREE.Mesh(cableRibGeo, darkInkSolidMat);
+                crib.position.copy(cp);
+                crib.quaternion.setFromUnitVectors(cableZAxis, ct);
+                backpack.add(crib);
+            }
         };
 
-        addBackpackCable([
-            new THREE.Vector3(0.285, 0.262, plssBackZ + 0.020),
-            new THREE.Vector3(0.328, 0.148, plssBackZ + 0.046),
-            new THREE.Vector3(0.262, 0.065, plssBackZ + 0.048),
-            new THREE.Vector3(0.165, 0.045, plssBackZ + 0.040)
+        addBackpackBraidedCable([
+            new THREE.Vector3(0.272, 0.228, plssBackZ + 0.020),
+            new THREE.Vector3(0.312, 0.125, plssBackZ + 0.044),
+            new THREE.Vector3(0.248, 0.048, plssBackZ + 0.046),
+            new THREE.Vector3(0.158, 0.032, plssBackZ + 0.038)
         ]);
-        addBackpackCable([
-            new THREE.Vector3(0.270, 0.248, plssBackZ + 0.020),
-            new THREE.Vector3(0.292, 0.150, plssBackZ + 0.036),
-            new THREE.Vector3(0.232, 0.095, plssBackZ + 0.040),
-            new THREE.Vector3(0.165, 0.088, plssBackZ + 0.040)
+        addBackpackBraidedCable([
+            new THREE.Vector3(0.258, 0.214, plssBackZ + 0.020),
+            new THREE.Vector3(0.278, 0.128, plssBackZ + 0.034),
+            new THREE.Vector3(0.222, 0.078, plssBackZ + 0.038),
+            new THREE.Vector3(0.158, 0.072, plssBackZ + 0.038)
         ]);
-
-        addBackpackCable([
-            new THREE.Vector3(-0.282, 0.186, plssBackZ + 0.012),
-            new THREE.Vector3(-0.292, 0.106, plssBackZ + 0.042),
-            new THREE.Vector3(-0.236, 0.058, plssBackZ + 0.045),
-            new THREE.Vector3(-0.165, 0.055, plssBackZ + 0.040)
+        addBackpackBraidedCable([
+            new THREE.Vector3(-0.268, 0.162, plssBackZ + 0.012),
+            new THREE.Vector3(-0.278, 0.088, plssBackZ + 0.040),
+            new THREE.Vector3(-0.225, 0.042, plssBackZ + 0.044),
+            new THREE.Vector3(-0.158, 0.038, plssBackZ + 0.038)
         ]);
-        addBackpackCable([
-            new THREE.Vector3(-0.250, 0.186, plssBackZ + 0.012),
-            new THREE.Vector3(-0.256, 0.118, plssBackZ + 0.036),
-            new THREE.Vector3(-0.210, 0.092, plssBackZ + 0.040),
-            new THREE.Vector3(-0.165, 0.092, plssBackZ + 0.040)
+        addBackpackBraidedCable([
+            new THREE.Vector3(-0.236, 0.162, plssBackZ + 0.012),
+            new THREE.Vector3(-0.242, 0.100, plssBackZ + 0.034),
+            new THREE.Vector3(-0.200, 0.076, plssBackZ + 0.038),
+            new THREE.Vector3(-0.158, 0.076, plssBackZ + 0.038)
         ]);
 
         // =====================================================================
-        // 4. FOUR SWEEPING U-LOOP 3D RIBBED UMBILICAL HOSES (BACK <-> FLANKS <-> FRONT)
+        // 4. FOUR CLEAN CEL-SHADED SILVER-GREY RIBBED HOSES & STEPPED PORT COLLARS
         // =====================================================================
-        const portFlangeGeo = new THREE.CylinderGeometry(0.056, 0.066, 0.056, 16);
-        portFlangeGeo.rotateX(Math.PI / 2);
-        const hoseRibRingGeo = new THREE.TorusGeometry(0.039, 0.0072, 6, 14);
+        const portBaseGeo = new THREE.CylinderGeometry(0.066, 0.072, 0.024, 18);
+        portBaseGeo.rotateX(Math.PI / 2);
+        const portNozzleGeo = new THREE.CylinderGeometry(0.048, 0.058, 0.048, 18);
+        portNozzleGeo.rotateX(Math.PI / 2);
+        const hoseValleyRingGeo = new THREE.TorusGeometry(0.038, 0.0052, 6, 16);
 
         const addWrapAroundRibbedHose = (
             side: -1 | 1,
@@ -3400,93 +3680,85 @@ export class PixiRenderer {
         ) => {
             const backMat = makePortMat(backPortHex);
             const frontMat = makePortMat(frontPortHex);
-            const pBack = new THREE.Vector3(side * 0.232, yBack, 0.448);
-            const pFront = new THREE.Vector3(side * 0.205, yFront, -0.322);
+            const pBack = new THREE.Vector3(side * 0.232, yBack, 0.466);
+            const pFront = new THREE.Vector3(side * 0.202, yFront, -0.318);
 
-            // Sweeping outward U-loop past waist flanks so ribbed curves shine in BOTH Front & Back views!
+            // Sweeping outward U-loop past waist flanks so silver-grey ribbed hoses shine in BOTH Front & Back views!
             const curve = new THREE.CatmullRomCurve3([
                 pBack,
-                new THREE.Vector3(side * (flankX - 0.03), yBack - 0.075, 0.380),
+                new THREE.Vector3(side * (flankX - 0.03), yBack - 0.072, 0.392),
                 new THREE.Vector3(side * flankX, yMidDrop, 0.06),
-                new THREE.Vector3(side * (flankX - 0.025), yFront - 0.075, -0.250),
+                new THREE.Vector3(side * (flankX - 0.025), yFront - 0.072, -0.248),
                 pFront
             ]);
 
-            const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.036, 10, false);
-            addOutlinedMesh(root, tubeGeo, hoseBodyMat, 0.017);
+            // Smooth plump core tube + non-self-intersecting smooth black outline + subtle gentle bellows front mesh
+            const smoothOutlineBaseGeo = new THREE.TubeGeometry(curve, 38, 0.036, 12, false);
+            const bellowsFrontGeo = buildCorrugatedHoseGeo(curve, 76, 14, 0.036, 0.0024, 14);
+            const hoseGroup = new THREE.Group();
+            hoseGroup.add(new THREE.Mesh(bellowsFrontGeo, hoseBodyMat));
+            hoseGroup.add(makeSmoothOutline(smoothOutlineBaseGeo, 0.015));
+            root.add(hoseGroup);
 
             const zAxis = new THREE.Vector3(0, 0, 1);
             for (let r = 1; r <= 13; r++) {
-                const t = r / 14;
-                const pt = curve.getPoint(t);
-                const tan = curve.getTangent(t).normalize();
-                const rib = new THREE.Mesh(hoseRibRingGeo, darkInkSolidMat);
+                const u = (r + 0.5) / 14;
+                const pt = curve.getPointAt(u);
+                const tan = curve.getTangentAt(u).normalize();
+                const rib = new THREE.Mesh(hoseValleyRingGeo, darkInkSolidMat);
                 rib.position.copy(pt);
                 rib.quaternion.setFromUnitVectors(zAxis, tan);
                 root.add(rib);
             }
 
-            const backPortGroup = new THREE.Group();
-            backPortGroup.position.copy(pBack);
-            backPortGroup.lookAt(curve.getPoint(0.10));
-            addOutlinedMesh(backPortGroup, portFlangeGeo, backMat, 0.014);
-            root.add(backPortGroup);
+            const buildSteppedPort = (pos: THREE.Vector3, lookPt: THREE.Vector3, colMat: THREE.Material) => {
+                const pg = new THREE.Group();
+                pg.position.copy(pos);
+                pg.lookAt(lookPt);
+                addOutlinedMesh(pg, portBaseGeo, bezelMetalMat, 0.013, [0, 0, -0.012]);
+                addOutlinedMesh(pg, portNozzleGeo, colMat, 0.014, [0, 0, 0.016]);
+                root.add(pg);
+            };
 
-            const frontPortGroup = new THREE.Group();
-            frontPortGroup.position.copy(pFront);
-            frontPortGroup.lookAt(curve.getPoint(0.90));
-            addOutlinedMesh(frontPortGroup, portFlangeGeo, frontMat, 0.014);
-            root.add(frontPortGroup);
+            buildSteppedPort(pBack, curve.getPoint(0.10), backMat);
+            buildSteppedPort(pFront, curve.getPoint(0.90), frontMat);
         };
 
         // Left Flank (-X): Cobalt Blue upper; Crimson Red on Back (-X screen-left) & Mustard Yellow on Front (-X screen-right)
-        addWrapAroundRibbedHose(-1, -0.015, -0.115, -0.010, 0.555, 0x3569a8, 0x3569a8);
-        addWrapAroundRibbedHose(-1, -0.140, -0.245, -0.135, 0.578, 0xc43c35, 0xdeb030);
+        addWrapAroundRibbedHose(-1, -0.035, -0.130, -0.015, 0.552, 0x3569a8, 0x3569a8);
+        addWrapAroundRibbedHose(-1, -0.165, -0.260, -0.140, 0.576, 0xc43c35, 0xdeb030);
 
         // Right Flank (+X): Cobalt Blue upper; Mustard Yellow on Back (+X screen-right) & Crimson Red on Front (+X screen-left)
-        addWrapAroundRibbedHose(1, -0.015, -0.115, -0.010, 0.555, 0x3569a8, 0x3569a8);
-        addWrapAroundRibbedHose(1, -0.140, -0.245, -0.135, 0.578, 0xdeb030, 0xc43c35);
-
-        // Helper for crisp 3D comic ink wrinkle arcs along puffy sleeves & legs
-        const addInkCreaseArc = (
-            parent: THREE.Object3D,
-            radius: number,
-            arcLen: number,
-            pos: [number, number, number],
-            rot: [number, number, number]
-        ) => {
-            const cGeo = new THREE.TorusGeometry(radius, 0.0068, 5, 16, arcLen);
-            const cMesh = new THREE.Mesh(cGeo, darkInkSolidMat);
-            cMesh.position.set(pos[0], pos[1], pos[2]);
-            cMesh.rotation.set(rot[0], rot[1], rot[2]);
-            parent.add(cMesh);
-        };
+        addWrapAroundRibbedHose(1, -0.035, -0.130, -0.015, 0.552, 0x3569a8, 0x3569a8);
+        addWrapAroundRibbedHose(1, -0.165, -0.260, -0.140, 0.576, 0xdeb030, 0xc43c35);
 
         // =====================================================================
-        // 5. WIDE-FLARED PUFF-SLEEVED ARMS, PATCHES, ELBOW PADS & SPLAYED 5-FINGER GLOVES
+        // 5. SCULPTED PUFF-SLEEVED ARMS, PATCHES, ELBOW PADS & MULTI-JOINTED GLOVES
         // =====================================================================
         const upperArmPoints = [
             new THREE.Vector2(0.001, -0.32),
             new THREE.Vector2(0.142, -0.31),
-            new THREE.Vector2(0.168, -0.24),
+            new THREE.Vector2(0.166, -0.24),
             new THREE.Vector2(0.154, -0.17),
-            new THREE.Vector2(0.174, -0.09),
-            new THREE.Vector2(0.158, -0.02),
-            new THREE.Vector2(0.132, 0.04),
+            new THREE.Vector2(0.172, -0.09),
+            new THREE.Vector2(0.156, -0.02),
+            new THREE.Vector2(0.130, 0.04),
             new THREE.Vector2(0.001, 0.05)
         ];
-        const upperArmGeo = new THREE.LatheGeometry(upperArmPoints, 24);
+        const upperArmGeo = new THREE.LatheGeometry(upperArmPoints, 28);
+        sculptOrganicClothFolds(upperArmGeo, -0.32, 0.05, 0.0095, 2.5, 1.3);
 
         const forearmPoints = [
             new THREE.Vector2(0.001, -0.27),
-            new THREE.Vector2(0.122, -0.26),
+            new THREE.Vector2(0.124, -0.26),
             new THREE.Vector2(0.150, -0.18),
             new THREE.Vector2(0.138, -0.11),
-            new THREE.Vector2(0.156, -0.04),
+            new THREE.Vector2(0.154, -0.04),
             new THREE.Vector2(0.134, 0.02),
             new THREE.Vector2(0.001, 0.03)
         ];
-        const forearmGeo = new THREE.LatheGeometry(forearmPoints, 24);
+        const forearmGeo = new THREE.LatheGeometry(forearmPoints, 28);
+        sculptOrganicClothFolds(forearmGeo, -0.27, 0.03, 0.0085, 2.5, 2.4);
 
         const elbowPadShape = createRoundedRectShape(0.155, 0.155, 0.034);
         const elbowPadGeo = new THREE.ExtrudeGeometry(elbowPadShape, {
@@ -3499,36 +3771,58 @@ export class PixiRenderer {
         });
         elbowPadGeo.translate(0, 0, -0.020);
 
-        const wristCollarGeo = new THREE.TorusGeometry(0.122, 0.024, 10, 24);
+        const wristCollarGeo = new THREE.TorusGeometry(0.122, 0.024, 12, 26);
         wristCollarGeo.rotateX(Math.PI / 2);
+        const wristStrapGeo = new THREE.TorusGeometry(0.114, 0.015, 10, 24);
+        wristStrapGeo.rotateX(Math.PI / 2);
 
-        const palmGeo = new THREE.CapsuleGeometry(0.090, 0.068, 6, 14);
+        const palmGeo = new THREE.CapsuleGeometry(0.088, 0.068, 8, 16);
         palmGeo.scale(1.22, 0.78, 0.68);
-        const handPlateGeo = new THREE.BoxGeometry(0.148, 0.098, 0.030);
-        const fingerSegGeo = new THREE.CapsuleGeometry(0.024, 0.105, 5, 10);
-        const thumbProxGeo = new THREE.CapsuleGeometry(0.028, 0.065, 5, 10);
-        const thumbDistGeo = new THREE.CapsuleGeometry(0.025, 0.055, 5, 10);
+        const handPlateGeo = new THREE.BoxGeometry(0.146, 0.096, 0.028);
+        const fingerProxGeo = new THREE.CapsuleGeometry(0.0235, 0.052, 5, 10);
+        const fingerDistGeo = new THREE.CapsuleGeometry(0.0210, 0.048, 5, 10);
+        const fingerJointRingGeo = new THREE.TorusGeometry(0.0225, 0.0038, 5, 10);
+        fingerJointRingGeo.rotateX(Math.PI / 2);
+        const thumbProxGeo = new THREE.CapsuleGeometry(0.027, 0.058, 5, 10);
+        const thumbDistGeo = new THREE.CapsuleGeometry(0.023, 0.048, 5, 10);
         const patchGeo = new THREE.BoxGeometry(0.116, 0.086, 0.016);
 
         const buildArticulatedArm = (side: -1 | 1): THREE.Group => {
             const armPivot = new THREE.Group();
-            armPivot.position.set(side * 0.415, 0.255, -0.01);
-            // Wide zero-G heroic arm flare matching Flotando.jpeg & AEspaldas.jpeg!
+            armPivot.position.set(side * 0.408, 0.242, -0.01);
             armPivot.rotation.z = side * 0.90;
 
             addOutlinedMesh(armPivot, upperArmGeo, suitFabricMat, 0.024);
 
-            // Hand-inked 3D comic compression creases on upper sleeve
-            addInkCreaseArc(armPivot, 0.160, Math.PI * 0.85, [0, -0.165, 0], [Math.PI * 0.5 + 0.12, 0, -Math.PI * 0.42]);
-            addInkCreaseArc(armPivot, 0.156, Math.PI * 0.75, [0, -0.235, 0], [Math.PI * 0.5 - 0.10, 0, Math.PI * 0.15]);
+            // Tapered 3D comic pen creases in armpit / inner bicep (visible Front & Back!)
+            for (const sZ of [-1, 1]) {
+                addTaperedInkStroke(
+                    armPivot,
+                    [
+                        new THREE.Vector3(-side * 0.148, -0.13, sZ * 0.06),
+                        new THREE.Vector3(-side * 0.085, -0.17, sZ * 0.142),
+                        new THREE.Vector3(side * 0.035, -0.19, sZ * 0.158)
+                    ],
+                    0.0066
+                );
+                addTaperedInkStroke(
+                    armPivot,
+                    [
+                        new THREE.Vector3(-side * 0.140, -0.22, sZ * 0.05),
+                        new THREE.Vector3(-side * 0.065, -0.245, sZ * 0.138),
+                        new THREE.Vector3(side * 0.045, -0.255, sZ * 0.148)
+                    ],
+                    0.0060
+                );
+            }
 
-            // Cylindrical-tangent Front-Top & Back-Top Shoulder Patches (flush with r=0.168 sleeve!)
+            // Cylindrical-tangent Front-Top & Back-Top Shoulder Patches (flush with sleeve!)
             const addTangentSleevePatch = (sZ: -1 | 1, faceMat: THREE.Material) => {
                 const alpha = 0.50;
                 const nx = side * Math.cos(alpha);
                 const nz = sZ * Math.sin(alpha);
                 const holder = new THREE.Group();
-                holder.position.set(nx * 0.169, -0.098, nz * 0.169);
+                holder.position.set(nx * 0.168, -0.098, nz * 0.168);
                 holder.rotation.order = 'YXZ';
                 holder.rotation.y = Math.atan2(nx, nz);
                 holder.rotation.x = 0.08;
@@ -3542,7 +3836,7 @@ export class PixiRenderer {
             addTangentSleevePatch(-1, side === -1 ? flagPatchMat : missionPatchMat);
             addTangentSleevePatch(1, side === -1 ? missionPatchMat : tanPatchMat);
 
-            // Gentle downward elbow curve (keeps forearm angled outward ~42 deg like reference!)
+            // Gentle downward elbow curve
             const elbowPivot = new THREE.Group();
             elbowPivot.position.set(0, -0.295, 0);
             elbowPivot.rotation.z = -side * 0.26;
@@ -3559,10 +3853,19 @@ export class PixiRenderer {
             );
 
             addOutlinedMesh(elbowPivot, forearmGeo, suitFabricMat, 0.022);
-            addInkCreaseArc(elbowPivot, 0.144, Math.PI * 0.80, [0, -0.115, 0], [Math.PI * 0.5 + 0.08, 0, -Math.PI * 0.35]);
-            addInkCreaseArc(elbowPivot, 0.136, Math.PI * 0.72, [0, -0.195, 0], [Math.PI * 0.5 - 0.08, 0, Math.PI * 0.20]);
+            for (const sZ of [-1, 1]) {
+                addTaperedInkStroke(
+                    elbowPivot,
+                    [
+                        new THREE.Vector3(-side * 0.128, -0.10, sZ * 0.05),
+                        new THREE.Vector3(-side * 0.055, -0.125, sZ * 0.132),
+                        new THREE.Vector3(side * 0.045, -0.135, sZ * 0.138)
+                    ],
+                    0.0058
+                );
+            }
 
-            // Stitched tan forearm repair patch sitting proudly outside r=0.150 cuff!
+            // Stitched tan forearm repair patch sitting proudly outside cuff!
             if (side === -1) {
                 addOutlinedMesh(
                     elbowPivot,
@@ -3574,11 +3877,13 @@ export class PixiRenderer {
                 );
             }
 
-            addOutlinedMesh(elbowPivot, wristCollarGeo, wristRingMat, 0.015, [0, -0.258, 0]);
+            // Dual-Ring Metallic Wrist Disconnect Collar
+            addOutlinedMesh(elbowPivot, wristCollarGeo, wristRingMat, 0.015, [0, -0.254, 0]);
+            addOutlinedMesh(elbowPivot, wristStrapGeo, darkStrapMat, 0.012, [0, -0.278, 0]);
 
-            // Expressive Splayed 5-Fingered Comic Space Gauntlet
+            // Multi-Jointed Curved 5-Fingered Comic Space Gauntlet
             const gloveGroup = new THREE.Group();
-            gloveGroup.position.set(0, -0.345, 0);
+            gloveGroup.position.set(0, -0.348, 0);
             gloveGroup.rotation.z = -side * 0.22;
             elbowPivot.add(gloveGroup);
 
@@ -3586,38 +3891,62 @@ export class PixiRenderer {
             addOutlinedMesh(gloveGroup, handPlateGeo, armorGreyMat, 0.012, [0, 0.012, 0.048]);
             addOutlinedMesh(gloveGroup, handPlateGeo, armorGreyMat, 0.012, [0, 0.012, -0.048]);
 
-            // Articulated 2-segment inward Thumb (creates wide U-shaped comic gap between thumb & index!)
+            // Curved 2-Phalanx Inward Thumb (wide iconic U-shaped gap between thumb & index!)
             addOutlinedMesh(
                 gloveGroup,
                 thumbProxGeo,
                 suitFabricMat,
-                0.015,
-                [-side * 0.126, -0.032, -0.008],
-                [0.06, 0, -side * 0.62]
+                0.014,
+                [-side * 0.124, -0.028, -0.008],
+                [0.08, 0, -side * 0.64]
             );
             addOutlinedMesh(
                 gloveGroup,
                 thumbDistGeo,
                 suitFabricMat,
-                0.014,
-                [-side * 0.168, -0.098, -0.012],
-                [0.10, 0, -side * 0.18]
+                0.013,
+                [-side * 0.165, -0.092, -0.014],
+                [0.14, 0, -side * 0.14]
             );
 
-            // 4 Clearly Separated Splayed Comic Fingers extending cleanly below the palm
+            // 4 Multi-Jointed Curved Comic Fingers (natural zero-G inward curl + knuckle crease rings!)
             const fingerOffsets = [-0.080, -0.026, 0.028, 0.078];
-            const fingerLengths = [0.96, 1.08, 1.02, 0.84];
-            const fingerSpread = [-0.15, -0.04, 0.07, 0.19];
+            const fingerLengths = [0.95, 1.08, 1.02, 0.84];
+            const fingerSpread = [-0.14, -0.04, 0.06, 0.18];
             for (let f = 0; f < 4; f++) {
-                const fx = side * fingerOffsets[f];
+                const fLen = fingerLengths[f];
+                const fRoot = new THREE.Group();
+                fRoot.position.set(side * fingerOffsets[f], -0.082, 0);
+                fRoot.rotation.set(0.10, 0, side * fingerSpread[f]);
+                gloveGroup.add(fRoot);
+
                 addOutlinedMesh(
-                    gloveGroup,
-                    fingerSegGeo,
+                    fRoot,
+                    fingerProxGeo,
                     suitFabricMat,
-                    0.014,
-                    [fx, -0.145 * fingerLengths[f], 0],
-                    [0.12, 0, side * fingerSpread[f]],
-                    [1.0, fingerLengths[f], 1.0]
+                    0.013,
+                    [0, -0.036 * fLen, 0],
+                    undefined,
+                    [1.0, fLen, 1.0]
+                );
+
+                const jRing = new THREE.Mesh(fingerJointRingGeo, darkInkSolidMat);
+                jRing.position.set(0, -0.068 * fLen, 0);
+                fRoot.add(jRing);
+
+                const fDist = new THREE.Group();
+                fDist.position.set(0, -0.070 * fLen, 0);
+                fDist.rotation.set(0.16, 0, -side * 0.08);
+                fRoot.add(fDist);
+
+                addOutlinedMesh(
+                    fDist,
+                    fingerDistGeo,
+                    suitFabricMat,
+                    0.012,
+                    [0, -0.034 * fLen, 0],
+                    undefined,
+                    [0.95, fLen, 0.95]
                 );
             }
 
@@ -3629,7 +3958,7 @@ export class PixiRenderer {
         const rightArm = buildArticulatedArm(1);
 
         // =====================================================================
-        // 6. BOW-STANCE CHIBI PUFFY LEGS, KNEE PADS & GROOVED-SOLE MOON BOOTS
+        // 6. SCULPTED BOW-STANCE PUFFY LEGS, KNEE PADS & HEEL-COUNTER MOON BOOTS
         // =====================================================================
         const thighPoints = [
             new THREE.Vector2(0.001, -0.28),
@@ -3640,7 +3969,8 @@ export class PixiRenderer {
             new THREE.Vector2(0.178, 0.01),
             new THREE.Vector2(0.001, 0.03)
         ];
-        const thighGeo = new THREE.LatheGeometry(thighPoints, 26);
+        const thighGeo = new THREE.LatheGeometry(thighPoints, 28);
+        sculptOrganicClothFolds(thighGeo, -0.28, 0.03, 0.010, 2.5, 3.1);
 
         const shinPoints = [
             new THREE.Vector2(0.001, -0.21),
@@ -3650,7 +3980,8 @@ export class PixiRenderer {
             new THREE.Vector2(0.168, 0.02),
             new THREE.Vector2(0.001, 0.03)
         ];
-        const shinGeo = new THREE.LatheGeometry(shinPoints, 24);
+        const shinGeo = new THREE.LatheGeometry(shinPoints, 26);
+        sculptOrganicClothFolds(shinGeo, -0.21, 0.03, 0.0085, 2.0, 4.2);
 
         const kneePadShape = createRoundedRectShape(0.185, 0.180, 0.034);
         const kneePadGeo = new THREE.ExtrudeGeometry(kneePadShape, {
@@ -3663,12 +3994,12 @@ export class PixiRenderer {
         });
         kneePadGeo.translate(0, 0, -0.023);
 
-        const bootCuffGeo = new THREE.TorusGeometry(0.156, 0.025, 10, 26);
+        const bootCuffGeo = new THREE.TorusGeometry(0.156, 0.025, 12, 28);
         bootCuffGeo.rotateX(Math.PI / 2);
+        const bootShaftGeo = new THREE.CylinderGeometry(0.150, 0.158, 0.145, 26);
+        const bootHeelCounterGeo = new THREE.CylinderGeometry(0.156, 0.164, 0.135, 18, 1, false, -Math.PI * 0.42, Math.PI * 0.84);
 
-        const bootShaftGeo = new THREE.CylinderGeometry(0.150, 0.158, 0.14, 24);
-
-        const bootFootShape = createRoundedRectShape(0.288, 0.43, 0.120);
+        const bootFootShape = createRoundedRectShape(0.288, 0.435, 0.120);
         const bootFootGeo = new THREE.ExtrudeGeometry(bootFootShape, {
             depth: 0.148,
             bevelEnabled: true,
@@ -3679,9 +4010,9 @@ export class PixiRenderer {
         });
         bootFootGeo.rotateX(Math.PI / 2);
 
-        const bootSoleShape = createRoundedRectShape(0.300, 0.445, 0.122);
+        const bootSoleShape = createRoundedRectShape(0.302, 0.450, 0.124);
         const bootSoleGeo = new THREE.ExtrudeGeometry(bootSoleShape, {
-            depth: 0.054,
+            depth: 0.056,
             bevelEnabled: true,
             bevelSegments: 2,
             steps: 1,
@@ -3690,20 +4021,39 @@ export class PixiRenderer {
         });
         bootSoleGeo.rotateX(Math.PI / 2);
 
-        const soleLugGeo = new THREE.BoxGeometry(0.252, 0.018, 0.024);
+        const soleLugGeo = new THREE.BoxGeometry(0.258, 0.018, 0.022);
 
         const buildArticulatedLeg = (side: -1 | 1): THREE.Group => {
             const legPivot = new THREE.Group();
             legPivot.position.set(side * 0.238, -0.31, 0);
-            // Wide chibi thigh splay + asymmetric zero-G hip flexion matching Flotando.jpeg & AEspaldas.jpeg!
             legPivot.rotation.z = side * 0.28;
             legPivot.rotation.x = side === 1 ? 0.22 : 0.08;
 
             addOutlinedMesh(legPivot, thighGeo, suitFabricMat, 0.025);
-            addInkCreaseArc(legPivot, 0.184, Math.PI * 0.85, [0, -0.14, 0], [Math.PI * 0.5 + 0.10, 0, -Math.PI * 0.45]);
-            addInkCreaseArc(legPivot, 0.176, Math.PI * 0.78, [0, -0.21, 0], [Math.PI * 0.5 - 0.10, 0, Math.PI * 0.12]);
 
-            // Stitched tan outer-thigh patch sitting proudly outside r=0.194 thigh!
+            // Tapered 3D comic cloth creases across front groin & back hamstring (Flotando.jpeg & AEspaldas.jpeg!)
+            for (const sZ of [-1, 1]) {
+                addTaperedInkStroke(
+                    legPivot,
+                    [
+                        new THREE.Vector3(-side * 0.155, -0.11, sZ * 0.09),
+                        new THREE.Vector3(-side * 0.045, -0.145, sZ * 0.175),
+                        new THREE.Vector3(side * 0.095, -0.165, sZ * 0.158)
+                    ],
+                    0.0066
+                );
+                addTaperedInkStroke(
+                    legPivot,
+                    [
+                        new THREE.Vector3(-side * 0.145, -0.20, sZ * 0.08),
+                        new THREE.Vector3(-side * 0.030, -0.225, sZ * 0.165),
+                        new THREE.Vector3(side * 0.090, -0.235, sZ * 0.150)
+                    ],
+                    0.0062
+                );
+            }
+
+            // Stitched tan outer-thigh patch sitting proudly outside thigh!
             if (side === 1) {
                 addOutlinedMesh(
                     legPivot,
@@ -3731,9 +4081,17 @@ export class PixiRenderer {
             );
 
             addOutlinedMesh(kneePivot, shinGeo, suitFabricMat, 0.024);
-            addInkCreaseArc(kneePivot, 0.168, Math.PI * 0.80, [0, -0.12, 0], [Math.PI * 0.5 + 0.08, 0, Math.PI * 0.10]);
+            addTaperedInkStroke(
+                kneePivot,
+                [
+                    new THREE.Vector3(-0.11, -0.11, 0.135),
+                    new THREE.Vector3(0, -0.13, 0.168),
+                    new THREE.Vector3(0.11, -0.11, 0.135)
+                ],
+                0.0062
+            );
 
-            // Moon Boot Assembly (plantar-flexed zero-G ankle so dark grooved soles shine in Back View Image 3!)
+            // Moon Boot Assembly (Ankle Collar + Sculpted Heel Counter + Armored Toe Cap + 7-Groove Lugged Outsole)
             const bootGroup = new THREE.Group();
             bootGroup.position.set(0, -0.195, 0);
             bootGroup.rotation.x = side === 1 ? -0.34 : -0.28;
@@ -3742,23 +4100,25 @@ export class PixiRenderer {
 
             addOutlinedMesh(bootGroup, bootCuffGeo, darkStrapMat, 0.015, [0, 0.01, 0]);
             addOutlinedMesh(bootGroup, bootShaftGeo, suitFabricMat, 0.022, [0, -0.065, 0]);
+            // Structured Rear Heel Counter Panel (visible in AEspaldas.jpeg!)
+            addOutlinedMesh(bootGroup, bootHeelCounterGeo, armorGreyMat, 0.012, [0, -0.185, 0.022]);
 
             addOutlinedMesh(bootGroup, bootFootGeo, suitFabricMat, 0.024, [0, -0.135, -0.055]);
             addOutlinedMesh(
                 bootGroup,
-                new THREE.SphereGeometry(0.138, 18, 14),
+                new THREE.SphereGeometry(0.140, 20, 16),
                 armorGreyMat,
                 0.016,
-                [0, -0.175, -0.160],
+                [0, -0.175, -0.162],
                 undefined,
                 [1.04, 0.62, 0.92]
             );
 
-            // Thick dark-slate lugged rubber sole + horizontal comic tread grooves
+            // Thick Slate-Grey Lugged Rubber Sole + 7 Bold Horizontal Tread Grooves
             addOutlinedMesh(bootGroup, bootSoleGeo, bootSoleMat, 0.018, [0, -0.288, -0.055]);
-            for (let lug = 0; lug < 6; lug++) {
+            for (let lug = 0; lug < 7; lug++) {
                 const lugMesh = new THREE.Mesh(soleLugGeo, darkInkSolidMat);
-                lugMesh.position.set(0, -0.354, 0.105 - lug * 0.062);
+                lugMesh.position.set(0, -0.356, 0.112 - lug * 0.054);
                 bootGroup.add(lugMesh);
             }
 

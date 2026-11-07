@@ -1797,7 +1797,7 @@ export function createPBRTexturePack(): PBRTexturePack {
 
     /**
      * 1024x1024 Hand-Illustrated Comic Space-Suit Padded Fabric Texture
-     * (Off-white ripstop weave, compression fold shadows, ink crease strokes & comic cross-hatching)
+     * (Clean off-white ripstop weave, organic comic shading, Y-forked ink creases & delicate pen cross-hatching)
      */
     function createAstroSuitFabricCanvas(): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
@@ -1805,16 +1805,16 @@ export function createPBRTexturePack(): PBRTexturePack {
         canvas.height = 1024;
         const ctx = canvas.getContext('2d')!;
 
-        const baseGrad = ctx.createLinearGradient(80, 40, 940, 980);
-        baseGrad.addColorStop(0, '#f7f9fb');
-        baseGrad.addColorStop(0.45, '#e6ecf2');
-        baseGrad.addColorStop(0.80, '#cfd8e2');
-        baseGrad.addColorStop(1, '#b6c2cf');
+        // Horizontally seamless top-to-bottom comic off-white gradient (zero UV seam on 360° cylinders/lathes!)
+        const baseGrad = ctx.createLinearGradient(0, 30, 0, 994);
+        baseGrad.addColorStop(0, '#fafbfd');
+        baseGrad.addColorStop(0.55, '#eef3f8');
+        baseGrad.addColorStop(1, '#dce4ee');
         ctx.fillStyle = baseGrad;
         ctx.fillRect(0, 0, 1024, 1024);
 
-        // Subtle ripstop grid weave
-        ctx.strokeStyle = 'rgba(110, 125, 142, 0.08)';
+        // Fine ripstop micro-grid weave
+        ctx.strokeStyle = 'rgba(100, 116, 139, 0.065)';
         ctx.lineWidth = 1;
         for (let i = 0; i < 1024; i += 16) {
             ctx.beginPath();
@@ -1827,50 +1827,63 @@ export function createPBRTexturePack(): PBRTexturePack {
             ctx.stroke();
         }
 
-        // Soft comic fabric fold bands + inked compression wrinkle lines
         let rng = 612983;
         const nextRand = () => {
             rng = (rng * 1664525 + 1013904223) >>> 0;
             return rng / 4294967296;
         };
 
-        for (let b = 0; b < 11; b++) {
-            const yCenter = 75 + b * 88;
-            const foldGrad = ctx.createLinearGradient(0, yCenter - 34, 0, yCenter + 38);
-            foldGrad.addColorStop(0, 'rgba(255, 255, 255, 0.42)');
-            foldGrad.addColorStop(0.52, 'rgba(96, 110, 126, 0.34)');
-            foldGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = foldGrad;
-            ctx.fillRect(0, yCenter - 34, 1024, 72);
+        // Soft organic gouache shadow washes + crisp tapered hand-inked cloth wrinkle strokes
+        for (let i = 0; i < 28; i++) {
+            const x0 = 40 + nextRand() * 820;
+            const y0 = 50 + nextRand() * 920;
+            const span = 90 + nextRand() * 150;
+            const tilt = (nextRand() - 0.5) * 44;
+            const sag = (nextRand() - 0.35) * 26;
 
-            // Hand-drawn comic ink crease arcs
-            for (let k = 0; k < 5; k++) {
-                const x0 = 35 + k * 200 + nextRand() * 55;
-                const span = 115 + nextRand() * 95;
-                const yOff = (nextRand() - 0.5) * 14;
+            // Soft cool-slate shadow wash under the fold
+            ctx.beginPath();
+            ctx.moveTo(x0, y0 + 6);
+            ctx.quadraticCurveTo(x0 + span * 0.5, y0 + tilt * 0.5 + sag + 10, x0 + span, y0 + tilt + 6);
+            ctx.strokeStyle = `rgba(120, 136, 156, ${0.18 + nextRand() * 0.16})`;
+            ctx.lineWidth = 12 + nextRand() * 10;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Crisp comic pen crease line
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.quadraticCurveTo(x0 + span * 0.5, y0 + tilt * 0.5 + sag, x0 + span, y0 + tilt);
+            ctx.strokeStyle = `rgba(15, 20, 28, ${0.46 + nextRand() * 0.34})`;
+            ctx.lineWidth = 2.6 + nextRand() * 2.4;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Occasional Y-forked secondary wrinkle branch (authentic comic cloth drawing!)
+            if (i % 3 === 0) {
+                const bx = x0 + span * 0.58;
+                const by = y0 + tilt * 0.35 + sag * 0.5;
                 ctx.beginPath();
-                ctx.moveTo(x0, yCenter + yOff);
-                ctx.quadraticCurveTo(
-                    x0 + span * 0.5,
-                    yCenter + yOff + 12 + nextRand() * 12,
-                    x0 + span,
-                    yCenter + yOff - 2
-                );
-                ctx.strokeStyle = `rgba(14, 19, 26, ${0.58 + nextRand() * 0.32})`;
-                ctx.lineWidth = 3.8 + nextRand() * 2.8;
-                ctx.lineCap = 'round';
+                ctx.moveTo(bx, by);
+                ctx.quadraticCurveTo(bx + 28, by - 14, bx + 56, by - 22);
+                ctx.strokeStyle = 'rgba(15, 20, 28, 0.42)';
+                ctx.lineWidth = 2.0;
                 ctx.stroke();
             }
         }
 
-        // Right-side comic ink cross-hatching in shadow folds (matching reference illustrations)
-        ctx.strokeStyle = 'rgba(18, 24, 32, 0.34)';
-        ctx.lineWidth = 2.8;
-        for (let y = 30; y < 990; y += 18) {
-            ctx.beginPath();
-            ctx.moveTo(690 + (y % 44), y);
-            ctx.lineTo(805 + (y % 44), y + 30);
-            ctx.stroke();
+        // Clustered comic pen cross-hatching patches along shadow side
+        ctx.strokeStyle = 'rgba(20, 27, 36, 0.24)';
+        ctx.lineWidth = 2.1;
+        for (let cluster = 0; cluster < 9; cluster++) {
+            const cx = 640 + (cluster % 3) * 105;
+            const cy = 90 + Math.floor(cluster / 3) * 310;
+            for (let h = 0; h < 6; h++) {
+                ctx.beginPath();
+                ctx.moveTo(cx + h * 12, cy);
+                ctx.lineTo(cx + h * 12 - 26, cy + 34);
+                ctx.stroke();
+            }
         }
 
         return canvas;
@@ -1885,30 +1898,31 @@ export function createPBRTexturePack(): PBRTexturePack {
         canvas.height = 1024;
         const ctx = canvas.getContext('2d')!;
 
-        const shellGrad = ctx.createLinearGradient(180, 60, 860, 960);
-        shellGrad.addColorStop(0, '#fbfcfd');
-        shellGrad.addColorStop(0.45, '#eaEEF3');
-        shellGrad.addColorStop(0.78, '#ced6e0');
-        shellGrad.addColorStop(1, '#aeb8c4');
+        // Horizontally seamless top-to-bottom helmet dome gradient (u=0 and u=1 match 100% seamlessly!)
+        const shellGrad = ctx.createLinearGradient(0, 40, 0, 984);
+        shellGrad.addColorStop(0, '#fcfdfe');
+        shellGrad.addColorStop(0.55, '#eef2f7');
+        shellGrad.addColorStop(0.85, '#dce3ec');
+        shellGrad.addColorStop(1, '#c8d2de');
         ctx.fillStyle = shellGrad;
         ctx.fillRect(0, 0, 1024, 1024);
 
-        // Soft sunlit crown highlight
-        const crownHl = ctx.createRadialGradient(430, 260, 20, 460, 300, 380);
-        crownHl.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
+        // Centered sunlit crown highlight (symmetric around x=512 so u=0 and u=1 match!)
+        const crownHl = ctx.createRadialGradient(512, 220, 20, 512, 260, 400);
+        crownHl.addColorStop(0, 'rgba(255, 255, 255, 0.78)');
         crownHl.addColorStop(1, 'rgba(255, 255, 255, 0)');
         ctx.fillStyle = crownHl;
         ctx.fillRect(0, 0, 1024, 1024);
 
-        // Subtle lower-right comic cross-hatch shading matching back/front helmet art
-        ctx.strokeStyle = 'rgba(35, 44, 54, 0.18)';
+        // Subtle comic pen cross-hatch cluster away from u=0/1 seam
+        ctx.strokeStyle = 'rgba(35, 44, 54, 0.16)';
         ctx.lineWidth = 2.2;
-        for (let i = 0; i < 42; i++) {
-            const x = 580 + (i % 7) * 52;
-            const y = 560 + Math.floor(i / 7) * 56;
+        for (let i = 0; i < 30; i++) {
+            const x = 320 + (i % 6) * 58;
+            const y = 640 + Math.floor(i / 6) * 52;
             ctx.beginPath();
             ctx.moveTo(x, y);
-            ctx.lineTo(x + 42, y + 32);
+            ctx.lineTo(x + 36, y + 28);
             ctx.stroke();
         }
 
@@ -1981,17 +1995,25 @@ export function createPBRTexturePack(): PBRTexturePack {
         ctx.lineWidth = 36;
         ctx.stroke();
 
-        // Crisp comic ice-white bean specular highlight in upper-left (outlined subtly like comic art)
-        ctx.translate(cx - 215, cy - 175);
+        // Crisp comic ice-white bean specular highlight in upper-left (boldly inked like reference art!)
+        ctx.translate(cx - 220, cy - 182);
         ctx.rotate(-0.68);
         ctx.beginPath();
-        ctx.ellipse(0, 0, 96, 40, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#e6feff';
+        ctx.ellipse(0, 0, 108, 44, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#ebfeff';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(15, 45, 56, 0.48)';
-        ctx.lineWidth = 5;
+        ctx.strokeStyle = 'rgba(12, 38, 48, 0.68)';
+        ctx.lineWidth = 7;
         ctx.stroke();
         ctx.restore();
+
+        // Outer subtle dark gasket vignette around rim of glass dome
+        const rimVig = ctx.createRadialGradient(cx, cy, 385, cx, cy, 512);
+        rimVig.addColorStop(0, 'rgba(8, 24, 32, 0)');
+        rimVig.addColorStop(0.72, 'rgba(8, 24, 32, 0.32)');
+        rimVig.addColorStop(1, 'rgba(6, 16, 22, 0.78)');
+        ctx.fillStyle = rimVig;
+        ctx.fillRect(0, 0, 1024, 1024);
 
         // Secondary small specular glint dots
         for (const [gx, gy, gr] of [
