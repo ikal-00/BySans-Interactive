@@ -6,7 +6,9 @@
  */
 
 import { GameEngine } from '../game/engine';
+import { GameState, type RoundPick } from '../math/types';
 import { stakeRGS } from '../engine/StakeRGSBridge';
+import { generateSlotBonusSpins } from '../crypto/provablyFair';
 
 export function isDevModalOpen(): boolean {
     const el = document.getElementById('dev-modal-overlay');
@@ -124,15 +126,25 @@ export function renderDevModal(engine: GameEngine, onUpdate: () => void) {
           </div>
 
           <!-- Seccion 4: Ruleta y Tragamonedas (Slot) QA -->
-          <div class="dev-card-section">
-            <div class="dev-section-title">
+          <div class="dev-card-section" style="border: 1px solid rgba(168, 85, 247, 0.45); background: rgba(168, 85, 247, 0.05);">
+            <div class="dev-section-title" style="color: #c084fc;">
               <span class="dev-icon">🎰</span>
-              <span>RULETA Y MINI-SLOT ARCADE (STAGE 2)</span>
+              <span>RULETA Y BONO MINI-SLOT ARCADE</span>
             </div>
-            <p class="dev-desc">Controla y fuerza el resultado de la Ruleta para probar el bono de Slot:</p>
-            <div class="dev-toggle-grid">
-              <button class="dev-switch ${forceWheelSlot ? 'active' : ''}" id="toggle-force-wheel-slot" type="button" style="grid-column: span 2;">
-                🎰 Forzar SLOT en la Ruleta [${forceWheelSlot ? 'ACTIVADO (FORZAR ACCESO)' : 'DESACTIVADO'}]
+            <p class="dev-desc">Controla y fuerza el resultado de la Ruleta para probar el bono de Slot garantizado:</p>
+            
+            <div class="dev-toggle-grid" style="margin-bottom: 12px;">
+              <button class="dev-switch ${forceWheelSlot ? 'active' : ''}" id="toggle-force-wheel-slot" type="button" style="grid-column: span 2; ${forceWheelSlot ? 'background: linear-gradient(135deg, rgba(147, 51, 234, 0.4), rgba(168, 85, 247, 0.6)); border-color: #a855f7; color: #ffffff;' : ''}">
+                🎰 Forzar Acceso a SLOT en la Ruleta [${forceWheelSlot ? 'ACTIVADO (FORZAR ACCESO)' : 'DESACTIVADO'}]
+              </button>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <button class="dev-cta-btn" id="btn-instant-wheel-slot" type="button" title="Inicia la ruleta inmediatamente en pantalla y cae directo en SLOT">
+                ⚡ Iniciar Ruleta Inmediata (Forzando SLOT)
+              </button>
+              <button class="dev-action-pill" id="btn-instant-slot-direct" type="button" style="background: rgba(124, 58, 237, 0.18); border-color: rgba(168, 85, 247, 0.35); color: #d8b4fe;" title="Prueba los rodillos del Mini-Slot directamente sin pasar por la ruleta">
+                🎰 Probar Mini-Slot Directo (Saltar Ruleta)
               </button>
             </div>
           </div>
@@ -210,12 +222,85 @@ export function renderDevModal(engine: GameEngine, onUpdate: () => void) {
     // Toggle Wheel Landing on SLOT
     document.getElementById('toggle-force-wheel-slot')?.addEventListener('click', () => {
         (window as any).__devForceWheelSlot = !(window as any).__devForceWheelSlot;
+        if ((window as any).__devForceWheelSlot) {
+            (window as any).__devForceWheel = true;
+        }
         renderDevModal(engine, onUpdate);
         stakeRGS.showToast(
             (window as any).__devForceWheelSlot
-                ? '🎰 Ruleta FORZADA a caer en: GIROS DE SLOT'
+                ? '🎰 Ruleta FORZADA a SLOT: La próxima jugada abrirá la Ruleta y caerá en SLOT'
                 : 'Forzado de SLOT DESACTIVADO',
             (window as any).__devForceWheelSlot ? 'success' : 'info'
         );
+        onUpdate();
+    });
+
+    // Instant Ruleta with SLOT Guaranteed
+    document.getElementById('btn-instant-wheel-slot')?.addEventListener('click', () => {
+        (window as any).__devForceWheelSlot = true;
+        (window as any).__devForceWheel = true;
+        hideDevModal();
+
+        if (engine.state !== GameState.PLAYING) {
+            engine.startBet(engine.betAmount || 10, engine.minesCount || 3);
+        }
+
+        engine.isWheelActive = true;
+        engine.wheelSpinsRemaining = 1;
+        engine.wheelRow = engine.currentRow;
+        engine.wheelSpinIndex = 0;
+        engine.isSlotActive = false;
+        engine.slotBundle = null;
+
+        const currentPick: RoundPick = {
+            row: engine.currentRow,
+            lane: 1,
+            isSafe: true,
+            shieldSaved: false,
+            specialType: 'WHEEL',
+            boostApplied: 1.0,
+            rowsSkipped: 0,
+            hazards: [],
+            stepMultiplierAfter: engine.currentMultiplier
+        };
+        engine.wheelPendingPick = currentPick;
+        engine.currentPicks.push(currentPick);
+
+        const renderer = (window as any).__gameRenderer || (window as any).__renderer;
+        if (renderer) {
+            const shipZ = renderer.ship?.pos?.z ?? 0;
+            const shipX = renderer.ship?.pos?.x ?? 0;
+            renderer.triggerRouletteSequence(shipX, shipZ - 2.5, currentPick);
+        }
+
+        stakeRGS.showToast('🎰 Ruleta Iniciada: Forzada a SLOT. Presiona GIRAR.', 'success');
+        onUpdate();
+    });
+
+    // Instant Direct Mini-Slot Testing (Bypass wheel)
+    document.getElementById('btn-instant-slot-direct')?.addEventListener('click', () => {
+        hideDevModal();
+        if (engine.state !== GameState.PLAYING) {
+            engine.startBet(engine.betAmount || 10, engine.minesCount || 3);
+        }
+        engine.isWheelActive = false;
+        engine.slotPreMultiplier = engine.currentMultiplier > 1 ? engine.currentMultiplier : 1.0;
+        engine.slotCurrentSpinIndex = 0;
+        engine.slotAccumulator = 0;
+        engine.slotBundle = generateSlotBonusSpins(
+            engine.serverSeed,
+            engine.clientSeed,
+            engine.nonce,
+            'NATURAL',
+            engine.slotPreMultiplier
+        );
+        const renderer = (window as any).__gameRenderer || (window as any).__renderer;
+        if (renderer) {
+            const shipZ = renderer.ship?.pos?.z ?? 0;
+            const shipX = renderer.ship?.pos?.x ?? 0;
+            renderer.triggerSlotSequence(shipX, shipZ - 2.5, engine.slotBundle.spins.length, 0);
+        }
+        stakeRGS.showToast('🎰 Mini-Slot Arcade Iniciado Directamente', 'success');
+        onUpdate();
     });
 }

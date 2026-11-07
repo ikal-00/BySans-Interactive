@@ -307,7 +307,7 @@ export class GameEngine {
                 specials.alienBoost = 2.0;
                 specials.alienSkipRows = 2;
             }
-            if ((window as any).__devForceWheel) {
+            if ((window as any).__devForceWheel || (window as any).__devForceWheelSlot) {
                 specials.wheelLane = 1;
             }
         }
@@ -345,7 +345,7 @@ export class GameEngine {
                 outcome.specialType = 'ALIEN';
                 outcome.boostFactor = 2.0;
                 outcome.rowsSkipped = 2;
-            } else if ((window as any).__devForceWheel && laneIndex === 1) {
+            } else if ((window as any).__devForceWheelSlot || (window as any).__devForceWheel) {
                 outcome.specialType = 'WHEEL';
                 outcome.isSafe = true;
             }
