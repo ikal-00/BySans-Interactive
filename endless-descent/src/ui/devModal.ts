@@ -268,9 +268,7 @@ export function renderDevModal(engine: GameEngine, onUpdate: () => void) {
 
         const renderer = (window as any).__gameRenderer || (window as any).__renderer;
         if (renderer) {
-            const shipZ = renderer.ship?.pos?.z ?? 0;
-            const shipX = renderer.ship?.pos?.x ?? 0;
-            renderer.triggerRouletteSequence(shipX, shipZ - 2.5, currentPick);
+            renderer.triggerDirectWheelBonusSequence(() => onUpdate());
         }
 
         stakeRGS.showToast('🎰 Ruleta Iniciada: Forzada a SLOT. Presiona GIRAR.', 'success');
@@ -291,16 +289,16 @@ export function renderDevModal(engine: GameEngine, onUpdate: () => void) {
             engine.serverSeed,
             engine.clientSeed,
             engine.nonce,
-            'NATURAL',
-            engine.slotPreMultiplier
+            'BONUS_BUY',
+            engine.slotPreMultiplier,
+            5
         );
+        engine.isSlotActive = true;
         const renderer = (window as any).__gameRenderer || (window as any).__renderer;
         if (renderer) {
-            const shipZ = renderer.ship?.pos?.z ?? 0;
-            const shipX = renderer.ship?.pos?.x ?? 0;
-            renderer.triggerSlotSequence(shipX, shipZ - 2.5, engine.slotBundle.spins.length, 0);
+            renderer.triggerDirectSlotBonusSequence(engine.slotBundle.spins.length, () => onUpdate());
         }
-        stakeRGS.showToast('🎰 Mini-Slot Arcade Iniciado Directamente', 'success');
+        stakeRGS.showToast('🎰 Mini-Slot Arcade VIP Iniciado Directamente', 'success');
         onUpdate();
     });
 }

@@ -60,7 +60,11 @@ canvas.addEventListener('pointerdown', (e) => {
         engine.isWheelActive ||
         engine.isSlotActive ||
         renderer.isRouletteActive ||
-        renderer.isSlotActive
+        renderer.isSlotActive ||
+        renderer.isWheelSpinning ||
+        renderer.isSlotSpinning ||
+        engine.wheelProfile === 'BONUS_BUY' ||
+        engine.slotBundle?.profile === 'BONUS_BUY'
     ) return;
 
     const target = renderer.getClickTarget(e.clientX, e.clientY, engine.currentRow);
@@ -83,7 +87,11 @@ canvas.addEventListener('pointermove', (e) => {
         !engine.isWheelActive &&
         !engine.isSlotActive &&
         !renderer.isRouletteActive &&
-        !renderer.isSlotActive
+        !renderer.isSlotActive &&
+        !renderer.isWheelSpinning &&
+        !renderer.isSlotSpinning &&
+        engine.wheelProfile !== 'BONUS_BUY' &&
+        engine.slotBundle?.profile !== 'BONUS_BUY'
     ) {
         renderer.updateHover(e.clientX, e.clientY, engine.currentRow);
     } else if (renderer.hoveredLane !== null) {

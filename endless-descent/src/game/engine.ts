@@ -681,11 +681,17 @@ export class GameEngine {
         this.wheelSpinsRemaining--;
         if (this.wheelSpinsRemaining <= 0) {
             this.isWheelActive = false;
-            this.currentRow = this.wheelRow + 1;
+            if (this.wheelProfile !== 'BONUS_BUY') {
+                this.currentRow = this.wheelRow + 1;
+            }
         }
 
         this.wheelSpinListeners.forEach((fn) => fn(outcome, this));
-        this.emitStateChange(GameState.PLAYING);
+        if (this.wheelProfile === 'BONUS_BUY') {
+            this.emitStateChange(GameState.WON);
+        } else {
+            this.emitStateChange(GameState.PLAYING);
+        }
         return outcome;
     }
 
@@ -739,15 +745,81 @@ export class GameEngine {
                 this.wheelSpinsRemaining--;
                 if (this.wheelSpinsRemaining <= 0) {
                     this.isWheelActive = false;
-                    this.currentRow = this.wheelRow + 1;
+                    if (this.wheelProfile !== 'BONUS_BUY') {
+                        this.currentRow = this.wheelRow + 1;
+                    }
                 }
             }
 
             this.slotCompleteListeners.forEach((fn) => fn(this.slotBundle!, this));
-            this.emitStateChange(this.currentMultiplier > 0 ? GameState.PLAYING : GameState.CRASHED);
+            if (this.slotBundle.profile === 'BONUS_BUY') {
+                this.emitStateChange(this.currentMultiplier > 0 ? GameState.WON : GameState.CRASHED);
+            } else {
+                this.emitStateChange(this.currentMultiplier > 0 ? GameState.PLAYING : GameState.CRASHED);
+            }
         }
 
         return spinOutcome;
+    }
+
+    /**
+     * Cleanly wraps up a Bonus Buy round (Wheel or Slot), banking payouts, updating summaries, and resetting to IDLE.
+     */
+    public completeBonusBuyRound(totalPayout: number, effectiveMult: number) {
+        this.isWheelActive = false;
+        this.wheelSpinsRemaining = 0;
+        this.isSlotActive = false;
+        this.slotBundle = null;
+        this.wheelProfile = 'NATURAL';
+
+        // Bank payout if not already deposited
+        if (totalPayout > 0) {
+            this.balance = Math.round((this.balance + totalPayout) * 100) / 100;
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('endless_descent_demo_balance', this.balance.toString());
+            }
+            this.emitBalanceChange();
+        }
+
+        const summary: RoundSummary = {
+            id: `rnd_bb_${Date.now()}_${this.nonce}`,
+            betAmount: this.betAmount,
+            effectiveBet: this.initialEffectiveBet,
+            minesCount: this.minesCount,
+            clearedRows: 1,
+            finalMultiplier: effectiveMult,
+            payout: totalPayout,
+            partialPayoutBanked: 0,
+            isWin: totalPayout > 0,
+            luckyBoost: false,
+            shieldUsed: false,
+            serverSeed: this.serverSeed,
+            serverSeedHash: hashServerSeed(this.serverSeed),
+            clientSeed: this.clientSeed,
+            nonce: this.nonce,
+            picks: [...this.currentPicks],
+            timestamp: Date.now()
+        };
+        this.recentSummaries.unshift(summary);
+        if (this.recentSummaries.length > 20) this.recentSummaries.pop();
+
+        this.previousServerSeed = this.serverSeed;
+        this.serverSeed = generateServerSeed();
+        this.nonce++;
+        this.persistState();
+
+        this.currentRow = 1;
+        this.currentMultiplier = 1.0;
+        this.currentPicks = [];
+        this.lastCrashedRow = null;
+        this.lastCrashedLane = null;
+        this.state = GameState.IDLE;
+
+        this.emitStateChange(GameState.IDLE);
+        this.emitHistoryUpdate();
+        if (totalPayout > 0) {
+            this.cashoutListeners.forEach((fn) => fn(totalPayout, effectiveMult, this));
+        }
     }
 
     /**

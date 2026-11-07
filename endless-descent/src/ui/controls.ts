@@ -1136,11 +1136,12 @@ export function createControlsUI(
         engine.betAmount = baseVal;
         const effVal = calculateEffectiveBet(baseVal, engine.luckyBoost, engine.shieldPurchased);
         const formattedEff = stakeRGS.formatCurrency(effVal);
+        const isMobileScreen = window.innerWidth <= 768;
         if (betPctBadge) {
             betPctBadge.textContent = `Total: ${formattedEff}`;
         }
         if (focalCtaSub && engine.state !== GameState.PLAYING) {
-            focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
+            focalCtaSub.textContent = isMobileScreen ? formattedEff : `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
         }
     }
 
@@ -1409,7 +1410,11 @@ export function createControlsUI(
                 !stateCtrl.isHitStopActive &&
                 !engine.isWheelActive &&
                 !engine.isSlotActive &&
-                !renderer.isSlotActive
+                !renderer.isSlotActive &&
+                !renderer.isWheelSpinning &&
+                !renderer.isSlotSpinning &&
+                engine.wheelProfile !== 'BONUS_BUY' &&
+                engine.slotBundle?.profile !== 'BONUS_BUY'
             ) {
                 e.preventDefault();
                 stateCtrl.selectLaneWithHitStop(laneIdx);
@@ -1571,7 +1576,9 @@ export function createControlsUI(
                         : (lang === 'es' ? 'GIRAR' : 'SPIN');
                     focalCtaSub.textContent = renderer.isWheelSpinning
                         ? (lang === 'es' ? '¡Buena Suerte!' : 'Good Luck!')
-                        : `(${t.shortcutSpace.toUpperCase()}) · ${lang === 'es' ? 'Tirada' : 'Spin'}`;
+                        : isMobile
+                          ? (lang === 'es' ? 'Tirada' : 'Spin')
+                          : `(${t.shortcutSpace.toUpperCase()}) · ${lang === 'es' ? 'Tirada' : 'Spin'}`;
                 } else if (engine.isSlotActive || renderer.isSlotActive) {
                     const totalSpins = engine.slotBundle?.spins.length || 5;
                     const spinsLeft = Math.max(0, totalSpins - engine.slotCurrentSpinIndex);
@@ -1592,7 +1599,7 @@ export function createControlsUI(
                     btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin', 'mode-slot-spin');
                     focalCtaHeaderLabel.textContent = t.focalActionLabel;
                     focalCtaTitle.textContent = t.focalDropCapsule;
-                    focalCtaSub.textContent = `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
+                    focalCtaSub.textContent = isMobile ? formattedEff : `(${t.shortcutSpace.toUpperCase()}) · ${formattedEff}`;
                 } else if (canCashout) {
                     const cashoutVal = calculatePayout(engine.activeBetAmount, currentMult);
                     btnPrimaryCta.disabled = false;
@@ -1600,7 +1607,7 @@ export function createControlsUI(
                     btnPrimaryCta.classList.add('mode-cashout');
                     focalCtaHeaderLabel.textContent = lang === 'es' ? 'Cobro Disponible' : 'Cashout Available';
                     focalCtaTitle.textContent = `${t.focalCashout} ${stakeRGS.formatCurrency(cashoutVal)}`;
-                    focalCtaSub.textContent = `${currentMult.toFixed(2)}× · ${t.shortcutSpace}`;
+                    focalCtaSub.textContent = isMobile ? `${currentMult.toFixed(2)}×` : `${currentMult.toFixed(2)}× · ${t.shortcutSpace}`;
                 } else {
                     btnPrimaryCta.disabled = true;
                     btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin', 'mode-slot-spin');
@@ -1621,11 +1628,11 @@ export function createControlsUI(
                     btnPartialCta.disabled = false;
                     const halfVal = Math.floor(calculatePayout(engine.activeBetAmount, currentMult) * 0.5 * 100) / 100;
                     partialCtaSub.textContent = `+${stakeRGS.formatCurrency(halfVal)}`;
-                    focalCtaHeaderShortcut.textContent = `${t.shortcutSpace} / ${t.shortcutKeyP}`;
+                    focalCtaHeaderShortcut.textContent = isMobile ? '' : `${t.shortcutSpace} / ${t.shortcutKeyP}`;
                 } else {
                     btnPartialCta.style.display = 'none';
                     btnPartialCta.disabled = true;
-                    focalCtaHeaderShortcut.textContent = t.shortcutSpace;
+                    focalCtaHeaderShortcut.textContent = isMobile ? '' : t.shortcutSpace;
                 }
             }
         }

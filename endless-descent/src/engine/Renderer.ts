@@ -3166,6 +3166,11 @@ export class PixiRenderer {
     }
 
     public finishRouletteSequence(onComplete?: () => void) {
+        const engine = this.gameState.engine;
+        const isBonusBuy = engine.wheelProfile === 'BONUS_BUY';
+        const mult = engine.currentMultiplier;
+        const payout = isBonusBuy ? Math.round(engine.betAmount * mult * 100) / 100 : 0;
+
         gsap.to(this.floatingAstronautGroup.position, {
             y: SHIP_FLIGHT_Y + 1.8,
             duration: 0.50,
@@ -3188,8 +3193,95 @@ export class PixiRenderer {
                     onComplete: () => {
                         this.giantRouletteGroup.visible = false;
                         this.isRouletteActive = false;
-                        this.ship.triggerSpeedBurst(0.65);
-                        if (onComplete) onComplete();
+
+                        if (isBonusBuy) {
+                            this.resetCameraAndShipToBase();
+                            engine.completeBonusBuyRound(payout, mult);
+                            if (onComplete) onComplete();
+                        } else {
+                            this.ship.triggerSpeedBurst(0.65);
+                            if (onComplete) onComplete();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Direct VIP Bonus Buy trigger for Cosmic Prize Wheel.
+     * Glides the Starfighter forward into the open cosmic void, vents canopy smoke,
+     * ejects astronaut into zero-G, hides crates, and descends the Giant Prize Wheel.
+     */
+    public triggerDirectWheelBonusSequence(onReady?: () => void) {
+        this.isRouletteActive = true;
+        this.isWheelSpinning = false;
+        this.isSlotActive = false;
+        this.isSlotSpinning = false;
+        if (this.miniSlotGroup) this.miniSlotGroup.visible = false;
+        this.lastFlapperPegIndex = -1;
+
+        // Hide crate platforms so the cosmic void is 100% clean
+        this.rowSlots.flat().forEach(slot => { slot.group.visible = false; });
+
+        const worldX = 0;
+        const targetShipZ = -3.0;
+        const wheelZ = targetShipZ - 7.5;
+        const wheelY = SHIP_FLIGHT_Y + 0.85;
+
+        gsap.killTweensOf(this.ship.pos);
+        this.ship.vel.set(0, 0, 0);
+        this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
+        this.ship.root.visible = true;
+        this.ship.resetCockpit();
+
+        audioController.playStartRound();
+        gsap.to(this.ship.pos, {
+            x: worldX,
+            y: SHIP_FLIGHT_Y,
+            z: targetShipZ,
+            duration: 0.55,
+            ease: 'power2.out',
+            onComplete: () => {
+                // Canopy opens & pressurized smoke vents out
+                audioController.playWheelPop();
+                this.ship.openCockpitCanopy(0.40);
+                this.vfx.spawnGpuParticleCloud(worldX, SHIP_FLIGHT_Y + 0.45, targetShipZ, 65, [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8], 4, 12, 0.7);
+
+                // Astronaut ejects into zero-G void
+                this.ship.cockpitAstronaut.visible = true;
+                this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
+                gsap.to(this.ship.cockpitAstronaut.position, {
+                    y: 2.4,
+                    z: 0.7,
+                    duration: 0.42,
+                    ease: 'power1.out',
+                    onComplete: () => {
+                        this.ship.cockpitAstronaut.visible = false;
+                        this.ship.root.visible = false;
+
+                        // Cosmic Void Scene Setup
+                        this.giantRouletteGroup.visible = true;
+                        this.giantRouletteGroup.position.set(worldX, wheelY + 16, wheelZ);
+                        this.wheelCurrentAngle = 0;
+                        this.giantWheelDisc.rotation.z = 0;
+
+                        gsap.to(this.giantRouletteGroup.position, {
+                            y: wheelY,
+                            duration: 0.75,
+                            ease: 'back.out(1.2)'
+                        });
+
+                        this.floatingAstronautGroup.visible = true;
+                        this.floatingAstronautGroup.position.set(worldX, SHIP_FLIGHT_Y - 0.20, targetShipZ - 3.65);
+                        gsap.fromTo(
+                            this.floatingAstronautGroup.position,
+                            { y: SHIP_FLIGHT_Y + 1.8 },
+                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.65, ease: 'power2.out' }
+                        );
+
+                        window.dispatchEvent(new CustomEvent('roulette-ready'));
+                        if (onReady) onReady();
                     }
                 });
             }
@@ -3293,6 +3385,106 @@ export class PixiRenderer {
                 );
                 audioController.playSlotLineWin(false);
                 window.dispatchEvent(new CustomEvent('slot-ready'));
+            }
+        });
+    }
+
+    /**
+     * Direct VIP Bonus Buy trigger for 3D Arcade Mini-Slot Machine.
+     * Glides the Starfighter forward into the open cosmic void, vents canopy smoke,
+     * ejects astronaut into zero-G facing slot, hides crates, and descends the Arcade Slot Machine!
+     */
+    public triggerDirectSlotBonusSequence(spinsCount: number, onReady?: () => void) {
+        this.isSlotActive = true;
+        this.isSlotSpinning = false;
+        this.isRouletteActive = false;
+        this.isWheelSpinning = false;
+        if (this.giantRouletteGroup) this.giantRouletteGroup.visible = false;
+
+        // Hide crate platforms so the cosmic void is 100% clean
+        this.rowSlots.flat().forEach(slot => { slot.group.visible = false; });
+
+        const worldX = 0;
+        const targetShipZ = -3.0;
+        const slotZ = targetShipZ - 7.0;
+        const slotY = SHIP_FLIGHT_Y + 1.15;
+
+        gsap.killTweensOf(this.ship.pos);
+        this.ship.vel.set(0, 0, 0);
+        this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
+        this.ship.root.visible = true;
+        this.ship.resetCockpit();
+
+        audioController.playStartRound();
+        gsap.to(this.ship.pos, {
+            x: worldX,
+            y: SHIP_FLIGHT_Y,
+            z: targetShipZ,
+            duration: 0.55,
+            ease: 'power2.out',
+            onComplete: () => {
+                // Canopy opens & pressurized smoke vents out
+                audioController.playWheelPop();
+                this.ship.openCockpitCanopy(0.40);
+                this.vfx.spawnGpuParticleCloud(worldX, SHIP_FLIGHT_Y + 0.45, targetShipZ, 65, [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8], 4, 12, 0.7);
+
+                // Astronaut ejects into zero-G void
+                this.ship.cockpitAstronaut.visible = true;
+                this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
+                gsap.to(this.ship.cockpitAstronaut.position, {
+                    y: 2.4,
+                    z: 0.7,
+                    duration: 0.42,
+                    ease: 'power1.out',
+                    onComplete: () => {
+                        this.ship.cockpitAstronaut.visible = false;
+                        this.ship.root.visible = false;
+
+                        // Position floating astronaut facing the arcade slot in zero-G
+                        this.floatingAstronautGroup.visible = true;
+                        this.floatingAstronautGroup.position.set(
+                            worldX - 2.85,
+                            SHIP_FLIGHT_Y - 0.88,
+                            targetShipZ - 2.6
+                        );
+                        this.floatingAstronautGroup.rotation.y = 0.32;
+
+                        // Initialize LED display canvas
+                        updateSlotLedDisplayCanvas(
+                            this.textures.slotLedDisplayCanvas,
+                            spinsCount,
+                            spinsCount,
+                            0
+                        );
+                        this.textures.slotLedDisplayTex.needsUpdate = true;
+
+                        // Animate Mini-Slot dropping into view in front of astronaut
+                        this.miniSlotGroup.visible = true;
+                        this.miniSlotGroup.position.set(worldX, slotY + 16, slotZ);
+
+                        gsap.to(this.miniSlotGroup.position, {
+                            y: slotY,
+                            duration: 0.75,
+                            ease: 'back.out(1.2)',
+                            onComplete: () => {
+                                this.vfx.spawnShockwave3D(worldX, slotY, slotZ, 0x38bdf8, 7.0, 0.35);
+                                this.vfx.spawnGpuParticleCloud(
+                                    worldX,
+                                    slotY,
+                                    slotZ + 0.5,
+                                    80,
+                                    [0x38bdf8, 0xa855f7, 0xfde047, 0xffffff],
+                                    8,
+                                    18,
+                                    0.6
+                                );
+                                audioController.playSlotLineWin(false);
+                                window.dispatchEvent(new CustomEvent('slot-ready'));
+                                if (onReady) onReady();
+                            }
+                        });
+                    }
+                });
             }
         });
     }
@@ -3442,6 +3634,10 @@ export class PixiRenderer {
      */
     public finishSlotSequence(finalAccumulator: number, onComplete?: () => void) {
         const slotPos = this.miniSlotGroup.position;
+        const engine = this.gameState.engine;
+        const isBonusBuy = engine.slotBundle?.profile === 'BONUS_BUY' || engine.wheelProfile === 'BONUS_BUY';
+        const effectiveMult = isBonusBuy ? finalAccumulator : engine.currentMultiplier;
+        const payout = isBonusBuy ? Math.round(engine.betAmount * effectiveMult * 100) / 100 : 0;
 
         if (finalAccumulator > 0) {
             // Big Celebration for accumulated multiplier
@@ -3462,8 +3658,8 @@ export class PixiRenderer {
                 slotPos.x,
                 slotPos.y + 1.6,
                 slotPos.z + 1.0,
-                this.gameState.engine.currentMultiplier,
-                this.gameState.engine.currentRow
+                effectiveMult,
+                engine.currentRow
             );
         } else {
             // 0x (Direct Bonus Buy loss)
@@ -3498,10 +3694,67 @@ export class PixiRenderer {
                     this.ship.cockpitAstronaut.visible = false;
                 });
 
-                this.ship.triggerSpeedBurst(0.65);
-                if (onComplete) onComplete();
+                if (isBonusBuy) {
+                    this.resetCameraAndShipToBase();
+                    engine.completeBonusBuyRound(payout, effectiveMult);
+                    if (onComplete) onComplete();
+                } else {
+                    this.ship.triggerSpeedBurst(0.65);
+                    if (onComplete) onComplete();
+                }
             }
         });
+    }
+
+    /**
+     * Resets the Starfighter and Orbital Tactical Camera to the default idle base position
+     * and restores crate visibility. Used to cleanly reset after Bonus Buy rounds.
+     */
+    public resetCameraAndShipToBase() {
+        this.isRouletteActive = false;
+        this.isWheelSpinning = false;
+        this.isSlotActive = false;
+        this.isSlotSpinning = false;
+        if (this.giantRouletteGroup) {
+            this.giantRouletteGroup.visible = false;
+        }
+        if (this.miniSlotGroup) {
+            this.miniSlotGroup.visible = false;
+        }
+        if (this.floatingAstronautGroup) {
+            this.floatingAstronautGroup.visible = false;
+            this.floatingAstronautGroup.rotation.y = 0;
+        }
+
+        this.rowSlots.flat().forEach(slot => {
+            slot.group.visible = true;
+            slot.wheelStandGroup.scale.set(1, 1, 1);
+        });
+
+        this.ship.snapTo(0, SHIP_FLIGHT_Y, 0);
+        this.ship.setTargetPosition(0, SHIP_FLIGHT_Y, 0);
+        this.ship.vel.set(0, 0, 0);
+        this.ship.root.visible = true;
+        this.ship.resetCockpit();
+        this.ship.cockpitAstronaut.visible = false;
+
+        const aspect = this.width / Math.max(1, this.height);
+        const isPortrait916 = aspect < 1.0;
+        const narrowFactor = isPortrait916 ? Math.max(0, (0.65 - aspect) * 9.5) : 0;
+        const offsetY = isPortrait916 ? 6.5 + narrowFactor * 0.55 : 4.4;
+        const offsetZ = isPortrait916 ? 10.5 + narrowFactor : 7.2;
+        const lookAheadZ = isPortrait916 ? -8.5 : -9.5;
+        const baseFov = isPortrait916 ? 64 : 54;
+
+        this.camVel.set(0, 0, 0);
+        this.camPos.set(0, SHIP_FLIGHT_Y + offsetY, offsetZ);
+        this.camLookAt.set(0, isPortrait916 ? 0.25 : 1.05, lookAheadZ);
+        this.camera.position.copy(this.camPos);
+        this.camera.lookAt(this.camLookAt);
+        this.camera.fov = baseFov;
+        this.camera.updateProjectionMatrix();
+
+        this.vfx.clearGraffitiTags();
     }
 
     /**
@@ -4211,7 +4464,7 @@ export class PixiRenderer {
                     plat.diffuseHazeSprite.visible = false;
                     plat.badgeSprite.visible = false;
                 }
-                if (this.isRouletteActive || this.isSlotActive) {
+                if (this.isRouletteActive || this.isSlotActive || engine.wheelProfile === 'BONUS_BUY' || engine.slotBundle?.profile === 'BONUS_BUY') {
                     plat.group.visible = false;
                     continue;
                 }

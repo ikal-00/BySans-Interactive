@@ -326,11 +326,7 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
         const success = engine.buyWheelBonus(WHEEL_BUY_COST_MULT, currentSelectedBet);
         if (success) {
             hideBonusBuyModal();
-            renderer.vfx.triggerScreenShake(0.35, 0.2);
-
-            const shipZ = renderer.ship?.pos?.z ?? 0;
-            const shipX = renderer.ship?.pos?.x ?? 0;
-            renderer.triggerRouletteSequence(shipX, shipZ - 2.5, engine.wheelPendingPick!);
+            renderer.triggerDirectWheelBonusSequence(() => onUpdate());
 
             stakeRGS.showToast(
                 `🎡 ¡Bono Ruleta Cósmica Comprado! Costo: ${stakeRGS.formatCurrency(cost)}. ¡Gira ahora!`,
@@ -353,11 +349,7 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
         const bundle = engine.buySlotBonus(SLOT_BUY_COST_MULT, currentSelectedBet);
         if (bundle) {
             hideBonusBuyModal();
-            renderer.vfx.triggerScreenShake(0.45, 0.25);
-
-            const shipZ = renderer.ship?.pos?.z ?? 0;
-            const shipX = renderer.ship?.pos?.x ?? 0;
-            renderer.triggerSlotSequence(shipX, shipZ - 2.5, bundle.spins.length, 0);
+            renderer.triggerDirectSlotBonusSequence(bundle.spins.length, () => onUpdate());
 
             stakeRGS.showToast(
                 `🎰 ¡Bono Mini-Slot 1x3 Comprado! Costo: ${stakeRGS.formatCurrency(cost)}. ¡Tira los rodillos!`,
