@@ -2790,11 +2790,11 @@ body {
 
   /* 2. FLOATING BONUS BUY CIRCULAR BUTTON */
   .bonus-buy-circular-btn {
-    top: 124px !important;
-    left: 10px !important;
-    width: 46px !important;
-    height: 46px !important;
-    z-index: 25 !important;
+    top: 125px !important;
+    left: 12px !important;
+    width: 48px !important;
+    height: 48px !important;
+    z-index: 150 !important;
   }
 
   .bonus-btn-ring {
@@ -3348,10 +3348,11 @@ body {
   }
 
   .bonus-buy-circular-btn {
-    top: 46px !important;
-    left: 8px !important;
-    width: 40px !important;
-    height: 40px !important;
+    top: 52px !important;
+    left: 12px !important;
+    width: 42px !important;
+    height: 42px !important;
+    z-index: 150 !important;
   }
 
   .pc-left-dock {
@@ -4557,16 +4558,16 @@ body.rules-modal-open #rules-modal-overlay {
 /* 1. Floating Circular Trigger Button */
 .bonus-buy-circular-btn {
   position: absolute;
-  top: 18px;
-  left: 20px;
-  width: 60px;
-  height: 60px;
+  top: 130px;
+  left: 24px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   border: 2px solid #facc15;
   background: radial-gradient(circle at 35% 35%, #fde047 0%, #d97706 50%, #451a03 100%);
   box-shadow: 0 0 22px rgba(245, 158, 11, 0.5), 0 6px 16px rgba(0, 0, 0, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  z-index: 120;
+  z-index: 150;
   display: flex;
   align-items: center;
   justify-content: center;

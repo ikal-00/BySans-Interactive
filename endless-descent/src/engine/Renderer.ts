@@ -2924,7 +2924,7 @@ export class PixiRenderer {
             x: worldX,
             y: SHIP_FLIGHT_Y,
             z: worldZ + 1.85,
-            duration: 0.36,
+            duration: 0.22,
             ease: 'power2.out',
             onComplete: () => {
                 // 2. 3D Prize Wheel stand vanishes with golden pop burst
@@ -2952,7 +2952,7 @@ export class PixiRenderer {
                         x: 1.6,
                         y: 1.6,
                         z: 1.6,
-                        duration: 0.14,
+                        duration: 0.12,
                         ease: 'back.out(2)',
                         onComplete: () => {
                             hitCard.wheelStandGroup.visible = false;
@@ -2961,7 +2961,7 @@ export class PixiRenderer {
                 }
 
                 // 3. Canopy opens & pressurized smoke vents out
-                this.ship.openCockpitCanopy(0.40);
+                this.ship.openCockpitCanopy(0.18);
                 this.vfx.spawnGpuParticleCloud(
                     worldX,
                     SHIP_FLIGHT_Y + 0.45,
@@ -2970,7 +2970,7 @@ export class PixiRenderer {
                     [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8],
                     4,
                     12,
-                    0.7
+                    0.5
                 );
                 this.vfx.spawnGpuParticleCloud(
                     worldX + 0.15,
@@ -2980,7 +2980,7 @@ export class PixiRenderer {
                     [0xffffff, 0xf1f5f9],
                     3,
                     10,
-                    0.65
+                    0.5
                 );
 
                 // 4. Astronaut ejects into zero-G void
@@ -2989,8 +2989,8 @@ export class PixiRenderer {
                 gsap.to(this.ship.cockpitAstronaut.position, {
                     y: 2.4,
                     z: 0.7,
-                    duration: 0.42,
-                    ease: 'power1.out',
+                    duration: 0.22,
+                    ease: 'power2.out',
                     onComplete: () => {
                         this.ship.cockpitAstronaut.visible = false;
                         this.ship.root.visible = false; // Starfighter leaves focus so scene is purely astronaut in zero-G void!
@@ -3000,14 +3000,14 @@ export class PixiRenderer {
                         const wheelY = SHIP_FLIGHT_Y + 0.85;
 
                         this.giantRouletteGroup.visible = true;
-                        this.giantRouletteGroup.position.set(worldX, wheelY + 16, wheelZ);
+                        this.giantRouletteGroup.position.set(worldX, wheelY + 14, wheelZ);
                         this.wheelCurrentAngle = 0;
                         this.giantWheelDisc.rotation.z = 0;
 
                         gsap.to(this.giantRouletteGroup.position, {
                             y: wheelY,
-                            duration: 0.75,
-                            ease: 'back.out(1.2)'
+                            duration: 0.38,
+                            ease: 'back.out(1.15)'
                         });
 
                         this.floatingAstronautGroup.visible = true;
@@ -3019,7 +3019,7 @@ export class PixiRenderer {
                         gsap.fromTo(
                             this.floatingAstronautGroup.position,
                             { y: SHIP_FLIGHT_Y + 1.8 },
-                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.65, ease: 'power2.out' }
+                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.30, ease: 'power2.out' }
                         );
 
                         // Signal UI that yellow GIRAR button is now active!
@@ -3117,32 +3117,33 @@ export class PixiRenderer {
                     0.72
                 );
 
+                const isBonusBuy = this.gameState.engine.wheelProfile === 'BONUS_BUY';
                 if (outcome.segment.type === 'WIPEOUT') {
                     audioController.playWheelWipeout();
                     this.vfx.spawnCrashExplosion3D(worldX, SHIP_FLIGHT_Y, wheelZ - 2.0);
                     this.vfx.triggerScreenShake(0.65, 0.45);
+                    const wipeoutDelay = isBonusBuy ? 1100 : 1800;
                     setTimeout(() => {
                         this.finishRouletteSequence(() => {
                             this.isWheelSpinning = false;
                             onComplete();
                         });
-                    }, 2400);
+                    }, wipeoutDelay);
                 } else if (outcome.segment.type === 'EXTRA_SPIN') {
                     audioController.playGoldenHit();
                     setTimeout(() => {
                         this.isWheelSpinning = false;
                         onComplete();
-                    }, 1800);
+                    }, 1100);
                 } else if (outcome.segment.type === 'SLOT') {
                     audioController.playGoldenHit();
-                    // Wait 2.2s so the player clearly sees the flapper resting on GIROS DE SLOT!
                     setTimeout(() => {
                         this.isRouletteActive = false;
                         this.isWheelSpinning = false;
                         const spinsCount = this.gameState.engine.slotBundle?.spins.length || 5;
                         this.triggerSlotSequence(worldX, wheelZ + 7.5, spinsCount, 0);
                         onComplete();
-                    }, 2200);
+                    }, 1200);
                 } else {
                     audioController.playCashout(outcome.segment.multiplier >= 10);
                     this.vfx.spawnGraffitiMultiplierTag3D(
@@ -3153,13 +3154,13 @@ export class PixiRenderer {
                         this.gameState.engine.currentRow
                     );
 
-                    // Ample display time (2.8s) so the player clearly celebrates and absorbs the final result
+                    const winDelay = isBonusBuy ? 1300 : 2000;
                     setTimeout(() => {
                         this.finishRouletteSequence(() => {
                             this.isWheelSpinning = false;
                             onComplete();
                         });
-                    }, 2800);
+                    }, winDelay);
                 }
             }
         });
@@ -3171,9 +3172,23 @@ export class PixiRenderer {
         const mult = engine.currentMultiplier;
         const payout = isBonusBuy ? Math.round(engine.betAmount * mult * 100) / 100 : 0;
 
+        const exitDuration = 0.28;
+
+        // Giant Roulette rises smoothly out of frame
+        gsap.to(this.giantRouletteGroup.position, {
+            y: this.giantRouletteGroup.position.y + 18,
+            duration: exitDuration,
+            ease: 'power2.in',
+            onComplete: () => {
+                this.giantRouletteGroup.visible = false;
+                this.isRouletteActive = false;
+            }
+        });
+
+        // Astronaut floats back and boards starfighter concurrently
         gsap.to(this.floatingAstronautGroup.position, {
             y: SHIP_FLIGHT_Y + 1.8,
-            duration: 0.50,
+            duration: exitDuration * 0.85,
             ease: 'power2.in',
             onComplete: () => {
                 this.floatingAstronautGroup.visible = false;
@@ -3182,26 +3197,15 @@ export class PixiRenderer {
                 this.ship.cockpitAstronaut.visible = true;
                 this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
 
-                this.ship.closeCockpitCanopy(0.38, () => {
+                this.ship.closeCockpitCanopy(0.16, () => {
                     this.ship.cockpitAstronaut.visible = false;
-                });
-
-                gsap.to(this.giantRouletteGroup.position, {
-                    y: this.giantRouletteGroup.position.y + 18,
-                    duration: 0.65,
-                    ease: 'power2.in',
-                    onComplete: () => {
-                        this.giantRouletteGroup.visible = false;
-                        this.isRouletteActive = false;
-
-                        if (isBonusBuy) {
-                            this.resetCameraAndShipToBase();
-                            engine.completeBonusBuyRound(payout, mult);
-                            if (onComplete) onComplete();
-                        } else {
-                            this.ship.triggerSpeedBurst(0.65);
-                            if (onComplete) onComplete();
-                        }
+                    if (isBonusBuy) {
+                        this.resetCameraAndShipToBase();
+                        engine.completeBonusBuyRound(payout, mult);
+                        if (onComplete) onComplete();
+                    } else {
+                        this.ship.triggerSpeedBurst(0.45);
+                        if (onComplete) onComplete();
                     }
                 });
             }
@@ -3240,13 +3244,13 @@ export class PixiRenderer {
             x: worldX,
             y: SHIP_FLIGHT_Y,
             z: targetShipZ,
-            duration: 0.55,
-            ease: 'power2.out',
+            duration: 0.28,
+            ease: 'power3.out',
             onComplete: () => {
                 // Canopy opens & pressurized smoke vents out
                 audioController.playWheelPop();
-                this.ship.openCockpitCanopy(0.40);
-                this.vfx.spawnGpuParticleCloud(worldX, SHIP_FLIGHT_Y + 0.45, targetShipZ, 65, [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8], 4, 12, 0.7);
+                this.ship.openCockpitCanopy(0.18);
+                this.vfx.spawnGpuParticleCloud(worldX, SHIP_FLIGHT_Y + 0.45, targetShipZ, 55, [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8], 4, 12, 0.5);
 
                 // Astronaut ejects into zero-G void
                 this.ship.cockpitAstronaut.visible = true;
@@ -3254,22 +3258,22 @@ export class PixiRenderer {
                 gsap.to(this.ship.cockpitAstronaut.position, {
                     y: 2.4,
                     z: 0.7,
-                    duration: 0.42,
-                    ease: 'power1.out',
+                    duration: 0.22,
+                    ease: 'power2.out',
                     onComplete: () => {
                         this.ship.cockpitAstronaut.visible = false;
                         this.ship.root.visible = false;
 
                         // Cosmic Void Scene Setup
                         this.giantRouletteGroup.visible = true;
-                        this.giantRouletteGroup.position.set(worldX, wheelY + 16, wheelZ);
+                        this.giantRouletteGroup.position.set(worldX, wheelY + 14, wheelZ);
                         this.wheelCurrentAngle = 0;
                         this.giantWheelDisc.rotation.z = 0;
 
                         gsap.to(this.giantRouletteGroup.position, {
                             y: wheelY,
-                            duration: 0.75,
-                            ease: 'back.out(1.2)'
+                            duration: 0.38,
+                            ease: 'back.out(1.15)'
                         });
 
                         this.floatingAstronautGroup.visible = true;
@@ -3277,7 +3281,7 @@ export class PixiRenderer {
                         gsap.fromTo(
                             this.floatingAstronautGroup.position,
                             { y: SHIP_FLIGHT_Y + 1.8 },
-                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.65, ease: 'power2.out' }
+                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.30, ease: 'power2.out' }
                         );
 
                         window.dispatchEvent(new CustomEvent('roulette-ready'));
@@ -3346,7 +3350,7 @@ export class PixiRenderer {
         if (this.giantRouletteGroup && this.giantRouletteGroup.visible) {
             gsap.to(this.giantRouletteGroup.position, {
                 y: this.giantRouletteGroup.position.y + 18,
-                duration: 0.65,
+                duration: 0.28,
                 ease: 'power2.in',
                 onComplete: () => {
                     this.giantRouletteGroup.visible = false;
@@ -3365,23 +3369,23 @@ export class PixiRenderer {
 
         // Animate Mini-Slot dropping into view in front of the astronaut with high impact
         this.miniSlotGroup.visible = true;
-        this.miniSlotGroup.position.set(worldX, slotY + 16, slotZ);
+        this.miniSlotGroup.position.set(worldX, slotY + 14, slotZ);
 
         gsap.to(this.miniSlotGroup.position, {
             y: slotY,
-            duration: 0.75,
-            ease: 'back.out(1.2)',
+            duration: 0.38,
+            ease: 'back.out(1.15)',
             onComplete: () => {
-                this.vfx.spawnShockwave3D(worldX, slotY, slotZ, 0x38bdf8, 7.0, 0.35);
+                this.vfx.spawnShockwave3D(worldX, slotY, slotZ, 0x38bdf8, 6.0, 0.28);
                 this.vfx.spawnGpuParticleCloud(
                     worldX,
                     slotY,
                     slotZ + 0.5,
-                    80,
+                    60,
                     [0x38bdf8, 0xa855f7, 0xfde047, 0xffffff],
-                    8,
-                    18,
-                    0.6
+                    6,
+                    15,
+                    0.5
                 );
                 audioController.playSlotLineWin(false);
                 window.dispatchEvent(new CustomEvent('slot-ready'));
@@ -3420,13 +3424,13 @@ export class PixiRenderer {
             x: worldX,
             y: SHIP_FLIGHT_Y,
             z: targetShipZ,
-            duration: 0.55,
-            ease: 'power2.out',
+            duration: 0.28,
+            ease: 'power3.out',
             onComplete: () => {
                 // Canopy opens & pressurized smoke vents out
                 audioController.playWheelPop();
-                this.ship.openCockpitCanopy(0.40);
-                this.vfx.spawnGpuParticleCloud(worldX, SHIP_FLIGHT_Y + 0.45, targetShipZ, 65, [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8], 4, 12, 0.7);
+                this.ship.openCockpitCanopy(0.18);
+                this.vfx.spawnGpuParticleCloud(worldX, SHIP_FLIGHT_Y + 0.45, targetShipZ, 55, [0xffffff, 0xe0f2fe, 0xbae6fd, 0x38bdf8], 4, 12, 0.5);
 
                 // Astronaut ejects into zero-G void
                 this.ship.cockpitAstronaut.visible = true;
@@ -3434,8 +3438,8 @@ export class PixiRenderer {
                 gsap.to(this.ship.cockpitAstronaut.position, {
                     y: 2.4,
                     z: 0.7,
-                    duration: 0.42,
-                    ease: 'power1.out',
+                    duration: 0.22,
+                    ease: 'power2.out',
                     onComplete: () => {
                         this.ship.cockpitAstronaut.visible = false;
                         this.ship.root.visible = false;
@@ -3460,23 +3464,23 @@ export class PixiRenderer {
 
                         // Animate Mini-Slot dropping into view in front of astronaut
                         this.miniSlotGroup.visible = true;
-                        this.miniSlotGroup.position.set(worldX, slotY + 16, slotZ);
+                        this.miniSlotGroup.position.set(worldX, slotY + 14, slotZ);
 
                         gsap.to(this.miniSlotGroup.position, {
                             y: slotY,
-                            duration: 0.75,
-                            ease: 'back.out(1.2)',
+                            duration: 0.38,
+                            ease: 'back.out(1.15)',
                             onComplete: () => {
-                                this.vfx.spawnShockwave3D(worldX, slotY, slotZ, 0x38bdf8, 7.0, 0.35);
+                                this.vfx.spawnShockwave3D(worldX, slotY, slotZ, 0x38bdf8, 6.0, 0.28);
                                 this.vfx.spawnGpuParticleCloud(
                                     worldX,
                                     slotY,
                                     slotZ + 0.5,
-                                    80,
+                                    60,
                                     [0x38bdf8, 0xa855f7, 0xfde047, 0xffffff],
-                                    8,
-                                    18,
-                                    0.6
+                                    6,
+                                    15,
+                                    0.5
                                 );
                                 audioController.playSlotLineWin(false);
                                 window.dispatchEvent(new CustomEvent('slot-ready'));
@@ -3618,11 +3622,12 @@ export class PixiRenderer {
                 );
                 this.textures.slotLedDisplayTex.needsUpdate = true;
 
-                // Brief pause for tension before handing back control
+                // Fast, snappy resolution without lingering lag
+                const postSpinDelay = spinsLeft === 0 ? 180 : 380;
                 setTimeout(() => {
                     this.isSlotSpinning = false;
                     onComplete();
-                }, 650);
+                }, postSpinDelay);
             }
         });
     }
@@ -3642,17 +3647,17 @@ export class PixiRenderer {
         if (finalAccumulator > 0) {
             // Big Celebration for accumulated multiplier
             audioController.playCashout(finalAccumulator >= 10);
-            this.vfx.triggerScreenShake(0.45, 0.35);
-            this.vfx.spawnShockwave3D(slotPos.x, slotPos.y, slotPos.z, 0xfacc15, 12.0, 0.6);
+            this.vfx.triggerScreenShake(0.35, 0.22);
+            this.vfx.spawnShockwave3D(slotPos.x, slotPos.y, slotPos.z, 0xfacc15, 10.0, 0.45);
             this.vfx.spawnGpuParticleCloud(
                 slotPos.x,
                 slotPos.y,
                 slotPos.z,
-                200,
+                140,
                 [0xfde047, 0xfacc15, 0xa855f7, 0x38bdf8, 0xffffff],
-                14,
-                30,
-                0.9
+                12,
+                24,
+                0.7
             );
             this.vfx.spawnGraffitiMultiplierTag3D(
                 slotPos.x,
@@ -3667,10 +3672,12 @@ export class PixiRenderer {
             this.vfx.spawnCrashExplosion3D(slotPos.x, SHIP_FLIGHT_Y, slotPos.z);
         }
 
+        const exitDuration = 0.28;
+
         // Mini-Slot rises smoothly out of frame
         gsap.to(this.miniSlotGroup.position, {
             y: this.miniSlotGroup.position.y + 18,
-            duration: 0.65,
+            duration: exitDuration,
             ease: 'power2.in',
             onComplete: () => {
                 this.miniSlotGroup.visible = false;
@@ -3678,10 +3685,10 @@ export class PixiRenderer {
             }
         });
 
-        // Astronaut floats back and boards starfighter
+        // Astronaut floats back and boards starfighter concurrently
         gsap.to(this.floatingAstronautGroup.position, {
             y: SHIP_FLIGHT_Y + 1.8,
-            duration: 0.50,
+            duration: exitDuration * 0.85,
             ease: 'power2.in',
             onComplete: () => {
                 this.floatingAstronautGroup.visible = false;
@@ -3690,18 +3697,17 @@ export class PixiRenderer {
                 this.ship.cockpitAstronaut.visible = true;
                 this.ship.cockpitAstronaut.position.set(0, 0.32, 0.08);
 
-                this.ship.closeCockpitCanopy(0.38, () => {
+                this.ship.closeCockpitCanopy(0.16, () => {
                     this.ship.cockpitAstronaut.visible = false;
+                    if (isBonusBuy) {
+                        this.resetCameraAndShipToBase();
+                        engine.completeBonusBuyRound(payout, effectiveMult);
+                        if (onComplete) onComplete();
+                    } else {
+                        this.ship.triggerSpeedBurst(0.45);
+                        if (onComplete) onComplete();
+                    }
                 });
-
-                if (isBonusBuy) {
-                    this.resetCameraAndShipToBase();
-                    engine.completeBonusBuyRound(payout, effectiveMult);
-                    if (onComplete) onComplete();
-                } else {
-                    this.ship.triggerSpeedBurst(0.65);
-                    if (onComplete) onComplete();
-                }
             }
         });
     }
@@ -4337,19 +4343,19 @@ export class PixiRenderer {
             const activeGroup = this.isSlotActive ? this.miniSlotGroup : this.giantRouletteGroup;
             const rouZ = activeGroup.position.z;
             const rouX = activeGroup.position.x;
-            const camTargetZ = rouZ + (isPortrait916 ? 14.8 : 12.8);
-            const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.6 : 1.20);
-            const camTargetX = rouX * 0.15;
+            const camTargetZ = rouZ + (isPortrait916 ? 16.8 : 15.6);
+            const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 2.6 : 2.0);
+            const camTargetX = rouX * 0.12;
 
-            this.camPos.x = THREE.MathUtils.lerp(this.camPos.x, camTargetX, dt * 6.5);
-            this.camPos.y = THREE.MathUtils.lerp(this.camPos.y, camTargetY, dt * 6.5);
-            this.camPos.z = THREE.MathUtils.lerp(this.camPos.z, camTargetZ, dt * 6.5);
+            this.camPos.x = THREE.MathUtils.lerp(this.camPos.x, camTargetX, dt * 5.0);
+            this.camPos.y = THREE.MathUtils.lerp(this.camPos.y, camTargetY, dt * 5.0);
+            this.camPos.z = THREE.MathUtils.lerp(this.camPos.z, camTargetZ, dt * 5.0);
 
             this.camera.position.copy(this.camPos).add(this.vfx.shakeOffset);
 
-            const lookY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.4 : 1.20);
+            const lookY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.6 : 1.3);
             const desiredLook = this.scratchDesiredLook.set(rouX, lookY, rouZ);
-            this.camLookAt.lerp(desiredLook, dt * 10);
+            this.camLookAt.lerp(desiredLook, dt * 8);
             this.camera.lookAt(this.camLookAt);
             this.camera.rotation.z += this.vfx.shakeRoll;
             return;
