@@ -7,6 +7,7 @@ import { PixiRenderer } from './engine/Renderer';
 import { createControlsUI } from './ui/controls';
 import { isRulesModalOpen } from './ui/rulesModal';
 import { isBonusBuyModalOpen } from './ui/bonusBuyModal';
+import { audioController } from './engine/AudioController';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="pc-command-shell" id="pc-command-shell">
@@ -106,6 +107,16 @@ canvas.addEventListener('pointerleave', () => {
 canvas.addEventListener('pointercancel', () => {
     renderer.clearHover();
 });
+
+// 6. Start Cyberpunk Synthwave Music immediately at startup & unlock WebAudio on first gesture
+const unlockAudioOnGesture = () => {
+    audioController.resumeAudioContext();
+};
+['pointerdown', 'mousedown', 'keydown', 'touchstart'].forEach((evt) => {
+    window.addEventListener(evt, unlockAudioOnGesture, { passive: true });
+});
+// Immediate direct playback attempt (for browsers permitting autoplay)
+audioController.startAmbientDrone();
 
 // Testing / Debug hooks
 (window as any).__engine = engine;

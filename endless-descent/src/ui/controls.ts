@@ -709,6 +709,9 @@ export function createControlsUI(
     if (btnAudio) {
         btnAudio.addEventListener('click', () => {
             const isMuted = audioController.toggleMute();
+            if (!isMuted) {
+                audioController.resumeAudioContext();
+            }
             btnAudio.classList.toggle('active', !isMuted);
             const iconSvg = document.getElementById('audio-icon-svg');
             if (iconSvg) {

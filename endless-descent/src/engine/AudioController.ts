@@ -97,6 +97,20 @@ export class AudioController {
     }
 
     /**
+     * Unlocks and resumes the WebAudio Context on user gesture, kicking off BGM immediately.
+     */
+    public resumeAudioContext() {
+        if (!this.ctx) {
+            this.initContext();
+        } else if (this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+        }
+        if (!this.isBgmPlaying && !this.muted) {
+            this.startAmbientDrone();
+        }
+    }
+
+    /**
      * Starts both the ultra-subtle low-frequency engine sub-hum (-80% volume, 95Hz lowpass)
      * and the seamless rhythmic Synthwave / Cyberpunk-Thriller BGM track!
      */
@@ -409,6 +423,9 @@ export class AudioController {
         if (this.muted) return;
         this.initContext();
         if (!this.ctx) return;
+        if (!this.isBgmPlaying) {
+            this.startAmbientDrone();
+        }
 
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();

@@ -127,136 +127,96 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
 
     overlay.innerHTML = `
       <div class="bonus-modal-backdrop" id="bonus-backdrop"></div>
-      <div class="bonus-modal-window" role="dialog" aria-modal="true" aria-labelledby="bonus-dialog-title">
+      <div class="bonus-modal-window minimalist" role="dialog" aria-modal="true" aria-labelledby="bonus-dialog-title">
         
-        <!-- Header -->
+        <!-- Minimalist Header -->
         <div class="bonus-modal-header">
           <div class="bonus-title-cluster">
-            <div class="bonus-badge-pulse">VIP</div>
-            <div>
-              <h2 id="bonus-dialog-title">TIENDA DE BONOS / ACCESO DIRECTO</h2>
-              <p class="bonus-subtitle">¡Salta el descenso de minas y activa la adrenalina instantánea!</p>
-            </div>
+            <h2 id="bonus-dialog-title">COMPRA DE BONOS</h2>
+            <span class="bonus-tag-clean">VIP</span>
           </div>
           <button class="bonus-close-btn" id="btn-bonus-close" type="button" aria-label="Cerrar">✕</button>
         </div>
 
-        <!-- Body -->
+        <!-- Body: Clean & Compact -->
         <div class="bonus-modal-body">
           
-          <!-- Bet Selector Control Bar -->
+          <!-- Compact Bet Selector -->
           <div class="bonus-bet-bar">
-            <div class="bonus-bet-info">
-              <span class="bonus-bet-label">APUESTA BASE PARA CALCULAR:</span>
+            <div class="bonus-bet-top-row">
+              <span class="bonus-bet-label">APUESTA BASE:</span>
               <div class="bonus-bet-stepper">
                 <button class="bonus-step-btn" id="btn-bonus-bet-minus" type="button" aria-label="Disminuir apuesta">−</button>
                 <span class="bonus-bet-val" id="bonus-bet-val-display">${stakeRGS.formatCurrency(currentSelectedBet)}</span>
                 <button class="bonus-step-btn" id="btn-bonus-bet-plus" type="button" aria-label="Aumentar apuesta">+</button>
               </div>
+              <div class="bonus-chips-row">
+                ${[0.5, 1.0, 2.0, 5.0, 10.0, 25.0]
+                  .map(
+                    (amt) => `
+                      <button class="bonus-chip-pill ${Math.abs(currentSelectedBet - amt) < 0.001 ? 'active' : ''}" data-bet="${amt}" type="button">
+                        ${stakeRGS.formatCurrency(amt)}
+                      </button>
+                    `
+                  )
+                  .join('')}
+              </div>
             </div>
-
-            <!-- Bet Quick Chips -->
-            <div class="bonus-chips-row">
-              ${[0.2, 0.5, 1.0, 2.0, 5.0, 10.0, 25.0]
-                .map(
-                  (amt) => `
-                    <button class="bonus-chip-pill ${Math.abs(currentSelectedBet - amt) < 0.001 ? 'active' : ''}" data-bet="${amt}" type="button">
-                      ${stakeRGS.formatCurrency(amt)}
-                    </button>
-                  `
-                )
-                .join('')}
-            </div>
-
             <div class="bonus-balance-note">
-              <span>Saldo disponible: <strong>${stakeRGS.formatCurrency(engine.balance)}</strong></span>
+              <span>Saldo: <strong>${stakeRGS.formatCurrency(engine.balance)}</strong></span>
             </div>
           </div>
 
-          <!-- Cards Grid -->
+          <!-- Cards Grid: Minimalist Dual Action Cards -->
           <div class="bonus-cards-grid">
             
             <!-- CARD 1: RULETA CÓSMICA -->
             <div class="bonus-card wheel-card">
-              <div class="bonus-card-ribbon gold">ENTRADA DIRECTA · 20×</div>
-              
-              <div class="bonus-card-art">
-                <div class="bonus-wheel-graphic">
-                  <div class="wheel-glow-disc"></div>
-                  <span class="wheel-center-icon">🎡</span>
+              <div class="bonus-card-top">
+                <div class="bonus-card-icon gold">🎡</div>
+                <div class="bonus-card-info">
+                  <div class="bonus-card-header-row">
+                    <h3 class="bonus-card-title">Ruleta Cósmica</h3>
+                    <span class="bonus-mult-pill gold">20×</span>
+                  </div>
+                  <span class="bonus-card-sub">12 sectores · Jackpots hasta x1,000</span>
                 </div>
               </div>
 
-              <div class="bonus-card-details">
-                <h3 class="bonus-card-title">RULETA CÓSMICA VIP</h3>
-                <p class="bonus-card-desc">
-                  Entra al vacío cósmico frente a la Ruleta Gigante de 12 sectores. Gira de inmediato por premios de hasta <strong>x1,000 JACKPOT</strong>, tiradas extra o la llave dorada al Mini-Slot.
-                </p>
-
-                <div class="bonus-stats-pills">
-                  <span class="bonus-stat-tag green">🏆 Jackpots hasta x1000</span>
-                  <span class="bonus-stat-tag purple">🎰 Acceso a Giros de Slot</span>
-                  <span class="bonus-stat-tag red">⚠️ Tasa Wipeout Castigada: 38%</span>
-                </div>
-
-                <div class="bonus-card-footer">
-                  <div class="bonus-cost-cluster">
-                    <span class="bonus-cost-label">PRECIO:</span>
-                    <span class="bonus-cost-amount gold">${stakeRGS.formatCurrency(wheelTotalCost)}</span>
-                  </div>
-                  <button 
-                    class="bonus-buy-cta-btn gold-btn ${!canAffordWheel ? 'disabled' : ''}" 
-                    id="btn-buy-wheel-bonus" 
-                    type="button"
-                    ${!canAffordWheel ? 'disabled' : ''}
-                  >
-                    ${canAffordWheel ? `🎡 COMPRAR RULETA (${stakeRGS.formatCurrency(wheelTotalCost)})` : 'SALDO INSUFICIENTE'}
-                  </button>
-                </div>
+              <div class="bonus-card-footer">
+                <button 
+                  class="bonus-buy-cta-btn gold-btn ${!canAffordWheel ? 'disabled' : ''}" 
+                  id="btn-buy-wheel-bonus" 
+                  type="button"
+                  ${!canAffordWheel ? 'disabled' : ''}
+                >
+                  ${canAffordWheel ? `Comprar · ${stakeRGS.formatCurrency(wheelTotalCost)}` : 'Saldo Insuficiente'}
+                </button>
               </div>
             </div>
 
-            <!-- CARD 2: ARCADE MINI-SLOT 1x3 -->
+            <!-- CARD 2: MINI-SLOT 1x3 -->
             <div class="bonus-card slot-card">
-              <div class="bonus-card-ribbon purple">VOLATILIDAD EXTREMA · 50×</div>
-              
-              <div class="bonus-card-art">
-                <div class="bonus-slot-graphic">
-                  <div class="slot-glow-neon"></div>
-                  <div class="slot-mini-cabinet">
-                    <span class="slot-digit">🎰</span>
-                    <span class="slot-digit glow">x88</span>
-                    <span class="slot-digit">⭐</span>
+              <div class="bonus-card-top">
+                <div class="bonus-card-icon purple">🎰</div>
+                <div class="bonus-card-info">
+                  <div class="bonus-card-header-row">
+                    <h3 class="bonus-card-title">Mini-Slot 1×3</h3>
+                    <span class="bonus-mult-pill purple">50×</span>
                   </div>
+                  <span class="bonus-card-sub">5 Tiradas VIP · Multiplicadores x4..x88</span>
                 </div>
               </div>
 
-              <div class="bonus-card-details">
-                <h3 class="bonus-card-title">BONO MINI-SLOT 1x3</h3>
-                <p class="bonus-card-desc">
-                  ¡El bono supremo de Endless Descent! <strong>5 Giros VIP</strong> en la máquina cibernética de 1x3 rodillos con acumulación de multiplicadores en pantalla LED.
-                </p>
-
-                <div class="bonus-stats-pills">
-                  <span class="bonus-stat-tag cyan">🎰 5 Tiradas de Rodillos 1x3</span>
-                  <span class="bonus-stat-tag yellow">⚡ Símbolos x4, x8, x10, x28, x88</span>
-                  <span class="bonus-stat-tag red">⚠️ 90% Blanks (All-or-Nothing)</span>
-                </div>
-
-                <div class="bonus-card-footer">
-                  <div class="bonus-cost-cluster">
-                    <span class="bonus-cost-label">PRECIO:</span>
-                    <span class="bonus-cost-amount purple">${stakeRGS.formatCurrency(slotTotalCost)}</span>
-                  </div>
-                  <button 
-                    class="bonus-buy-cta-btn purple-btn ${!canAffordSlot ? 'disabled' : ''}" 
-                    id="btn-buy-slot-bonus" 
-                    type="button"
-                    ${!canAffordSlot ? 'disabled' : ''}
-                  >
-                    ${canAffordSlot ? `🎰 COMPRAR SLOT (${stakeRGS.formatCurrency(slotTotalCost)})` : 'SALDO INSUFICIENTE'}
-                  </button>
-                </div>
+              <div class="bonus-card-footer">
+                <button 
+                  class="bonus-buy-cta-btn purple-btn ${!canAffordSlot ? 'disabled' : ''}" 
+                  id="btn-buy-slot-bonus" 
+                  type="button"
+                  ${!canAffordSlot ? 'disabled' : ''}
+                >
+                  ${canAffordSlot ? `Comprar · ${stakeRGS.formatCurrency(slotTotalCost)}` : 'Saldo Insuficiente'}
+                </button>
               </div>
             </div>
 
@@ -264,23 +224,11 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
 
           ${isMidGame ? `
             <div class="bonus-midgame-warning">
-              ⚠️ Nota: Tienes una nave en vuelo activo. Al comprar un bono se liquidará la tirada previa para iniciar la ronda VIP seleccionada.
+              ⚠️ Al comprar se liquidará la tirada previa para iniciar la ronda VIP.
             </div>
           ` : ''}
 
-          <!-- Responsible Gaming Notice -->
-          <div class="bonus-responsible-notice">
-            <span class="notice-icon">⚖️</span>
-            <span><strong>Regulación de Volatilidad:</strong> La compra de bonos posee una matemática castigada con mayor probabilidad de pérdida frente al acceso natural. Juega de manera responsable.</span>
-          </div>
-
         </div>
-
-        <!-- Footer -->
-        <div class="bonus-modal-footer">
-          <span class="bonus-tip">Atajo: Pulsa la tecla <strong>B</strong> en el teclado para abrir/cerrar esta tienda de bonos.</span>
-        </div>
-
       </div>
     `;
 
