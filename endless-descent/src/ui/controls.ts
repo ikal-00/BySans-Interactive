@@ -10,7 +10,6 @@ import { PixiRenderer } from '../engine/Renderer';
 import { audioController } from '../engine/AudioController';
 import { stakeRGS } from '../engine/StakeRGSBridge';
 import { createRulesModal, openRulesModal, isRulesModalOpen } from './rulesModal';
-import { toggleDevModal } from './devModal';
 import { createBonusBuyButton, toggleBonusBuyModal, isBonusBuyModalOpen } from './bonusBuyModal';
 import { getTranslations } from '../i18n/translations';
 import gsap from 'gsap';
@@ -313,14 +312,8 @@ export function createControlsUI(
               </svg>
             </div>
 
-            <!-- Action Button Cluster (3x Scale) -->
+            <!-- Action Button Cluster (Rules & Audio) -->
             <div class="gantry-btn-cluster">
-              <button class="gantry-icon-btn" id="btn-settings" type="button" title="Ajustes">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-              </button>
               <button class="gantry-icon-btn" id="btn-rules" type="button" title="${t.rulesToggleTitle}">
                 <span class="btn-glyph">?</span>
                 <span id="rules-label" class="sr-only">${lang === 'es' ? 'Reglas' : 'Rules'}</span>
@@ -332,13 +325,6 @@ export function createControlsUI(
                 </svg>
                 <span id="audio-label" class="sr-only">${lang === 'es' ? 'Sonido' : 'Sound'}</span>
               </button>
-              <button class="gantry-icon-btn" id="btn-stats" type="button" title="Historial / Estadísticas">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-                </svg>
-              </button>
-              <button class="gantry-pill-btn green" id="btn-dev-quick-add" type="button" title="Modo Dev: Recargar +$1,000">+$1K</button>
-              <button class="gantry-pill-btn blue" id="btn-dev-modal-toggle" type="button" title="Panel Developer (Atajo: D)">+DEV</button>
             </div>
 
             <!-- Recessed Avionics Balance Display Screen (3x Scale) -->
@@ -720,24 +706,6 @@ export function createControlsUI(
             openRulesModal();
         });
     }
-    const btnSettings = document.getElementById('btn-settings');
-    if (btnSettings) {
-        btnSettings.addEventListener('click', () => {
-            audioController.playClick();
-            openRulesModal();
-        });
-    }
-    const btnStats = document.getElementById('btn-stats');
-    if (btnStats) {
-        btnStats.addEventListener('click', () => {
-            audioController.playClick();
-            openRulesModal();
-        });
-    }
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('rules') === 'true') {
-        openRulesModal();
-    }
-
     if (btnAudio) {
         btnAudio.addEventListener('click', () => {
             const isMuted = audioController.toggleMute();
@@ -751,7 +719,7 @@ export function createControlsUI(
         });
     }
 
-    // Initialize Developer Tools & Instant Balance Suite
+    // Initialize Demo Balance Suite
     if (!stakeRGS.session.isLiveRGS) {
         const savedDemoBal = localStorage.getItem('endless_descent_demo_balance');
         if (savedDemoBal) {
@@ -760,27 +728,6 @@ export function createControlsUI(
                 engine.balance = parsed;
             }
         }
-    }
-
-    const btnDevQuickAdd = document.getElementById('btn-dev-quick-add');
-    if (btnDevQuickAdd) {
-        btnDevQuickAdd.addEventListener('click', () => {
-            engine.balance += 1000;
-            if (!stakeRGS.session.isLiveRGS) {
-                localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
-            }
-            audioController.playClick();
-            syncUI();
-            stakeRGS.showToast('💰 + $1,000.00 Saldo Developer añadido', 'success');
-        });
-    }
-
-    const btnDevModalToggle = document.getElementById('btn-dev-modal-toggle');
-    if (btnDevModalToggle) {
-        btnDevModalToggle.addEventListener('click', () => {
-            audioController.playClick();
-            toggleDevModal(engine, syncUI);
-        });
     }
 
     const balancePill = document.querySelector('.balance-pill');
@@ -799,9 +746,8 @@ export function createControlsUI(
 
     window.addEventListener('keydown', (e) => {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-        if (e.key === 'd' || e.key === 'D') {
-            toggleDevModal(engine, syncUI);
-        } else if (e.key === 'b' || e.key === 'B') {
+        if (e.key === 'b' || e.key === 'B') {
+            if (isRulesModalOpen()) return;
             toggleBonusBuyModal(engine, renderer, syncUI);
         }
     });
@@ -1318,7 +1264,7 @@ export function createControlsUI(
                     engine.balance += Math.max(1000, effVal * 10);
                     localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
                     syncUI();
-                    stakeRGS.showToast('💰 Saldo Developer recargado automáticamente (+ $1,000.00)', 'success');
+                    stakeRGS.showToast('💰 Saldo demo recargado automáticamente (+ $1,000.00)', 'success');
                 } else {
                     stakeRGS.showToast(t.focalInsufficientFunds, 'error');
                     return;
@@ -1400,8 +1346,8 @@ export function createControlsUI(
     if (btnPartialCta) btnPartialCta.addEventListener('click', handlePartialCashoutAction);
 
     window.addEventListener('keydown', (e) => {
-        if (isRulesModalOpen()) return;
-        if (betInput && document.activeElement === betInput) return;
+        if (isRulesModalOpen() || isBonusBuyModalOpen()) return;
+        if (document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement) return;
 
         if (e.key >= '1' && e.key <= '5') {
             const laneIdx = parseInt(e.key, 10) - 1;
@@ -1410,6 +1356,7 @@ export function createControlsUI(
                 !stateCtrl.isHitStopActive &&
                 !engine.isWheelActive &&
                 !engine.isSlotActive &&
+                !renderer.isRouletteActive &&
                 !renderer.isSlotActive &&
                 !renderer.isWheelSpinning &&
                 !renderer.isSlotSpinning &&
@@ -1635,6 +1582,14 @@ export function createControlsUI(
                     focalCtaHeaderShortcut.textContent = isMobile ? '' : t.shortcutSpace;
                 }
             }
+        }
+
+        const bonusBuyTrigger = document.getElementById('btn-bonus-buy-trigger') as HTMLButtonElement | null;
+        if (bonusBuyTrigger) {
+            const isBonusBusy = renderer.isRouletteActive || renderer.isWheelSpinning || renderer.isSlotActive || renderer.isSlotSpinning || engine.isWheelActive || engine.isSlotActive;
+            bonusBuyTrigger.disabled = isBonusBusy;
+            bonusBuyTrigger.style.pointerEvents = isBonusBusy ? 'none' : 'auto';
+            bonusBuyTrigger.style.opacity = isBonusBusy ? '0.45' : '1';
         }
 
         renderHistoryTicker();

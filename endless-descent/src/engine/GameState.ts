@@ -90,7 +90,7 @@ export class GameStateController {
      */
     public selectLaneWithHitStop(laneIndex: number, isAutoPlay = false): Promise<RoundPick | null> {
         if (this.engine.state !== GameState.PLAYING) return Promise.resolve(null);
-        if (this.isHitStopActive || this.engine.isWheelActive) return Promise.resolve(null);
+        if (this.isHitStopActive || this.engine.isWheelActive || this.engine.isSlotActive) return Promise.resolve(null);
         if (laneIndex < 0 || laneIndex > 4) return Promise.resolve(null);
 
         const targetRow = this.engine.currentRow;

@@ -32,6 +32,17 @@ export function hideBonusBuyModal() {
 }
 
 export function openBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, onUpdate: () => void) {
+    if (
+        renderer.isRouletteActive ||
+        renderer.isWheelSpinning ||
+        renderer.isSlotActive ||
+        renderer.isSlotSpinning ||
+        engine.isWheelActive ||
+        engine.isSlotActive
+    ) {
+        stakeRGS.showToast('Espera a que finalice la ronda actual', 'info');
+        return;
+    }
     if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
     }
@@ -315,6 +326,18 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
 
     // 1. BUY WHEEL BONUS (20x)
     document.getElementById('btn-buy-wheel-bonus')?.addEventListener('click', () => {
+        if (
+            renderer.isRouletteActive ||
+            renderer.isWheelSpinning ||
+            renderer.isSlotActive ||
+            renderer.isSlotSpinning ||
+            engine.isWheelActive ||
+            engine.isSlotActive
+        ) {
+            stakeRGS.showToast('Espera a que finalice la ronda actual', 'info');
+            return;
+        }
+
         const cost = Math.round(currentSelectedBet * WHEEL_BUY_COST_MULT * 100) / 100;
         if (engine.balance < cost) {
             stakeRGS.showToast('Saldo insuficiente para comprar la Ruleta VIP', 'error');
@@ -338,6 +361,18 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
 
     // 2. BUY SLOT BONUS (50x)
     document.getElementById('btn-buy-slot-bonus')?.addEventListener('click', () => {
+        if (
+            renderer.isRouletteActive ||
+            renderer.isWheelSpinning ||
+            renderer.isSlotActive ||
+            renderer.isSlotSpinning ||
+            engine.isWheelActive ||
+            engine.isSlotActive
+        ) {
+            stakeRGS.showToast('Espera a que finalice la ronda actual', 'info');
+            return;
+        }
+
         const cost = Math.round(currentSelectedBet * SLOT_BUY_COST_MULT * 100) / 100;
         if (engine.balance < cost) {
             stakeRGS.showToast('Saldo insuficiente para comprar el Bono Mini-Slot', 'error');
@@ -356,6 +391,14 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
                 'success'
             );
             onUpdate();
+        }
+    });
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isBonusBuyModalOpen()) {
+            hideBonusBuyModal();
         }
     });
 }

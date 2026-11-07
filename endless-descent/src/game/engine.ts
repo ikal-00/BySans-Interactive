@@ -290,30 +290,11 @@ export class GameEngine {
     }
 
     public getHazardsForActionRow(row: number): number[] {
-        const hazards = deriveHazards(this.serverSeed, this.clientSeed, this.nonce, row, this.minesCount);
-        if (typeof window !== 'undefined' && (window as any).__devGodMode) {
-            return [];
-        }
-        return hazards;
+        return deriveHazards(this.serverSeed, this.clientSeed, this.nonce, row, this.minesCount);
     }
 
     public getSpecialsForRow(row: number): RowSpecialConfig {
-        const specials = deriveRowSpecials(this.serverSeed, this.clientSeed, this.nonce, row, this.luckyBoost);
-        if (typeof window !== 'undefined') {
-            if ((window as any).__devForceSolar) {
-                specials.goldenLane = 0;
-                specials.goldenBoost = 1.5;
-            }
-            if ((window as any).__devForceAlien) {
-                specials.alienLane = 2;
-                specials.alienBoost = 2.0;
-                specials.alienSkipRows = 2;
-            }
-            if ((window as any).__devForceWheel || (window as any).__devForceWheelSlot) {
-                specials.wheelLane = 1;
-            }
-        }
-        return specials;
+        return deriveRowSpecials(this.serverSeed, this.clientSeed, this.nonce, row, this.luckyBoost);
     }
 
     public pickLane(laneIndex: number): RoundPick | null {
@@ -333,25 +314,6 @@ export class GameEngine {
             this.minesCount,
             false
         );
-
-        // Developer Mode Overrides
-        if (typeof window !== 'undefined') {
-            if ((window as any).__devGodMode && !outcome.isSafe) {
-                outcome.isSafe = true;
-                outcome.hazards = outcome.hazards.filter((h) => h !== laneIndex);
-            }
-            if ((window as any).__devForceSolar && laneIndex === 0) {
-                outcome.specialType = 'GOLDEN';
-                outcome.boostFactor = 1.5;
-            } else if ((window as any).__devForceAlien && laneIndex === 2) {
-                outcome.specialType = 'ALIEN';
-                outcome.boostFactor = 2.0;
-                outcome.rowsSkipped = 2;
-            } else if ((window as any).__devForceWheelSlot || (window as any).__devForceWheel) {
-                outcome.specialType = 'WHEEL';
-                outcome.isSafe = true;
-            }
-        }
 
         this.lastChosenLane = laneIndex;
 
@@ -522,6 +484,8 @@ export class GameEngine {
     public canPartialCashout(): boolean {
         return (
             this.state === GameState.PLAYING &&
+            !this.isWheelActive &&
+            !this.isSlotActive &&
             this.currentRow > 1 &&
             this.partialCashoutUsedOnRow !== this.currentRow &&
             this.activeBetAmount * this.currentMultiplier >= 0.04
@@ -531,6 +495,7 @@ export class GameEngine {
     public cashout(): number | null {
         if (this.state !== GameState.PLAYING) return null;
         if (this.currentRow <= 1) return null;
+        if (this.isWheelActive || this.isSlotActive) return null;
 
         const remainingPayout = calculatePayout(this.activeBetAmount, this.currentMultiplier);
         this.adjustBalance(remainingPayout);
@@ -842,6 +807,7 @@ export class GameEngine {
         this.emitBalanceChange();
 
         this.betAmount = baseBet;
+        this.activeBetAmount = baseBet;
         this.initialEffectiveBet = baseBet;
         this.currentRow = 1;
         this.currentMultiplier = 1.0;
@@ -894,6 +860,7 @@ export class GameEngine {
         this.emitBalanceChange();
 
         this.betAmount = baseBet;
+        this.activeBetAmount = baseBet;
         this.initialEffectiveBet = baseBet;
         this.currentRow = 1;
         this.currentMultiplier = 1.0;

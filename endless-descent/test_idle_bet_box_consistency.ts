@@ -86,8 +86,12 @@ for (let round = 1; round <= 5; round++) {
         assert(engine.recentSummaries[0].nonce === currentNonce, `Summary must record nonce ${currentNonce}`);
     } else {
         // Crash intentionally by hitting a hazard
-        const hazards = engine.getHazardsForActionRow(1);
-        engine.pickLane(hazards[0]);
+        let hazardLane = 0;
+        for (let l = 0; l < 5; l++) {
+            const evalPick = evaluateLanePick(engine.serverSeed, engine.clientSeed, engine.nonce, 1, l, 3, false);
+            if (!evalPick.isSafe) { hazardLane = l; break; }
+        }
+        engine.pickLane(hazardLane);
         assert(engine.state === GameState.CRASHED, 'State must be CRASHED');
         assert(engine.nonce === currentNonce + 1, `Nonce must advance to ${currentNonce + 1} upon round completion`);
         assert(engine.recentSummaries[0].nonce === currentNonce, `Summary must record nonce ${currentNonce}`);

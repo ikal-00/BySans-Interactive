@@ -396,10 +396,6 @@ export function deriveWheelSpinOutcome(
         }
     }
 
-    // Developer QA override: force landing on SLOT (Sector 8)
-    if (typeof window !== 'undefined' && (window as any).__devForceWheelSlot) {
-        chosenSegmentIndex = 8;
-    }
 
     const segment = WHEEL_SEGMENTS[chosenSegmentIndex];
 
