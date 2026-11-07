@@ -1612,7 +1612,7 @@ export function createControlsUI(
                     btnPrimaryCta.disabled = true;
                     btnPrimaryCta.classList.remove('mode-cashout', 'mode-wheel-spin', 'mode-slot-spin');
                     focalCtaHeaderLabel.textContent = lang === 'es' ? 'Ronda en Curso' : 'Round Active';
-                    focalCtaTitle.textContent = isMobile ? `[1–5]` : `[1–5]`;
+                    focalCtaTitle.textContent = isMobile ? (lang === 'es' ? 'TOCA UNA CAJA' : 'TAP A CRATE') : `[1–5]`;
                     focalCtaSub.textContent = `Row ${engine.currentRow} · ${nextMult.toFixed(2)}×`;
                 }
             }
