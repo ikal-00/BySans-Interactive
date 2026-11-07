@@ -61,6 +61,13 @@ export interface PBRTexturePack {
     pathWheelBrassTex: THREE.CanvasTexture;
     pathWheelIronTex: THREE.CanvasTexture;
     pathWheelArrowTex: THREE.CanvasTexture;
+    astroSuitFabricTex: THREE.CanvasTexture;
+    astroHelmetShellTex: THREE.CanvasTexture;
+    astroVisorTex: THREE.CanvasTexture;
+    astroChestBoxTex: THREE.CanvasTexture;
+    astroBackpackPanelTex: THREE.CanvasTexture;
+    astroPatchFlagTex: THREE.CanvasTexture;
+    astroPatchMissionTex: THREE.CanvasTexture;
 }
 
 // =============================================================================
@@ -1788,6 +1795,426 @@ export function createPBRTexturePack(): PBRTexturePack {
         return canvas;
     }
 
+    /**
+     * 1024x1024 Hand-Illustrated Comic Space-Suit Padded Fabric Texture
+     * (Off-white ripstop weave, compression fold shadows, ink crease strokes & comic cross-hatching)
+     */
+    function createAstroSuitFabricCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d')!;
+
+        const baseGrad = ctx.createLinearGradient(80, 40, 940, 980);
+        baseGrad.addColorStop(0, '#f7f9fb');
+        baseGrad.addColorStop(0.45, '#e6ecf2');
+        baseGrad.addColorStop(0.80, '#cfd8e2');
+        baseGrad.addColorStop(1, '#b6c2cf');
+        ctx.fillStyle = baseGrad;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Subtle ripstop grid weave
+        ctx.strokeStyle = 'rgba(110, 125, 142, 0.08)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 1024; i += 16) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, 1024);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(1024, i);
+            ctx.stroke();
+        }
+
+        // Soft comic fabric fold bands + inked compression wrinkle lines
+        let rng = 612983;
+        const nextRand = () => {
+            rng = (rng * 1664525 + 1013904223) >>> 0;
+            return rng / 4294967296;
+        };
+
+        for (let b = 0; b < 11; b++) {
+            const yCenter = 75 + b * 88;
+            const foldGrad = ctx.createLinearGradient(0, yCenter - 34, 0, yCenter + 38);
+            foldGrad.addColorStop(0, 'rgba(255, 255, 255, 0.42)');
+            foldGrad.addColorStop(0.52, 'rgba(96, 110, 126, 0.34)');
+            foldGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = foldGrad;
+            ctx.fillRect(0, yCenter - 34, 1024, 72);
+
+            // Hand-drawn comic ink crease arcs
+            for (let k = 0; k < 5; k++) {
+                const x0 = 35 + k * 200 + nextRand() * 55;
+                const span = 115 + nextRand() * 95;
+                const yOff = (nextRand() - 0.5) * 14;
+                ctx.beginPath();
+                ctx.moveTo(x0, yCenter + yOff);
+                ctx.quadraticCurveTo(
+                    x0 + span * 0.5,
+                    yCenter + yOff + 12 + nextRand() * 12,
+                    x0 + span,
+                    yCenter + yOff - 2
+                );
+                ctx.strokeStyle = `rgba(14, 19, 26, ${0.58 + nextRand() * 0.32})`;
+                ctx.lineWidth = 3.8 + nextRand() * 2.8;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+        }
+
+        // Right-side comic ink cross-hatching in shadow folds (matching reference illustrations)
+        ctx.strokeStyle = 'rgba(18, 24, 32, 0.34)';
+        ctx.lineWidth = 2.8;
+        for (let y = 30; y < 990; y += 18) {
+            ctx.beginPath();
+            ctx.moveTo(690 + (y % 44), y);
+            ctx.lineTo(805 + (y % 44), y + 30);
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+    /**
+     * 1024x1024 Hand-Illustrated Comic Helmet Shell Texture
+     */
+    function createAstroHelmetShellCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d')!;
+
+        const shellGrad = ctx.createLinearGradient(180, 60, 860, 960);
+        shellGrad.addColorStop(0, '#fbfcfd');
+        shellGrad.addColorStop(0.45, '#eaEEF3');
+        shellGrad.addColorStop(0.78, '#ced6e0');
+        shellGrad.addColorStop(1, '#aeb8c4');
+        ctx.fillStyle = shellGrad;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Soft sunlit crown highlight
+        const crownHl = ctx.createRadialGradient(430, 260, 20, 460, 300, 380);
+        crownHl.addColorStop(0, 'rgba(255, 255, 255, 0.75)');
+        crownHl.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = crownHl;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Subtle lower-right comic cross-hatch shading matching back/front helmet art
+        ctx.strokeStyle = 'rgba(35, 44, 54, 0.18)';
+        ctx.lineWidth = 2.2;
+        for (let i = 0; i < 42; i++) {
+            const x = 580 + (i % 7) * 52;
+            const y = 560 + Math.floor(i / 7) * 56;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + 42, y + 32);
+            ctx.stroke();
+        }
+
+        return canvas;
+    }
+
+    /**
+     * 1024x1024 Iridescent Teal-Cyan Bubble Visor Texture (1:1 Match to Reference Images 1 & 2)
+     */
+    function createAstroVisorCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024;
+        canvas.height = 1024;
+        const ctx = canvas.getContext('2d')!;
+        const cx = 512;
+        const cy = 512;
+
+        // Deep ocean teal-cyan dome gradient
+        const domeGrad = ctx.createRadialGradient(cx - 90, cy - 130, 40, cx + 20, cy + 40, 490);
+        domeGrad.addColorStop(0, '#6be0ea');
+        domeGrad.addColorStop(0.26, '#369aa8');
+        domeGrad.addColorStop(0.62, '#247280');
+        domeGrad.addColorStop(0.86, '#1a5260');
+        domeGrad.addColorStop(1, '#0f333d');
+        ctx.fillStyle = domeGrad;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Lower-center subtle dark helmet interior depth shadow
+        const innerDepth = ctx.createRadialGradient(cx + 35, cy + 120, 30, cx + 35, cy + 120, 290);
+        innerDepth.addColorStop(0, 'rgba(12, 36, 46, 0.52)');
+        innerDepth.addColorStop(1, 'rgba(12, 36, 46, 0)');
+        ctx.fillStyle = innerDepth;
+        ctx.fillRect(0, 0, 1024, 1024);
+
+        // Signature iridescent violet/purple & lime-chartreuse rim reflection arcs on right side!
+        ctx.save();
+        ctx.lineCap = 'round';
+
+        // Outer violet-magenta arc along right inner curve
+        ctx.beginPath();
+        ctx.arc(cx, cy, 388, -0.58, 0.72);
+        ctx.strokeStyle = 'rgba(147, 83, 211, 0.62)';
+        ctx.lineWidth = 44;
+        ctx.stroke();
+
+        // Inner indigo-blue shimmer arc
+        ctx.beginPath();
+        ctx.arc(cx - 14, cy + 6, 344, -0.46, 0.56);
+        ctx.strokeStyle = 'rgba(96, 165, 250, 0.42)';
+        ctx.lineWidth = 28;
+        ctx.stroke();
+
+        // Lime-yellow iridescent crescent streaks inside right & lower-right edge
+        ctx.beginPath();
+        ctx.arc(cx - 4, cy, 366, -0.26, 0.28);
+        ctx.strokeStyle = 'rgba(190, 242, 100, 0.72)';
+        ctx.lineWidth = 22;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy + 8, 376, 0.78, 1.18);
+        ctx.strokeStyle = 'rgba(190, 242, 100, 0.58)';
+        ctx.lineWidth = 16;
+        ctx.stroke();
+
+        // Upper-top soft sky-aqua sheen arc
+        ctx.beginPath();
+        ctx.arc(cx - 20, cy - 10, 355, -2.05, -1.05);
+        ctx.strokeStyle = 'rgba(186, 250, 255, 0.55)';
+        ctx.lineWidth = 36;
+        ctx.stroke();
+
+        // Crisp comic ice-white bean specular highlight in upper-left (outlined subtly like comic art)
+        ctx.translate(cx - 215, cy - 175);
+        ctx.rotate(-0.68);
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 96, 40, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#e6feff';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(15, 45, 56, 0.48)';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.restore();
+
+        // Secondary small specular glint dots
+        for (const [gx, gy, gr] of [
+            [cx + 245, cy + 95, 13],
+            [cx + 285, cy + 160, 10],
+            [cx - 310, cy + 40, 9]
+        ]) {
+            ctx.beginPath();
+            ctx.arc(gx, gy, gr, 0, Math.PI * 2);
+            ctx.fillStyle = '#d9f99d';
+            ctx.fill();
+        }
+
+        return canvas;
+    }
+
+    /**
+     * 512x512 Front Chest Display & Control Module (DCM) Texture (Matching Images 1 & 2)
+     */
+    function createAstroChestBoxCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        const bg = ctx.createLinearGradient(0, 0, 512, 512);
+        bg.addColorStop(0, '#dfe5ec');
+        bg.addColorStop(0.65, '#c4cdd7');
+        bg.addColorStop(1, '#9da8b4');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Outer beveled comic frame & center vertical divider line
+        ctx.strokeStyle = '#141920';
+        ctx.lineWidth = 12;
+        ctx.strokeRect(18, 18, 476, 476);
+
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(276, 26);
+        ctx.lineTo(276, 486);
+        ctx.stroke();
+
+        // Left Top: Circular Cobalt-Blue Pressure Gauge
+        const gx = 148;
+        const gy = 195;
+        ctx.beginPath();
+        ctx.arc(gx, gy, 88, 0, Math.PI * 2);
+        ctx.fillStyle = '#3b6ea5';
+        ctx.fill();
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#11161d';
+        ctx.stroke();
+
+        // Gauge diagonal needle & glint
+        ctx.beginPath();
+        ctx.moveTo(gx - 52, gy + 44);
+        ctx.lineTo(gx + 54, gy - 42);
+        ctx.strokeStyle = '#d8eafe';
+        ctx.lineWidth = 9;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Left Bottom: Crimson Red Switch Bar
+        ctx.fillStyle = '#c84239';
+        ctx.fillRect(68, 348, 162, 56);
+        ctx.strokeStyle = '#11161d';
+        ctx.lineWidth = 9;
+        ctx.strokeRect(68, 348, 162, 56);
+
+        // Right Top: Olive-Green Digital Readout Window
+        ctx.fillStyle = '#80916d';
+        ctx.fillRect(322, 84, 134, 74);
+        ctx.strokeStyle = '#11161d';
+        ctx.lineWidth = 9;
+        ctx.strokeRect(322, 84, 134, 74);
+
+        // Right Bottom: Gunmetal Rotary Knob Dial
+        const kx = 390;
+        const ky = 315;
+        ctx.beginPath();
+        ctx.arc(kx, ky, 68, 0, Math.PI * 2);
+        ctx.fillStyle = '#646e78';
+        ctx.fill();
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#11161d';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(kx, ky, 26, 0, Math.PI * 2);
+        ctx.fillStyle = '#1e242b';
+        ctx.fill();
+
+        return canvas;
+    }
+
+    /**
+     * 512x512 PLSS Backpack Central Telemetry Control Panel Texture (1:1 Match to Back Image 3)
+     */
+    function createAstroBackpackPanelCanvas(): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d')!;
+
+        const bg = ctx.createLinearGradient(0, 0, 512, 512);
+        bg.addColorStop(0, '#eaedf0');
+        bg.addColorStop(0.65, '#d4dadf');
+        bg.addColorStop(1, '#b0b8c0');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, 512, 512);
+
+        // Outer dark comic ink frame + corner rivets
+        ctx.strokeStyle = '#14181f';
+        ctx.lineWidth = 12;
+        ctx.strokeRect(18, 18, 476, 476);
+
+        for (const [rx, ry] of [
+            [44, 44],
+            [468, 44],
+            [44, 468],
+            [468, 468]
+        ]) {
+            ctx.beginPath();
+            ctx.arc(rx, ry, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#14181f';
+            ctx.fill();
+        }
+
+        // Etched technical panel grid lines & diagonal cross-hatching (matching Image 3)
+        ctx.strokeStyle = 'rgba(25, 32, 40, 0.45)';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(58, 210, 210, 125);
+        ctx.strokeRect(295, 330, 145, 118);
+
+        ctx.strokeStyle = 'rgba(30, 38, 48, 0.25)';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 6; i++) {
+            ctx.beginPath();
+            ctx.moveTo(74 + i * 24, 315);
+            ctx.lineTo(130 + i * 24, 235);
+            ctx.stroke();
+        }
+
+        // 1. Top-Left Vertical Steel Slot Module
+        ctx.fillStyle = '#8b9298';
+        ctx.fillRect(88, 52, 92, 138);
+        ctx.strokeStyle = '#14181f';
+        ctx.lineWidth = 9;
+        ctx.strokeRect(88, 52, 92, 138);
+        ctx.beginPath();
+        ctx.moveTo(134, 74);
+        ctx.lineTo(134, 168);
+        ctx.stroke();
+
+        // 2. Top-Right Olive-Brass Square Indicator
+        ctx.fillStyle = '#9f995c';
+        ctx.fillRect(326, 86, 108, 76);
+        ctx.strokeRect(326, 86, 108, 76);
+
+        // 3. Mid-Right Slate-Blue Vertical Data Module
+        ctx.fillStyle = '#536f86';
+        ctx.fillRect(334, 198, 102, 108);
+        ctx.strokeRect(334, 198, 102, 108);
+
+        // 4. Bottom-Left Sky-Slate Glazed Telemetry Screen with diagonal glass glint
+        ctx.fillStyle = '#5e85a1';
+        ctx.fillRect(68, 358, 184, 96);
+        ctx.strokeRect(68, 358, 184, 96);
+
+        ctx.strokeStyle = 'rgba(224, 242, 254, 0.65)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(96, 434);
+        ctx.lineTo(146, 376);
+        ctx.moveTo(136, 438);
+        ctx.lineTo(174, 394);
+        ctx.stroke();
+
+        return canvas;
+    }
+
+    /**
+     * 256x256 Comic Shoulder Patches (Flag Patch & Tactical Slate Mission Patch)
+     */
+    function createAstroShoulderPatchCanvas(kind: 'flag' | 'mission'): HTMLCanvasElement {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d')!;
+
+        // Tan stitched border frame
+        ctx.fillStyle = '#d8c8a8';
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.strokeStyle = '#14181f';
+        ctx.lineWidth = 14;
+        ctx.strokeRect(10, 10, 236, 236);
+
+        if (kind === 'flag') {
+            // Stripes
+            const stripeColors = ['#c23b33', '#eef2f6', '#c23b33', '#eef2f6', '#c23b33'];
+            const sh = 188 / stripeColors.length;
+            for (let i = 0; i < stripeColors.length; i++) {
+                ctx.fillStyle = stripeColors[i];
+                ctx.fillRect(34, 34 + i * sh, 188, sh + 1);
+            }
+            // Blue canton
+            ctx.fillStyle = '#2d538a';
+            ctx.fillRect(34, 34, 98, 108);
+            ctx.strokeStyle = '#14181f';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(34, 34, 188, 188);
+        } else {
+            ctx.fillStyle = '#526273';
+            ctx.fillRect(34, 34, 188, 188);
+            ctx.strokeStyle = '#14181f';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(34, 34, 188, 188);
+        }
+
+        return canvas;
+    }
+
     // =========================================================================
     // 5E. 1x3 ARCADE MINI-SLOT REEL STRIP & CABINET CANVASES
     // =========================================================================
@@ -2512,6 +2939,34 @@ export function createPBRTexturePack(): PBRTexturePack {
     const astronautFrontTex = new THREE.CanvasTexture(astronautFrontCanvas);
     astronautFrontTex.colorSpace = THREE.SRGBColorSpace;
 
+    const astroSuitFabricTex = new THREE.CanvasTexture(createAstroSuitFabricCanvas());
+    astroSuitFabricTex.colorSpace = THREE.SRGBColorSpace;
+    astroSuitFabricTex.wrapS = THREE.RepeatWrapping;
+    astroSuitFabricTex.wrapT = THREE.RepeatWrapping;
+    astroSuitFabricTex.anisotropy = 8;
+
+    const astroHelmetShellTex = new THREE.CanvasTexture(createAstroHelmetShellCanvas());
+    astroHelmetShellTex.colorSpace = THREE.SRGBColorSpace;
+    astroHelmetShellTex.anisotropy = 8;
+
+    const astroVisorTex = new THREE.CanvasTexture(createAstroVisorCanvas());
+    astroVisorTex.colorSpace = THREE.SRGBColorSpace;
+    astroVisorTex.anisotropy = 8;
+
+    const astroChestBoxTex = new THREE.CanvasTexture(createAstroChestBoxCanvas());
+    astroChestBoxTex.colorSpace = THREE.SRGBColorSpace;
+    astroChestBoxTex.anisotropy = 8;
+
+    const astroBackpackPanelTex = new THREE.CanvasTexture(createAstroBackpackPanelCanvas());
+    astroBackpackPanelTex.colorSpace = THREE.SRGBColorSpace;
+    astroBackpackPanelTex.anisotropy = 8;
+
+    const astroPatchFlagTex = new THREE.CanvasTexture(createAstroShoulderPatchCanvas('flag'));
+    astroPatchFlagTex.colorSpace = THREE.SRGBColorSpace;
+
+    const astroPatchMissionTex = new THREE.CanvasTexture(createAstroShoulderPatchCanvas('mission'));
+    astroPatchMissionTex.colorSpace = THREE.SRGBColorSpace;
+
     const miniSunCanvas = createComicOrbCanvas('orange');
     const miniSunTex = new THREE.CanvasTexture(miniSunCanvas);
     miniSunTex.colorSpace = THREE.SRGBColorSpace;
@@ -2989,7 +3444,14 @@ export function createPBRTexturePack(): PBRTexturePack {
         pathWheelWoodPlankTex,
         pathWheelBrassTex,
         pathWheelIronTex,
-        pathWheelArrowTex
+        pathWheelArrowTex,
+        astroSuitFabricTex,
+        astroHelmetShellTex,
+        astroVisorTex,
+        astroChestBoxTex,
+        astroBackpackPanelTex,
+        astroPatchFlagTex,
+        astroPatchMissionTex
     };
 }
 
