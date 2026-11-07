@@ -1192,6 +1192,8 @@ export function createControlsUI(
         }, 180);
     }
 
+    let wheelPreSpinMult: number | null = null;
+
     // 9. PRIMARY FOCAL ACTION WITH CLIENT-SIDE BALANCE GUARD [222]
     async function handlePrimaryFocalAction() {
         if (isRulesModalOpen() || isBonusBuyModalOpen() || isReplay) return;
@@ -1202,12 +1204,16 @@ export function createControlsUI(
 
             triggerMechanicalPress();
             audioController.playClick();
+            wheelPreSpinMult = engine.currentMultiplier;
             const outcome = engine.spinWheel();
             if (outcome) {
                 if (btnPrimaryCta) btnPrimaryCta.disabled = true;
                 renderer.spinGiantWheel(outcome as any, () => {
+                    wheelPreSpinMult = null;
                     syncUI();
                 });
+            } else {
+                wheelPreSpinMult = null;
             }
             syncUI();
             return;
@@ -1435,10 +1441,22 @@ export function createControlsUI(
             }
         }
 
-        multHeroVal.textContent = `${currentMult.toFixed(2)}x`;
+        const isHidingWheelOutcome = renderer.isWheelSpinning && wheelPreSpinMult !== null;
+        const displayedMult = isHidingWheelOutcome ? wheelPreSpinMult! : currentMult;
+
+        multHeroVal.textContent = `${displayedMult.toFixed(2)}x`;
         multNextPreview.textContent = lang === 'es' ? `SIGUIENTE: ${nextMult.toFixed(2)}x` : `NEXT ${nextMult.toFixed(2)}x`;
 
-        if (isPlaying) {
+        const isWheelBonusStage = renderer.isRouletteActive || renderer.isWheelSpinning || (engine.isWheelActive && !engine.isSlotActive);
+        const isSlotBonusStage = engine.isSlotActive || renderer.isSlotActive;
+
+        if (isHidingWheelOutcome) {
+            multHeroSub.textContent = lang === 'es' ? 'Girando Ruleta Cósmica...' : 'Spinning Cosmic Wheel...';
+        } else if (isWheelBonusStage) {
+            multHeroSub.textContent = lang === 'es' ? 'Ruleta Cósmica — ¡Presiona Girar!' : 'Cosmic Prize Wheel — Press Spin!';
+        } else if (isSlotBonusStage) {
+            multHeroSub.textContent = lang === 'es' ? 'Bóveda Mini-Slot — ¡Presiona Tirar!' : 'Cosmic Slot Vault — Press Spin!';
+        } else if (isPlaying) {
             const potentialWin = calculatePayout(engine.activeBetAmount, currentMult);
             multHeroSub.textContent =
                 engine.currentRow > 1
@@ -1456,7 +1474,7 @@ export function createControlsUI(
         }
 
         if (multStatusDot) {
-            if (isPlaying) {
+            if (isHidingWheelOutcome || isPlaying) {
                 multStatusDot.style.background = '#00f0ff';
                 multStatusDot.style.boxShadow = '0 0 10px #00f0ff, 0 0 18px rgba(0, 240, 255, 0.7)';
             } else if (engine.state === GameState.WON) {

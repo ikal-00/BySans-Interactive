@@ -6,6 +6,7 @@ import { GameStateController } from './GameState';
 import { VFXManager } from './VFX_Manager';
 import { createPBRTexturePack, updateHologramBadgeCanvas, updateSlotLedDisplayCanvas, type PBRTexturePack } from './Textures3D';
 import { Spaceship3D } from './Spaceship3D';
+import { MrDollar3D } from './MrDollar3D';
 import { audioController } from './AudioController';
 
 const LANE_COUNT = 5;
@@ -159,6 +160,7 @@ export class PixiRenderer {
     private giantWheelDisc!: THREE.Group;
     private giantWheelFlapper!: THREE.Group;
     private floatingAstronautGroup!: THREE.Group;
+    public mrDollar3D!: MrDollar3D;
     private astro3D!: {
         root: THREE.Group;
         helmet: THREE.Group;
@@ -3100,6 +3102,12 @@ export class PixiRenderer {
         const astroThrusterLight = new THREE.PointLight(0xffffff, 0.85, 10.0, 1.2);
         astroThrusterLight.position.set(0, 0.5, 2.2);
         this.floatingAstronautGroup.add(astroThrusterLight);
+
+        // Volumetric 3D "Mr. Dollar" Cosmic Croupier / Showman Host spinning the Giant Prize Wheel!
+        this.mrDollar3D = new MrDollar3D(this.textures);
+        this.mrDollar3D.root.scale.setScalar(1.26);
+        this.mrDollar3D.root.visible = false;
+        this.scene.add(this.mrDollar3D.root);
     }
 
     /**
@@ -5374,7 +5382,7 @@ export class PixiRenderer {
                         this.ship.cockpitAstronaut.visible = false;
                         this.ship.root.visible = false; // Starfighter leaves focus so scene is purely astronaut in zero-G void!
 
-                        // 5. Cosmic Void Scene Setup
+                        // 5. Cosmic Void Scene Setup: Giant Wheel center, Mr. Dollar croupier on left, Astronaut watching on right!
                         const wheelZ = worldZ - 7.5;
                         const wheelY = SHIP_FLIGHT_Y + 0.85;
 
@@ -5389,16 +5397,32 @@ export class PixiRenderer {
                             ease: 'back.out(1.15)'
                         });
 
+                        const hostX = worldX - 4.48;
+                        const hostY = wheelY - 0.55;
+                        const hostZ = wheelZ + 0.85;
+                        this.mrDollar3D.root.visible = true;
+                        this.mrDollar3D.root.rotation.set(0, 0.22, 0);
+                        this.mrDollar3D.root.position.set(hostX - 2.4, hostY + 6.5, hostZ);
+                        gsap.to(this.mrDollar3D.root.position, {
+                            x: hostX,
+                            y: hostY,
+                            z: hostZ,
+                            duration: 0.38,
+                            ease: 'back.out(1.2)'
+                        });
+                        this.mrDollar3D.playEntranceAnimation();
+
                         this.floatingAstronautGroup.visible = true;
                         this.floatingAstronautGroup.position.set(
-                            worldX,
-                            SHIP_FLIGHT_Y - 0.20,
-                            worldZ - 1.8
+                            worldX + 3.85,
+                            SHIP_FLIGHT_Y - 0.78,
+                            wheelZ + 4.85
                         );
+                        this.floatingAstronautGroup.rotation.y = 0.46;
                         gsap.fromTo(
                             this.floatingAstronautGroup.position,
-                            { y: SHIP_FLIGHT_Y + 1.8 },
-                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.30, ease: 'power2.out' }
+                            { y: SHIP_FLIGHT_Y + 1.6 },
+                            { y: SHIP_FLIGHT_Y - 0.78, duration: 0.32, ease: 'power2.out' }
                         );
 
                         // Signal UI that yellow GIRAR button is now active!
@@ -5428,121 +5452,153 @@ export class PixiRenderer {
 
         const spinTracker = { progress: 0 };
         this.lastFlapperPegIndex = -1;
+        let nearMissQuipped = false;
 
-        gsap.to(spinTracker, {
-            progress: 1.0,
-            duration: totalDuration,
-            ease: outcome.isNearMiss ? 'power2.out' : 'power3.out',
-            onUpdate: () => {
-                let t = spinTracker.progress;
-                // Near-miss agonizing crawl as wheel slows right next to jackpot/high prize
-                if (outcome.isNearMiss && t > 0.68) {
-                    const localT = (t - 0.68) / 0.32;
-                    t = 0.68 + Math.pow(localT, 2.2) * 0.32;
-                }
+        // Slight clockwise anticipation tension on wheel while Mr. Dollar reaches up to grip the 10 o'clock rim!
+        const windupStartAngle = startAngle - 0.08;
+        gsap.to(this.giantWheelDisc.rotation, {
+            z: windupStartAngle,
+            duration: 0.22,
+            ease: 'power2.out'
+        });
 
-                const currentAngle = startAngle + (targetAngle - startAngle) * t;
-                this.wheelCurrentAngle = currentAngle;
-                this.giantWheelDisc.rotation.z = currentAngle;
+        this.mrDollar3D.playWheelGrabAndSpin(() => {
+            // Mr. Dollar yanks the 10 o'clock rim downward -> golden sparks & full CCW wheel launch!
+            const wx = this.giantRouletteGroup.position.x;
+            const wy = this.giantRouletteGroup.position.y;
+            const wz = this.giantRouletteGroup.position.z;
+            this.vfx.spawnGpuParticleCloud(
+                wx - 3.35,
+                wy + 0.15,
+                wz + 0.55,
+                45,
+                [0xfde047, 0xfacc15, 0x86efac, 0xffffff],
+                5,
+                13,
+                0.42
+            );
 
-                const sectorSize = (Math.PI * 2) / 12;
-                const shiftedPegAngle = currentAngle + sectorSize * 0.5;
-                const pegIndex = Math.floor(shiftedPegAngle / sectorSize);
-
-                // Flapper mechanical deflection as 3D golden rim peg pushes arrow tip left at 12 o'clock
-                const sectorOffset = ((shiftedPegAngle % sectorSize) + sectorSize) % sectorSize;
-                const normInSector = sectorOffset / sectorSize;
-                if (normInSector > 0.72) {
-                    this.giantWheelFlapper.rotation.z = -(normInSector - 0.72) * 1.25;
-                }
-
-                if (pegIndex !== this.lastFlapperPegIndex) {
-                    this.lastFlapperPegIndex = pegIndex;
-
-                    // Elastic snapback of mechanical flapper
-                    gsap.to(this.giantWheelFlapper.rotation, {
-                        z: 0,
-                        duration: 0.08,
-                        ease: 'back.out(2.5)'
-                    });
-
-                    const speed = 1.0 - t;
-                    const pitch = 0.7 + speed * 0.9;
-                    audioController.playWheelTick(pitch);
-
-                    // Near-miss suspense heartbeat pulse & screen micro-shake
-                    if (outcome.isNearMiss && t > 0.80) {
-                        audioController.playWheelNearMiss();
-                        this.vfx.triggerScreenShake(0.12, 0.08);
+            gsap.to(spinTracker, {
+                progress: 1.0,
+                duration: totalDuration,
+                ease: outcome.isNearMiss ? 'power2.out' : 'power3.out',
+                onUpdate: () => {
+                    let t = spinTracker.progress;
+                    // Near-miss agonizing crawl as wheel slows right next to jackpot/high prize
+                    if (outcome.isNearMiss && t > 0.68) {
+                        const localT = (t - 0.68) / 0.32;
+                        t = 0.68 + Math.pow(localT, 2.2) * 0.32;
+                        if (!nearMissQuipped && spinTracker.progress > 0.72) {
+                            nearMissQuipped = true;
+                            this.mrDollar3D.playNearMissReaction();
+                        }
                     }
-                }
-            },
-            onComplete: () => {
-                // Keep this.isWheelSpinning = true throughout result display & celebration
-                // so the user cannot trigger duplicate spins or see the wheel prematurely vanish!
-                const worldX = this.giantRouletteGroup.position.x;
-                const wheelY = this.giantRouletteGroup.position.y;
-                const wheelZ = this.giantRouletteGroup.position.z;
 
-                this.vfx.triggerScreenShake(0.35, 0.25);
-                this.vfx.spawnShockwave3D(worldX, wheelY, wheelZ, 0xfacc15, 9.0, 0.45);
-                this.vfx.spawnGpuParticleCloud(
-                    worldX,
-                    wheelY,
-                    wheelZ,
-                    160,
-                    [0xfde047, 0xfacc15, 0xeab308, 0xffffff, 0xec4899],
-                    12,
-                    26,
-                    0.72
-                );
+                    const currentAngle = windupStartAngle + (targetAngle - windupStartAngle) * t;
+                    this.wheelCurrentAngle = currentAngle;
+                    this.giantWheelDisc.rotation.z = currentAngle;
 
-                const isBonusBuy = this.gameState.engine.wheelProfile === 'BONUS_BUY';
-                if (outcome.segment.type === 'WIPEOUT') {
-                    audioController.playWheelWipeout();
-                    this.vfx.spawnCrashExplosion3D(worldX, SHIP_FLIGHT_Y, wheelZ - 2.0);
-                    this.vfx.triggerScreenShake(0.65, 0.45);
-                    const wipeoutDelay = isBonusBuy ? 1100 : 1800;
-                    setTimeout(() => {
-                        this.finishRouletteSequence(() => {
-                            this.isWheelSpinning = false;
-                            onComplete();
+                    const sectorSize = (Math.PI * 2) / 12;
+                    const shiftedPegAngle = currentAngle + sectorSize * 0.5;
+                    const pegIndex = Math.floor(shiftedPegAngle / sectorSize);
+
+                    // Flapper mechanical deflection as 3D golden rim peg pushes arrow tip left at 12 o'clock
+                    const sectorOffset = ((shiftedPegAngle % sectorSize) + sectorSize) % sectorSize;
+                    const normInSector = sectorOffset / sectorSize;
+                    if (normInSector > 0.72) {
+                        this.giantWheelFlapper.rotation.z = -(normInSector - 0.72) * 1.25;
+                    }
+
+                    if (pegIndex !== this.lastFlapperPegIndex) {
+                        this.lastFlapperPegIndex = pegIndex;
+
+                        // Elastic snapback of mechanical flapper
+                        gsap.to(this.giantWheelFlapper.rotation, {
+                            z: 0,
+                            duration: 0.08,
+                            ease: 'back.out(2.5)'
                         });
-                    }, wipeoutDelay);
-                } else if (outcome.segment.type === 'EXTRA_SPIN') {
-                    audioController.playGoldenHit();
-                    setTimeout(() => {
-                        this.isWheelSpinning = false;
-                        onComplete();
-                    }, 1100);
-                } else if (outcome.segment.type === 'SLOT') {
-                    audioController.playGoldenHit();
-                    setTimeout(() => {
-                        this.isRouletteActive = false;
-                        this.isWheelSpinning = false;
-                        const spinsCount = this.gameState.engine.slotBundle?.spins.length || 5;
-                        this.triggerSlotSequence(worldX, wheelZ + 7.5, spinsCount, 0);
-                        onComplete();
-                    }, 1200);
-                } else {
-                    audioController.playCashout(outcome.segment.multiplier >= 10);
-                    this.vfx.spawnGraffitiMultiplierTag3D(
+
+                        const speed = 1.0 - t;
+                        const pitch = 0.7 + speed * 0.9;
+                        audioController.playWheelTick(pitch);
+
+                        // Near-miss suspense heartbeat pulse & screen micro-shake
+                        if (outcome.isNearMiss && t > 0.80) {
+                            audioController.playWheelNearMiss();
+                            this.vfx.triggerScreenShake(0.12, 0.08);
+                        }
+                    }
+                },
+                onComplete: () => {
+                    // Keep this.isWheelSpinning = true throughout result display & celebration
+                    // so the user cannot trigger duplicate spins or see the wheel prematurely vanish!
+                    const worldX = this.giantRouletteGroup.position.x;
+                    const wheelY = this.giantRouletteGroup.position.y;
+                    const wheelZ = this.giantRouletteGroup.position.z;
+
+                    this.mrDollar3D.playOutcomeReaction(outcome.segment.type, outcome.segment.multiplier);
+
+                    this.vfx.triggerScreenShake(0.35, 0.25);
+                    this.vfx.spawnShockwave3D(worldX, wheelY, wheelZ, 0xfacc15, 9.0, 0.45);
+                    this.vfx.spawnGpuParticleCloud(
                         worldX,
-                        wheelY + 1.2,
+                        wheelY,
                         wheelZ,
-                        this.gameState.engine.currentMultiplier,
-                        this.gameState.engine.currentRow
+                        160,
+                        [0xfde047, 0xfacc15, 0xeab308, 0xffffff, 0xec4899],
+                        12,
+                        26,
+                        0.72
                     );
 
-                    const winDelay = isBonusBuy ? 1300 : 2000;
-                    setTimeout(() => {
-                        this.finishRouletteSequence(() => {
+                    const isBonusBuy = this.gameState.engine.wheelProfile === 'BONUS_BUY';
+                    if (outcome.segment.type === 'WIPEOUT') {
+                        audioController.playWheelWipeout();
+                        this.vfx.spawnCrashExplosion3D(worldX, SHIP_FLIGHT_Y, wheelZ - 2.0);
+                        this.vfx.triggerScreenShake(0.65, 0.45);
+                        const wipeoutDelay = isBonusBuy ? 1100 : 1800;
+                        setTimeout(() => {
+                            this.finishRouletteSequence(() => {
+                                this.isWheelSpinning = false;
+                                onComplete();
+                            });
+                        }, wipeoutDelay);
+                    } else if (outcome.segment.type === 'EXTRA_SPIN') {
+                        audioController.playGoldenHit();
+                        setTimeout(() => {
                             this.isWheelSpinning = false;
                             onComplete();
-                        });
-                    }, winDelay);
+                        }, 1100);
+                    } else if (outcome.segment.type === 'SLOT') {
+                        audioController.playGoldenHit();
+                        setTimeout(() => {
+                            this.isRouletteActive = false;
+                            this.isWheelSpinning = false;
+                            const spinsCount = this.gameState.engine.slotBundle?.spins.length || 5;
+                            this.triggerSlotSequence(worldX, wheelZ + 7.5, spinsCount, 0);
+                            onComplete();
+                        }, 1200);
+                    } else {
+                        audioController.playCashout(outcome.segment.multiplier >= 10);
+                        this.vfx.spawnGraffitiMultiplierTag3D(
+                            worldX,
+                            wheelY + 1.2,
+                            wheelZ,
+                            this.gameState.engine.currentMultiplier,
+                            this.gameState.engine.currentRow
+                        );
+
+                        const winDelay = isBonusBuy ? 1300 : 2000;
+                        setTimeout(() => {
+                            this.finishRouletteSequence(() => {
+                                this.isWheelSpinning = false;
+                                onComplete();
+                            });
+                        }, winDelay);
+                    }
                 }
-            }
+            });
         });
     }
 
@@ -5554,7 +5610,19 @@ export class PixiRenderer {
 
         const exitDuration = 0.28;
 
-        // Giant Roulette rises smoothly out of frame
+        // Giant Roulette & Mr. Dollar rise smoothly out of frame
+        this.mrDollar3D.hideSpeech();
+        if (this.mrDollar3D.root.visible) {
+            gsap.to(this.mrDollar3D.root.position, {
+                y: this.mrDollar3D.root.position.y + 16,
+                duration: exitDuration,
+                ease: 'power2.in',
+                onComplete: () => {
+                    this.mrDollar3D.root.visible = false;
+                }
+            });
+        }
+
         gsap.to(this.giantRouletteGroup.position, {
             y: this.giantRouletteGroup.position.y + 18,
             duration: exitDuration,
@@ -5644,7 +5712,7 @@ export class PixiRenderer {
                         this.ship.cockpitAstronaut.visible = false;
                         this.ship.root.visible = false;
 
-                        // Cosmic Void Scene Setup
+                        // Cosmic Void Scene Setup: Giant Wheel center, Mr. Dollar croupier on left, Astronaut watching on right!
                         this.giantRouletteGroup.visible = true;
                         this.giantRouletteGroup.position.set(worldX, wheelY + 14, wheelZ);
                         this.wheelCurrentAngle = 0;
@@ -5656,12 +5724,28 @@ export class PixiRenderer {
                             ease: 'back.out(1.15)'
                         });
 
+                        const hostX = worldX - 4.48;
+                        const hostY = wheelY - 0.55;
+                        const hostZ = wheelZ + 0.85;
+                        this.mrDollar3D.root.visible = true;
+                        this.mrDollar3D.root.rotation.set(0, 0.22, 0);
+                        this.mrDollar3D.root.position.set(hostX - 2.4, hostY + 6.5, hostZ);
+                        gsap.to(this.mrDollar3D.root.position, {
+                            x: hostX,
+                            y: hostY,
+                            z: hostZ,
+                            duration: 0.38,
+                            ease: 'back.out(1.2)'
+                        });
+                        this.mrDollar3D.playEntranceAnimation();
+
                         this.floatingAstronautGroup.visible = true;
-                        this.floatingAstronautGroup.position.set(worldX, SHIP_FLIGHT_Y - 0.20, targetShipZ - 3.65);
+                        this.floatingAstronautGroup.position.set(worldX + 3.85, SHIP_FLIGHT_Y - 0.78, wheelZ + 4.85);
+                        this.floatingAstronautGroup.rotation.y = 0.46;
                         gsap.fromTo(
                             this.floatingAstronautGroup.position,
-                            { y: SHIP_FLIGHT_Y + 1.8 },
-                            { y: SHIP_FLIGHT_Y - 0.20, duration: 0.30, ease: 'power2.out' }
+                            { y: SHIP_FLIGHT_Y + 1.6 },
+                            { y: SHIP_FLIGHT_Y - 0.78, duration: 0.32, ease: 'power2.out' }
                         );
 
                         window.dispatchEvent(new CustomEvent('roulette-ready'));
@@ -5716,17 +5800,34 @@ export class PixiRenderer {
         const slotZ = worldZ - 6.2;
         const slotY = SHIP_FLIGHT_Y + 1.16;
 
-        // Ensure floating astronaut flanks cleanly to the lower-left without overlapping the slot clamps
+        // Ensure floating astronaut glides cleanly to the lower-left without overlapping the slot clamps
         this.floatingAstronautGroup.visible = true;
-        this.floatingAstronautGroup.position.set(
-            worldX - 3.92,
-            SHIP_FLIGHT_Y - 0.88,
-            worldZ - 2.6
-        );
-        this.floatingAstronautGroup.rotation.y = -0.38;
+        gsap.to(this.floatingAstronautGroup.position, {
+            x: worldX - 3.92,
+            y: SHIP_FLIGHT_Y - 0.88,
+            z: worldZ - 2.6,
+            duration: 0.34,
+            ease: 'power2.out'
+        });
+        gsap.to(this.floatingAstronautGroup.rotation, {
+            y: -0.38,
+            duration: 0.34,
+            ease: 'power2.out'
+        });
         this.ship.root.visible = false;
 
-        // Slide the Giant Prize Wheel out of view if visible
+        // Slide the Giant Prize Wheel & Mr. Dollar out of view if visible
+        this.mrDollar3D.hideSpeech();
+        if (this.mrDollar3D.root.visible) {
+            gsap.to(this.mrDollar3D.root.position, {
+                y: this.mrDollar3D.root.position.y + 16,
+                duration: 0.28,
+                ease: 'power2.in',
+                onComplete: () => {
+                    this.mrDollar3D.root.visible = false;
+                }
+            });
+        }
         if (this.giantRouletteGroup && this.giantRouletteGroup.visible) {
             gsap.to(this.giantRouletteGroup.position, {
                 y: this.giantRouletteGroup.position.y + 18,
@@ -5789,6 +5890,10 @@ export class PixiRenderer {
         this.isRouletteActive = false;
         this.isWheelSpinning = false;
         if (this.giantRouletteGroup) this.giantRouletteGroup.visible = false;
+        if (this.mrDollar3D) {
+            this.mrDollar3D.hideSpeech();
+            this.mrDollar3D.root.visible = false;
+        }
 
         // Hide crate platforms so the cosmic void is 100% clean
         this.rowSlots.flat().forEach(slot => { slot.group.visible = false; });
@@ -6138,6 +6243,10 @@ export class PixiRenderer {
         if (this.giantRouletteGroup) {
             this.giantRouletteGroup.visible = false;
         }
+        if (this.mrDollar3D) {
+            this.mrDollar3D.hideSpeech();
+            this.mrDollar3D.root.visible = false;
+        }
         if (this.miniSlotGroup) {
             this.miniSlotGroup.visible = false;
         }
@@ -6230,6 +6339,10 @@ export class PixiRenderer {
                 this.isSlotActive = false;
                 this.isSlotSpinning = false;
                 this.giantRouletteGroup.visible = false;
+                if (this.mrDollar3D) {
+                    this.mrDollar3D.hideSpeech();
+                    this.mrDollar3D.root.visible = false;
+                }
                 if (this.miniSlotGroup) this.miniSlotGroup.visible = false;
                 this.floatingAstronautGroup.visible = false;
                 this.ship.resetCockpit();
@@ -6252,6 +6365,10 @@ export class PixiRenderer {
                 this.isSlotActive = false;
                 this.isSlotSpinning = false;
                 this.giantRouletteGroup.visible = false;
+                if (this.mrDollar3D) {
+                    this.mrDollar3D.hideSpeech();
+                    this.mrDollar3D.root.visible = false;
+                }
                 if (this.miniSlotGroup) this.miniSlotGroup.visible = false;
                 this.floatingAstronautGroup.visible = false;
                 this.ship.resetCockpit();
@@ -6647,7 +6764,7 @@ export class PixiRenderer {
             this.ship.setTargetPosition(targetShipX, SHIP_FLIGHT_Y, targetShipZ);
         }
 
-        // Zero-G cosmic void drift for 3D volumetric astronaut facing the giant prize wheel or arcade slot
+        // Zero-G cosmic void drift for 3D volumetric astronaut watching Mr. Dollar spin the wheel or observing the slot!
         if ((this.isRouletteActive || this.isSlotActive) && this.floatingAstronautGroup.visible && this.astro3D) {
             const bob = Math.sin(this.elapsed * 1.8) * 0.10;
             const roll = Math.cos(this.elapsed * 1.4) * 0.045;
@@ -6656,12 +6773,25 @@ export class PixiRenderer {
             this.astro3D.root.rotation.z = roll;
             this.astro3D.root.rotation.x = pitch;
 
-            this.astro3D.helmet.rotation.y = Math.sin(this.elapsed * 1.1) * 0.10;
+            // When watching the wheel, astronaut glances toward Mr. Dollar (+Y head turn) and tracks the spinning wheel!
+            const watchBiasY = this.isRouletteActive ? (this.isWheelSpinning ? 0.08 : 0.22) : 0.0;
+            this.astro3D.helmet.rotation.y = watchBiasY + Math.sin(this.elapsed * 1.15) * 0.09;
             this.astro3D.helmet.rotation.x = Math.cos(this.elapsed * 1.35) * 0.04;
             this.astro3D.leftArm.rotation.z = -0.90 + Math.sin(this.elapsed * 1.5) * 0.06;
             this.astro3D.rightArm.rotation.z = 0.90 - Math.sin(this.elapsed * 1.5 + 0.4) * 0.06;
             this.astro3D.leftLeg.rotation.x = 0.08 + Math.sin(this.elapsed * 1.3) * 0.05;
             this.astro3D.rightLeg.rotation.x = 0.22 + Math.sin(this.elapsed * 1.3 + 0.5) * 0.05;
+        }
+
+        if (this.mrDollar3D) {
+            this.mrDollar3D.update(
+                dt,
+                this.elapsed,
+                this.camera,
+                this.width,
+                this.height,
+                this.isWheelSpinning
+            );
         }
 
         const hitStopX =
@@ -7277,11 +7407,24 @@ export class PixiRenderer {
         }
 
         // 5. Cratered Regolith Asteroids Tumbling & Scrolling (Fly naturally past camera, never pop ahead)
+        const isBonusStageClearZone = this.isRouletteActive || this.isSlotActive;
+        const camX = this.camera.position.x;
         for (const ast of this.asteroids) {
             ast.mesh.rotation.x += ast.rotSpeedX * dt;
             ast.mesh.rotation.y += ast.rotSpeedY * dt;
             ast.mesh.rotation.z += ast.rotSpeedZ * dt;
             ast.mesh.position.z += ast.driftSpeedZ * speedMult * dt;
+
+            // Keep foreground corridor unobstructed during Giant Wheel / Mini-Slot showcases
+            if (
+                isBonusStageClearZone &&
+                ast.mesh.position.z > camZ - 19 &&
+                ast.mesh.position.z < camZ + 6 &&
+                Math.abs(ast.mesh.position.x - camX) < 11.5
+            ) {
+                const pushDir = ast.mesh.position.x >= camX ? 1 : -1;
+                ast.mesh.position.x = camX + pushDir * 13.5;
+            }
 
             // Only recycle once asteroid has completely tumbled past and exited behind camera
             if (ast.mesh.position.z > camZ + 35) {
