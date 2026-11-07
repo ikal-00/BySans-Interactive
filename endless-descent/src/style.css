@@ -4228,3 +4228,653 @@ body.rules-modal-open #rules-modal-overlay {
   color: var(--text-muted);
 }
 
+/* =============================================================================
+   BONUS BUY (VIP ACCESS SUITE) — CIRCULAR TRIGGER & INTERACTIVE MODAL
+   ============================================================================= */
+
+/* 1. Floating Circular Trigger Button */
+.bonus-buy-circular-btn {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid #facc15;
+  background: radial-gradient(circle at 35% 35%, #fde047 0%, #d97706 50%, #451a03 100%);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.5), 0 6px 16px rgba(0, 0, 0, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  outline: none;
+  transition: transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.22s ease;
+  user-select: none;
+}
+
+.bonus-buy-circular-btn:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 0 0 32px rgba(245, 158, 11, 0.8), 0 10px 22px rgba(0, 0, 0, 0.85), inset 0 1px 3px rgba(255, 255, 255, 0.9);
+}
+
+.bonus-buy-circular-btn:active {
+  transform: scale(0.96) translateY(1px);
+}
+
+.bonus-btn-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px dashed rgba(250, 204, 21, 0.65);
+  animation: bonusRingSpin 12s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes bonusRingSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.bonus-btn-halo {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, transparent 70%);
+  animation: bonusHaloPulse 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes bonusHaloPulse {
+  0%, 100% { transform: scale(0.9); opacity: 0.4; }
+  50% { transform: scale(1.18); opacity: 0.85; }
+}
+
+.bonus-btn-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.bonus-btn-badge {
+  position: absolute;
+  top: -8px;
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #ffffff;
+  font-family: var(--font-display, inherit);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 1px 4px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.bonus-btn-icon {
+  font-size: 16px;
+  margin-top: 4px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.bonus-btn-label {
+  font-family: var(--font-display, inherit);
+  font-size: 10px;
+  font-weight: 800;
+  color: #fef08a;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  margin-top: 1px;
+}
+
+/* 2. Bonus Buy Modal Overlay & Window */
+.bonus-buy-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+
+.bonus-buy-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bonus-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 7, 14, 0.86);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.bonus-modal-window {
+  position: relative;
+  width: 94%;
+  max-width: 680px;
+  background: rgba(12, 18, 32, 0.96);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85), 0 0 50px rgba(245, 158, 11, 0.22);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.95);
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bonus-buy-modal-overlay.active .bonus-modal-window {
+  transform: scale(1);
+}
+
+.bonus-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(168, 85, 247, 0.08) 60%, transparent);
+}
+
+.bonus-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bonus-badge-pulse {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #000;
+  font-family: var(--font-display, inherit);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+  animation: bonusBadgePulse 2s infinite ease-in-out;
+}
+
+@keyframes bonusBadgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); box-shadow: 0 0 18px rgba(245, 158, 11, 0.8); }
+}
+
+.bonus-title-cluster h2 {
+  font-family: var(--font-display, inherit);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fde047;
+  margin: 0;
+}
+
+.bonus-subtitle {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin: 2px 0 0 0;
+}
+
+.bonus-close-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 1.25rem;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.bonus-close-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.bonus-modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+/* Bet Selector Bar */
+.bonus-bet-bar {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bonus-bet-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bonus-bet-label {
+  font-family: var(--font-sans, inherit);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #38bdf8;
+  letter-spacing: 0.06em;
+}
+
+.bonus-bet-stepper {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bonus-step-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  width: 34px;
+  height: 32px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bonus-step-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bonus-bet-val {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fde047;
+  padding: 0 14px;
+  min-width: 75px;
+  text-align: center;
+}
+
+.bonus-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.bonus-chip-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #cbd5e1;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bonus-chip-pill:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.bonus-chip-pill.active {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.bonus-balance-note {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bonus-balance-note strong {
+  color: #34d399;
+}
+
+/* Cards Grid */
+.bonus-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 600px) {
+  .bonus-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bonus-card {
+  position: relative;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.bonus-card:hover {
+  transform: translateY(-2px);
+}
+
+.wheel-card {
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.12), rgba(180, 83, 9, 0.05));
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08);
+}
+
+.wheel-card:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 12px 32px rgba(245, 158, 11, 0.18);
+}
+
+.slot-card {
+  background: linear-gradient(145deg, rgba(168, 85, 247, 0.14), rgba(126, 34, 206, 0.06));
+  border: 1px solid rgba(168, 85, 247, 0.38);
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.1);
+}
+
+.slot-card:hover {
+  border-color: #a855f7;
+  box-shadow: 0 12px 32px rgba(168, 85, 247, 0.22);
+}
+
+.bonus-card-ribbon {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-family: var(--font-display, inherit);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.bonus-card-ribbon.gold {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fde047;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.bonus-card-ribbon.purple {
+  background: rgba(168, 85, 247, 0.25);
+  color: #e9d5ff;
+  border: 1px solid rgba(168, 85, 247, 0.45);
+}
+
+/* Card Visual Graphic */
+.bonus-card-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 0;
+  margin-top: 6px;
+}
+
+.bonus-wheel-graphic {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wheel-glow-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(#dc2626, #eab308, #16a34a, #2563eb, #9333ea, #dc2626);
+  opacity: 0.85;
+  filter: blur(2px);
+  animation: bonusRingSpin 8s linear infinite;
+}
+
+.wheel-center-icon {
+  position: relative;
+  font-size: 32px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.9));
+}
+
+.bonus-slot-graphic {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slot-mini-cabinet {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(168, 85, 247, 0.6);
+  border-radius: 8px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.4);
+}
+
+.slot-digit {
+  font-size: 18px;
+}
+
+.slot-digit.glow {
+  font-family: var(--font-display, inherit);
+  font-weight: 800;
+  font-size: 1rem;
+  color: #facc15;
+  text-shadow: 0 0 8px #f59e0b;
+}
+
+.bonus-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bonus-card-title {
+  font-family: var(--font-display, inherit);
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.bonus-card-desc {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #94a3b8;
+  margin: 0;
+  min-height: 44px;
+}
+
+.bonus-stats-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 8px 0;
+}
+
+.bonus-stat-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.bonus-stat-tag.green {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.bonus-stat-tag.purple {
+  background: rgba(168, 85, 247, 0.14);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.25);
+}
+
+.bonus-stat-tag.yellow {
+  background: rgba(234, 179, 8, 0.14);
+  color: #fde047;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+}
+
+.bonus-stat-tag.cyan {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.bonus-stat-tag.red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.bonus-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.bonus-cost-cluster {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.bonus-cost-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.bonus-cost-amount {
+  font-family: var(--font-mono, monospace);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.bonus-cost-amount.gold {
+  color: #fde047;
+  text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.bonus-cost-amount.purple {
+  color: #e9d5ff;
+  text-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+.bonus-buy-cta-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  font-family: var(--font-display, inherit);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.bonus-buy-cta-btn.gold-btn {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #0b0f19;
+}
+
+.bonus-buy-cta-btn.gold-btn:hover:not(.disabled) {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.6);
+  transform: translateY(-1px);
+}
+
+.bonus-buy-cta-btn.purple-btn {
+  background: linear-gradient(135deg, #9333ea, #7c3aed);
+  color: #ffffff;
+}
+
+.bonus-buy-cta-btn.purple-btn:hover:not(.disabled) {
+  background: linear-gradient(135deg, #a855f7, #9333ea);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+  transform: translateY(-1px);
+}
+
+.bonus-buy-cta-btn.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.6);
+}
+
+.bonus-midgame-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  color: #fde047;
+  line-height: 1.35;
+}
+
+.bonus-responsible-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.68rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.bonus-responsible-notice strong {
+  color: #94a3b8;
+}
+
+.bonus-modal-footer {
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.bonus-tip {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+

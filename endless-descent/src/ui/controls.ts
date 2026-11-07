@@ -11,6 +11,7 @@ import { audioController } from '../engine/AudioController';
 import { stakeRGS } from '../engine/StakeRGSBridge';
 import { createRulesModal, openRulesModal, isRulesModalOpen } from './rulesModal';
 import { toggleDevModal } from './devModal';
+import { createBonusBuyButton, toggleBonusBuyModal, isBonusBuyModalOpen } from './bonusBuyModal';
 import { getTranslations } from '../i18n/translations';
 import gsap from 'gsap';
 
@@ -644,6 +645,9 @@ export function createControlsUI(
     `;
     stageContainer.appendChild(stageOverlay);
 
+    // 3b. FLOATING CIRCULAR BONUS BUY BUTTON (VIP ACCESS TO WHEEL & SLOT)
+    createBonusBuyButton(stageContainer, engine, renderer, syncUI);
+
     // 4. LOSS STATE RETENTION OVERLAY
     const tryAgainOverlay = document.createElement('div');
     tryAgainOverlay.className = 'try-again-overlay';
@@ -797,6 +801,8 @@ export function createControlsUI(
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
         if (e.key === 'd' || e.key === 'D') {
             toggleDevModal(engine, syncUI);
+        } else if (e.key === 'b' || e.key === 'B') {
+            toggleBonusBuyModal(engine, renderer, syncUI);
         }
     });
 
@@ -1238,7 +1244,7 @@ export function createControlsUI(
 
     // 9. PRIMARY FOCAL ACTION WITH CLIENT-SIDE BALANCE GUARD [222]
     async function handlePrimaryFocalAction() {
-        if (isRulesModalOpen() || isReplay) return;
+        if (isRulesModalOpen() || isBonusBuyModalOpen() || isReplay) return;
 
         // Giant Cosmic Prize Wheel (Ruleta) Spin Action
         if (renderer.isRouletteActive || renderer.isWheelSpinning || (engine.isWheelActive && !engine.isSlotActive)) {

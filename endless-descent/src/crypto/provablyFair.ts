@@ -324,7 +324,7 @@ export const WHEEL_SEGMENTS: WheelSegmentConfig[] = [
     { index: 11, label: 'x8', type: 'HIGH_8', multiplier: 8, colorHex: '#16a34a', isNearMissHighlight: true }
 ];
 
-const WHEEL_WEIGHTS = [
+export const WHEEL_WEIGHTS_NATURAL = [
     8,    // 0: x1000 (0.08% Jackpot)
     250,  // 1: x10   (2.50%)
     1850, // 2: x1.2  (18.50%)
@@ -340,6 +340,28 @@ const WHEEL_WEIGHTS = [
 ]; // Sum = 10,000
 
 /**
+ * Perfil B: Ruleta Comprada (Bonus Buy Directo)
+ * Probabilidad fuertemente castigada: El jugador comprador tiene una tasa de pérdida (Wipeout x0 y rescate bajo x0.2)
+ * drásticamente superior (~66% entre x0 y x0.2), con Wipeout pasando de 11.42% a 38.00% y premios altos fuertemente reducidos.
+ */
+export const WHEEL_WEIGHTS_BONUS_BUY = [
+    1,    // 0: x1000 (0.01% Ultra Jackpot)
+    50,   // 1: x10   (0.50%)
+    1000, // 2: x1.2  (10.00%)
+    350,  // 3: x3    (3.50%)
+    2800, // 4: x0.2  (28.00% Rescate Mínimo)
+    700,  // 5: x2    (7.00%)
+    50,   // 6: +1 SP (0.50% Tirada Extra)
+    3800, // 7: x0    (38.00% Wipeout / Pérdida Total)
+    19,   // 8: SLOT  (0.19% Entrada a Slot)
+    1000, // 9: x1.2  (10.00%)
+    150,  // 10: x5   (1.50%)
+    80    // 11: x8   (0.80%)
+]; // Sum = 10,000
+
+export const WHEEL_WEIGHTS = WHEEL_WEIGHTS_NATURAL;
+
+/**
  * Deterministically computes the provably fair outcome of spinning the Giant Prize Wheel.
  */
 export function deriveWheelSpinOutcome(
@@ -347,9 +369,10 @@ export function deriveWheelSpinOutcome(
     clientSeed: string,
     nonce: number,
     row: number,
-    spinIndex = 0
+    spinIndex = 0,
+    profile: 'NATURAL' | 'BONUS_BUY' = 'NATURAL'
 ): WheelSpinOutcome {
-    const message = `${clientSeed}:${nonce}:${row}:wheel:${spinIndex}`;
+    const message = `${clientSeed}:${nonce}:${row}:wheel:${spinIndex}:${profile}`;
     const hash = CryptoJS.HmacSHA256(message, serverSeed).toString(CryptoJS.enc.Hex);
     const bytes = parseHashBytes(hash);
 
@@ -362,10 +385,11 @@ export function deriveWheelSpinOutcome(
     const rawRoll = uint32 / 0x100000000;
     const rollInt = Math.floor(rawRoll * 10000);
 
+    const weights = profile === 'BONUS_BUY' ? WHEEL_WEIGHTS_BONUS_BUY : WHEEL_WEIGHTS_NATURAL;
     let accum = 0;
     let chosenSegmentIndex = 0;
-    for (let i = 0; i < WHEEL_WEIGHTS.length; i++) {
-        accum += WHEEL_WEIGHTS[i];
+    for (let i = 0; i < weights.length; i++) {
+        accum += weights[i];
         if (rollInt < accum) {
             chosenSegmentIndex = i;
             break;

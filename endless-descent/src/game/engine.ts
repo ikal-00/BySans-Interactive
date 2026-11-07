@@ -68,6 +68,7 @@ export class GameEngine {
     public wheelRow: number = 0;
     public wheelLane: number = 0;
     public wheelPendingPick: RoundPick | null = null;
+    public wheelProfile: 'NATURAL' | 'BONUS_BUY' = 'NATURAL';
 
     // 1x3 Arcade Mini-Slot state tracking
     public isSlotActive: boolean = false;
@@ -259,6 +260,7 @@ export class GameEngine {
         this.partialPayoutBanked = 0;
         this.partialCashoutUsedOnRow = 0;
 
+        this.wheelProfile = 'NATURAL';
         this.isWheelActive = false;
         this.wheelSpinsRemaining = 0;
         this.wheelSpinIndex = 0;
@@ -581,7 +583,8 @@ export class GameEngine {
             this.clientSeed,
             this.nonce,
             this.wheelRow,
-            this.wheelSpinIndex
+            this.wheelSpinIndex,
+            this.wheelProfile
         );
         this.wheelSpinIndex++;
 
@@ -651,7 +654,7 @@ export class GameEngine {
                 this.serverSeed,
                 this.clientSeed,
                 this.nonce,
-                'NATURAL',
+                this.wheelProfile === 'BONUS_BUY' ? 'BONUS_BUY' : 'NATURAL',
                 this.slotPreMultiplier
             );
 
@@ -748,22 +751,88 @@ export class GameEngine {
     }
 
     /**
-     * Bonus Buy: Purchase direct access to the 1x3 Arcade Mini-Slot (Perfil B).
-     * Volatilidad extrema (All-or-Nothing, ~90% Blanks).
+     * Bonus Buy 1: Purchase direct access to the Cosmic Prize Wheel (Perfil B).
+     * Volatilidad extrema y probabilidad castigada: Tasa de Wipeout (x0) elevada al 38.0%,
+     * rescates mínimos (x0.2) en 28.0% y grandes premios fuertemente restringidos para que
+     * el jugador comprador pierda significativamente más frente a una entrada natural.
      */
-    public buySlotBonus(costMultiplier = 20.0): SlotBonusBundle | null {
-        if (this.state !== GameState.IDLE) return null;
-        const totalCost = this.activeBetAmount * costMultiplier;
-        if (this.balance < totalCost) return null;
+    public buyWheelBonus(costMultiplier = 20.0, chosenBet?: number): boolean {
+        if (this.state === GameState.PLAYING && (this.isWheelActive || this.isSlotActive)) return false;
 
-        this.balance -= totalCost;
+        const baseBet = chosenBet ?? this.activeBetAmount;
+        const totalCost = Math.round(baseBet * costMultiplier * 100) / 100;
+        if (this.balance < totalCost) return false;
+
+        this.balance = Math.round((this.balance - totalCost) * 100) / 100;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('endless_descent_demo_balance', this.balance.toString());
+        }
         this.emitBalanceChange();
 
+        this.betAmount = baseBet;
+        this.initialEffectiveBet = baseBet;
+        this.currentRow = 1;
+        this.currentMultiplier = 1.0;
         this.state = GameState.PLAYING;
+        this.isWheelActive = true;
+        this.wheelSpinsRemaining = 1;
+        this.wheelRow = 1;
+        this.wheelLane = 1;
+        this.wheelSpinIndex = 0;
+        this.isSlotActive = false;
+        this.slotBundle = null;
+        this.wheelProfile = 'BONUS_BUY';
+        this.currentPicks = [];
+
+        const pick: RoundPick = {
+            row: 1,
+            lane: 1,
+            isSafe: true,
+            shieldSaved: false,
+            specialType: 'WHEEL',
+            boostApplied: 1.0,
+            rowsSkipped: 0,
+            hazards: [],
+            stepMultiplierAfter: 1.0
+        };
+        this.wheelPendingPick = pick;
+        this.currentPicks.push(pick);
+
+        this.emitStateChange(GameState.PLAYING);
+        return true;
+    }
+
+    /**
+     * Bonus Buy 2: Purchase direct access to the 1x3 Arcade Mini-Slot (Perfil B).
+     * Volatilidad extrema y probabilidad fuertemente castigada: 90.0% de los giros
+     * son BLANKS (tiradas muertas), con solo 8.7% de conexión en x4 y probabilidades
+     * minúsculas en x8..x88. El jugador comprador pierde en la gran mayoría de tiradas.
+     */
+    public buySlotBonus(costMultiplier = 50.0, chosenBet?: number): SlotBonusBundle | null {
+        if (this.state === GameState.PLAYING && (this.isWheelActive || this.isSlotActive)) return null;
+
+        const baseBet = chosenBet ?? this.activeBetAmount;
+        const totalCost = Math.round(baseBet * costMultiplier * 100) / 100;
+        if (this.balance < totalCost) return null;
+
+        this.balance = Math.round((this.balance - totalCost) * 100) / 100;
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('endless_descent_demo_balance', this.balance.toString());
+        }
+        this.emitBalanceChange();
+
+        this.betAmount = baseBet;
+        this.initialEffectiveBet = baseBet;
+        this.currentRow = 1;
+        this.currentMultiplier = 1.0;
+        this.state = GameState.PLAYING;
+        this.isWheelActive = false;
         this.isSlotActive = true;
         this.slotPreMultiplier = 1.0;
         this.slotCurrentSpinIndex = 0;
         this.slotAccumulator = 0;
+        this.currentPicks = [];
+
         this.slotBundle = generateSlotBonusSpins(
             this.serverSeed,
             this.clientSeed,
@@ -789,6 +858,7 @@ export class GameEngine {
         this.lastCrashedLane = null;
         this.currentPicks = [];
         this.alienDestroyedRows.clear();
+        this.wheelProfile = 'NATURAL';
         this.emitStateChange(GameState.IDLE);
     }
 }

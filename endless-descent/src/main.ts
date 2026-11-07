@@ -6,6 +6,7 @@ import { GameStateController } from './engine/GameState';
 import { PixiRenderer } from './engine/Renderer';
 import { createControlsUI } from './ui/controls';
 import { isRulesModalOpen } from './ui/rulesModal';
+import { isBonusBuyModalOpen } from './ui/bonusBuyModal';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="pc-command-shell" id="pc-command-shell">
@@ -52,7 +53,7 @@ resizeObs.observe(stageContainer);
 
 // 5. Wire 3D Floating Card Pointer & Mobile Touch Interactions
 canvas.addEventListener('pointerdown', (e) => {
-    if (isRulesModalOpen()) return;
+    if (isRulesModalOpen() || isBonusBuyModalOpen()) return;
     if (
         engine.state !== GameState.PLAYING ||
         gameState.isHitStopActive ||
@@ -74,7 +75,7 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 
 canvas.addEventListener('pointermove', (e) => {
-    if (isRulesModalOpen()) return;
+    if (isRulesModalOpen() || isBonusBuyModalOpen()) return;
     if (e.pointerType === 'touch') return;
     if (
         engine.state === GameState.PLAYING &&
