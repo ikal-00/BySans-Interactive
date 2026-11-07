@@ -102,11 +102,42 @@ export class AudioController {
     public resumeAudioContext() {
         if (!this.ctx) {
             this.initContext();
-        } else if (this.ctx.state === 'suspended') {
-            this.ctx.resume().catch(() => {});
         }
-        if (!this.isBgmPlaying && !this.muted) {
+        if (this.ctx) {
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume().then(() => {
+                    this.ensureAudioRunning();
+                }).catch(() => {});
+            } else {
+                this.ensureAudioRunning();
+            }
+        }
+    }
+
+    /**
+     * Ensures all ambient drone oscillators and BGM sequencer are actively synchronized and audible.
+     */
+    public ensureAudioRunning() {
+        if (!this.ctx || this.ctx.state !== 'running') return;
+        const now = this.ctx.currentTime;
+
+        if (!this.isDronePlaying) {
             this.startAmbientDrone();
+        } else if (this.droneGain) {
+            this.droneGain.gain.cancelScheduledValues(now);
+            this.droneGain.gain.setValueAtTime(this.muted ? 0.0001 : 0.009, now);
+        }
+
+        if (!this.isBgmPlaying) {
+            this.startSynthwaveBGM();
+        } else {
+            if (this.nextStepTime < now) {
+                this.nextStepTime = now + 0.04;
+            }
+            if (this.bgmMasterGain) {
+                this.bgmMasterGain.gain.cancelScheduledValues(now);
+                this.bgmMasterGain.gain.setValueAtTime(this.muted ? 0 : 0.14, now);
+            }
         }
     }
 
@@ -177,8 +208,8 @@ export class AudioController {
         const secondsPer16th = 60 / bpm / 4;
 
         const scheduler = () => {
-            if (!this.ctx || !this.isBgmPlaying) return;
-            if (this.ctx.currentTime - this.nextStepTime > 0.25) {
+            if (!this.ctx || !this.isBgmPlaying || this.ctx.state !== 'running') return;
+            if (this.ctx.currentTime - this.nextStepTime > 0.25 || this.nextStepTime < this.ctx.currentTime) {
                 this.nextStepTime = this.ctx.currentTime + 0.04;
             }
             while (this.nextStepTime < this.ctx.currentTime + scheduleAheadSec) {

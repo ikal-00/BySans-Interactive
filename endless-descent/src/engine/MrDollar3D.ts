@@ -1111,7 +1111,7 @@ export class MrDollar3D {
                 transform: 'translate(-50%, -100%) scale(0.85)',
                 transformOrigin: '50% 100%',
                 padding: '9px 16px',
-                maxWidth: '250px',
+                maxWidth: 'min(240px, 80vw)',
                 background: 'linear-gradient(180deg, #fffef7 0%, #fef3c7 100%)',
                 color: '#0f172a',
                 border: '3px solid #090d16',
@@ -1449,8 +1449,9 @@ export class MrDollar3D {
             if (this.scratchHeadWorld.z < 1.0) {
                 const sx = (this.scratchHeadWorld.x * 0.5 + 0.5) * viewportW;
                 const sy = (-this.scratchHeadWorld.y * 0.5 + 0.5) * viewportH;
-                const clampedX = Math.max(145, Math.min(viewportW - 145, sx));
-                const clampedY = Math.max(125, Math.min(viewportH - 180, sy));
+                const halfBubble = Math.min(125, viewportW * 0.4);
+                const clampedX = Math.max(halfBubble + 10, Math.min(viewportW - halfBubble - 10, sx));
+                const clampedY = Math.max(90, Math.min(viewportH - 180, sy));
                 this.speechEl.style.left = `${clampedX.toFixed(1)}px`;
                 this.speechEl.style.top = `${clampedY.toFixed(1)}px`;
             }

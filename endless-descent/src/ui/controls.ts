@@ -321,7 +321,8 @@ export function createControlsUI(
               <div class="gantry-divider"></div>
               <button class="gantry-icon-btn active" id="btn-audio" type="button" title="${t.soundToggleTitle}">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" id="audio-icon-svg">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                 </svg>
                 <span id="audio-label" class="sr-only">${lang === 'es' ? 'Sonido' : 'Sound'}</span>
               </button>
@@ -738,11 +739,15 @@ export function createControlsUI(
         (balancePill as HTMLElement).style.cursor = 'pointer';
         balancePill.addEventListener('click', () => {
             if (!stakeRGS.session.isLiveRGS) {
-                engine.balance += 1000;
+                const addedAmt = stakeRGS.session.currency === 'JPY' ? 10000 : stakeRGS.session.currency === 'XGC' ? 100000 : 1000;
+                engine.balance += addedAmt;
                 localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
                 audioController.playClick();
                 syncUI();
-                stakeRGS.showToast('💰 + $1,000.00 añadido al saldo', 'success');
+                const rechargeMsg = lang === 'es'
+                    ? `+ ${stakeRGS.formatCurrency(addedAmt)} añadido al saldo`
+                    : `+ ${stakeRGS.formatCurrency(addedAmt)} added to balance`;
+                stakeRGS.showToast(rechargeMsg, 'success');
             }
         });
     }
@@ -1108,6 +1113,13 @@ export function createControlsUI(
             betInput.value = formatBetLevelVal(snapped);
             syncBetMetrics();
         });
+
+        betInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                betInput.blur();
+            }
+        });
     }
 
     const btnMin = document.getElementById('btn-min');
@@ -1126,9 +1138,15 @@ export function createControlsUI(
             if (isRulesModalOpen() || engine.state === GameState.PLAYING || !betInput) return;
             audioController.playClick();
             const currVal = parseFloat(betInput.value) || currentBetLevels[0];
-            const currentIdx = currentBetLevels.findIndex((lvl) => lvl >= currVal);
-            const targetIdx = currentIdx > 0 ? currentIdx - 1 : 0;
-            betInput.value = formatBetLevelVal(currentBetLevels[targetIdx]);
+            let targetVal = currentBetLevels[0];
+            // Step to highest predefined level strictly below currVal
+            for (let i = currentBetLevels.length - 1; i >= 0; i--) {
+                if (currentBetLevels[i] < currVal - 0.0001) {
+                    targetVal = currentBetLevels[i];
+                    break;
+                }
+            }
+            betInput.value = formatBetLevelVal(targetVal);
             syncBetMetrics();
         });
     }
@@ -1139,9 +1157,15 @@ export function createControlsUI(
             if (isRulesModalOpen() || engine.state === GameState.PLAYING || !betInput) return;
             audioController.playClick();
             const currVal = parseFloat(betInput.value) || currentBetLevels[0];
-            const currentIdx = currentBetLevels.findIndex((lvl) => lvl >= currVal);
-            const targetIdx = currentIdx < currentBetLevels.length - 1 ? currentIdx + 1 : currentBetLevels.length - 1;
-            betInput.value = formatBetLevelVal(currentBetLevels[targetIdx]);
+            let targetVal = currentBetLevels[currentBetLevels.length - 1];
+            // Step to lowest predefined level strictly above currVal
+            for (let i = 0; i < currentBetLevels.length; i++) {
+                if (currentBetLevels[i] > currVal + 0.0001) {
+                    targetVal = currentBetLevels[i];
+                    break;
+                }
+            }
+            betInput.value = formatBetLevelVal(targetVal);
             syncBetMetrics();
         });
     }
@@ -1269,11 +1293,15 @@ export function createControlsUI(
             // [222] Client-side check preventing /wallet/play if balance < effVal
             if (engine.balance < effVal) {
                 if (!stakeRGS.session.isLiveRGS) {
-                    // Auto-recharge in demo/developer mode!
-                    engine.balance += Math.max(1000, effVal * 10);
+                    // Auto-recharge in demo mode!
+                    const autoAdd = stakeRGS.session.currency === 'JPY' ? 10000 : stakeRGS.session.currency === 'XGC' ? 100000 : Math.max(1000, effVal * 10);
+                    engine.balance += autoAdd;
                     localStorage.setItem('endless_descent_demo_balance', engine.balance.toString());
                     syncUI();
-                    stakeRGS.showToast('💰 Saldo demo recargado automáticamente (+ $1,000.00)', 'success');
+                    const topupMsg = lang === 'es'
+                        ? `Saldo demo recargado (+ ${stakeRGS.formatCurrency(autoAdd)})`
+                        : `Demo balance recharged (+ ${stakeRGS.formatCurrency(autoAdd)})`;
+                    stakeRGS.showToast(topupMsg, 'success');
                 } else {
                     stakeRGS.showToast(t.focalInsufficientFunds, 'error');
                     return;
@@ -1444,11 +1472,17 @@ export function createControlsUI(
         const isHidingWheelOutcome = renderer.isWheelSpinning && wheelPreSpinMult !== null;
         const displayedMult = isHidingWheelOutcome ? wheelPreSpinMult! : currentMult;
 
-        multHeroVal.textContent = `${displayedMult.toFixed(2)}x`;
-        multNextPreview.textContent = lang === 'es' ? `SIGUIENTE: ${nextMult.toFixed(2)}x` : `NEXT ${nextMult.toFixed(2)}x`;
-
         const isWheelBonusStage = renderer.isRouletteActive || renderer.isWheelSpinning || (engine.isWheelActive && !engine.isSlotActive);
         const isSlotBonusStage = engine.isSlotActive || renderer.isSlotActive;
+
+        multHeroVal.textContent = `${displayedMult.toFixed(2)}x`;
+        if (isWheelBonusStage) {
+            multNextPreview.textContent = lang === 'es' ? '★ RULETA CÓSMICA ★' : '★ COSMIC WHEEL ★';
+        } else if (isSlotBonusStage) {
+            multNextPreview.textContent = lang === 'es' ? '★ BÓVEDA MINI-SLOT ★' : '★ SLOT VAULT ★';
+        } else {
+            multNextPreview.textContent = lang === 'es' ? `SIGUIENTE: ${nextMult.toFixed(2)}x` : `NEXT ${nextMult.toFixed(2)}x`;
+        }
 
         if (isHidingWheelOutcome) {
             multHeroSub.textContent = lang === 'es' ? 'Girando Ruleta Cósmica...' : 'Spinning Cosmic Wheel...';
@@ -1725,6 +1759,10 @@ export function createControlsUI(
     });
 
     engine.onBalanceChange(() => {
+        syncUI();
+    });
+
+    engine.onStateChange(() => {
         syncUI();
     });
 

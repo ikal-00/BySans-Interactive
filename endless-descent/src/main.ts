@@ -109,10 +109,14 @@ canvas.addEventListener('pointercancel', () => {
 });
 
 // 6. Start Cyberpunk Synthwave Music immediately at startup & unlock WebAudio on first gesture
+const GESTURE_EVENTS = ['pointerdown', 'mousedown', 'keydown', 'touchstart'];
 const unlockAudioOnGesture = () => {
     audioController.resumeAudioContext();
+    GESTURE_EVENTS.forEach((evt) => {
+        window.removeEventListener(evt, unlockAudioOnGesture);
+    });
 };
-['pointerdown', 'mousedown', 'keydown', 'touchstart'].forEach((evt) => {
+GESTURE_EVENTS.forEach((evt) => {
     window.addEventListener(evt, unlockAudioOnGesture, { passive: true });
 });
 // Immediate direct playback attempt (for browsers permitting autoplay)

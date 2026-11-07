@@ -245,7 +245,10 @@ export class GameEngine {
             this.balance = Math.max(250.0, effectiveBet * 5);
             this.emitBalanceChange();
         } else if (stakeRGS.session.isLiveRGS && this.balance < effectiveBet) {
-            stakeRGS.showToast('Saldo insuficiente en tu cuenta de Stake.', 'error', 3500);
+            const insufficientMsg = stakeRGS.session.language === 'es'
+                ? 'Saldo insuficiente en tu cuenta de Stake.'
+                : 'Insufficient balance in your Stake account.';
+            stakeRGS.showToast(insufficientMsg, 'error', 3500);
             return false;
         }
 
@@ -794,7 +797,7 @@ export class GameEngine {
      * el jugador comprador pierda significativamente más frente a una entrada natural.
      */
     public buyWheelBonus(costMultiplier = 20.0, chosenBet?: number): boolean {
-        if (this.state === GameState.PLAYING && (this.isWheelActive || this.isSlotActive)) return false;
+        if (this.state === GameState.PLAYING) return false;
 
         const baseBet = chosenBet ?? this.activeBetAmount;
         const totalCost = Math.round(baseBet * costMultiplier * 100) / 100;
@@ -847,7 +850,7 @@ export class GameEngine {
      * minúsculas en x8..x88. El jugador comprador pierde en la gran mayoría de tiradas.
      */
     public buySlotBonus(costMultiplier = 50.0, chosenBet?: number): SlotBonusBundle | null {
-        if (this.state === GameState.PLAYING && (this.isWheelActive || this.isSlotActive)) return null;
+        if (this.state === GameState.PLAYING) return null;
 
         const baseBet = chosenBet ?? this.activeBetAmount;
         const totalCost = Math.round(baseBet * costMultiplier * 100) / 100;
