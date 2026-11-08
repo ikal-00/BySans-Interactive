@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { loadTextureSafe } from '../utils/assets';
 
 export interface PBRTexturePack {
     hullColor: THREE.CanvasTexture;
@@ -5036,30 +5037,30 @@ export function createPBRTexturePack(): PBRTexturePack {
     // Upgrade synchronously-initialized canvas textures with the extracted reference PNG assets
     if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
         const texLoader = new THREE.TextureLoader();
-        const upgradeCanvas = (canvas: HTMLCanvasElement, tex: THREE.CanvasTexture, url: string, clearFirst = false) => {
-            texLoader.load(url, (t) => {
+        const upgradeCanvas = (canvas: HTMLCanvasElement, tex: THREE.CanvasTexture, assetPath: string, clearFirst = false) => {
+            loadTextureSafe(texLoader, assetPath, (t) => {
                 if (t.image) {
                     const ctx = canvas.getContext('2d');
                     if (ctx) {
                         if (clearFirst) ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(t.image, 0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(t.image as CanvasImageSource, 0, 0, canvas.width, canvas.height);
                         tex.needsUpdate = true;
                     }
                 }
             });
         };
-        upgradeCanvas(normalSideCanvas, cardboardBoxTex, '/assets/crate_side_normal.png');
-        upgradeCanvas(normalTopCanvas, cardboardBoxTopTex, '/assets/crate_top_normal.png');
-        upgradeCanvas(orangeSideCanvas, cardboardOrangeBoxTex, '/assets/crate_side_orange.png');
-        upgradeCanvas(orangeTopCanvas, cardboardOrangeBoxTopTex, '/assets/crate_top_orange.png');
-        upgradeCanvas(alienSideCanvas, cardboardAlienBoxTex, '/assets/crate_side_alien.png');
-        upgradeCanvas(alienTopCanvas, cardboardAlienBoxTopTex, '/assets/crate_top_alien.png');
-        upgradeCanvas(miniSunCanvas, miniSunTex, '/assets/bonus_sun_comic.png', true);
-        upgradeCanvas(alienSymbolCanvas, alienSymbolTex, '/assets/bonus_blue_comic.png', true);
-        upgradeCanvas(shieldCanvas, shieldHexTex, '/assets/shield_hex_pattern.png', true);
-        upgradeCanvas(astronautBackCanvas, astronautBackTex, '/assets/astronaut_back.png', true);
-        upgradeCanvas(astronautFrontCanvas, astronautFrontTex, '/assets/astronaut_front.png', true);
-        upgradeCanvas(astronautNormalCanvas, astronautNormalTex, '/assets/astronaut_normal.png', true);
+        upgradeCanvas(normalSideCanvas, cardboardBoxTex, 'assets/crate_side_normal.png');
+        upgradeCanvas(normalTopCanvas, cardboardBoxTopTex, 'assets/crate_top_normal.png');
+        upgradeCanvas(orangeSideCanvas, cardboardOrangeBoxTex, 'assets/crate_side_orange.png');
+        upgradeCanvas(orangeTopCanvas, cardboardOrangeBoxTopTex, 'assets/crate_top_orange.png');
+        upgradeCanvas(alienSideCanvas, cardboardAlienBoxTex, 'assets/crate_side_alien.png');
+        upgradeCanvas(alienTopCanvas, cardboardAlienBoxTopTex, 'assets/crate_top_alien.png');
+        upgradeCanvas(miniSunCanvas, miniSunTex, 'assets/bonus_sun_comic.png', true);
+        upgradeCanvas(alienSymbolCanvas, alienSymbolTex, 'assets/bonus_blue_comic.png', true);
+        upgradeCanvas(shieldCanvas, shieldHexTex, 'assets/shield_hex_pattern.png', true);
+        upgradeCanvas(astronautBackCanvas, astronautBackTex, 'assets/astronaut_back.png', true);
+        upgradeCanvas(astronautFrontCanvas, astronautFrontTex, 'assets/astronaut_front.png', true);
+        upgradeCanvas(astronautNormalCanvas, astronautNormalTex, 'assets/astronaut_normal.png', true);
     }
 
     const dollarBillTex = new THREE.CanvasTexture(billCanvas);

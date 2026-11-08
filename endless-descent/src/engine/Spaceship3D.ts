@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import gsap from 'gsap';
 import type { PBRTexturePack } from './Textures3D';
+import { loadTextureSafe } from '../utils/assets';
 
 /**
  * [SPACE-OVERDRIVE V4] AAA 3D Sculpted Comic Starfighter (`Spaceship3D`):
@@ -125,6 +126,242 @@ function createComicDropletTexture(): THREE.CanvasTexture {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.needsUpdate = true;
     return tex;
+}
+
+/**
+ * Procedural Starfighter Albedo Canvas:
+ * Provides a 100% solid, opaque, vibrant AAA comic starfighter texture from frame 0
+ * with zero dependency on network loads, eliminating transparent ship glitches.
+ */
+function drawProceduralShipAlbedo(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const cx = w * 0.5;
+
+    // 1. Heavy dark ink comic backing / silhouette outline
+    ctx.fillStyle = '#090d16';
+    ctx.beginPath();
+    ctx.moveTo(cx, h * 0.07);
+    ctx.bezierCurveTo(cx + w * 0.08, h * 0.17, cx + w * 0.18, h * 0.32, cx + w * 0.46, h * 0.64);
+    ctx.lineTo(cx + w * 0.41, h * 0.73);
+    ctx.lineTo(cx + w * 0.25, h * 0.68);
+    // Right engine bell
+    ctx.arc(cx + w * 0.155, h * 0.69, h * 0.13, -0.4, Math.PI * 0.9, false);
+    // Central bulkhead
+    ctx.lineTo(cx, h * 0.74);
+    // Left engine bell
+    ctx.arc(cx - w * 0.155, h * 0.69, h * 0.13, 0.1, Math.PI * 1.4, false);
+    ctx.lineTo(cx - w * 0.25, h * 0.68);
+    ctx.lineTo(cx - w * 0.41, h * 0.73);
+    ctx.lineTo(cx - w * 0.46, h * 0.64);
+    ctx.bezierCurveTo(cx - w * 0.18, h * 0.32, cx - w * 0.08, h * 0.17, cx, h * 0.07);
+    ctx.closePath();
+    ctx.fill();
+
+    // 2. Main Titanium Composite Wings (White with subtle comic shading)
+    const wingGrad = ctx.createLinearGradient(0, h * 0.10, 0, h * 0.75);
+    wingGrad.addColorStop(0, '#ffffff');
+    wingGrad.addColorStop(0.55, '#f1f5f9');
+    wingGrad.addColorStop(1, '#cbd5e1');
+    ctx.fillStyle = wingGrad;
+    ctx.beginPath();
+    ctx.moveTo(cx, h * 0.085);
+    ctx.bezierCurveTo(cx + w * 0.075, h * 0.18, cx + w * 0.17, h * 0.32, cx + w * 0.45, h * 0.635);
+    ctx.lineTo(cx + w * 0.405, h * 0.72);
+    ctx.lineTo(cx + w * 0.25, h * 0.67);
+    ctx.lineTo(cx + w * 0.20, h * 0.62);
+    ctx.lineTo(cx - w * 0.20, h * 0.62);
+    ctx.lineTo(cx - w * 0.25, h * 0.67);
+    ctx.lineTo(cx - w * 0.405, h * 0.72);
+    ctx.lineTo(cx - w * 0.45, h * 0.635);
+    ctx.bezierCurveTo(cx - w * 0.17, h * 0.32, cx - w * 0.075, h * 0.18, cx, h * 0.085);
+    ctx.closePath();
+    ctx.fill();
+
+    // 3. Cobalt-Blue Racing Stripes (matching reference illustration)
+    ctx.fillStyle = '#2563eb';
+    // Right stripe
+    ctx.beginPath();
+    ctx.moveTo(cx + w * 0.024, h * 0.12);
+    ctx.lineTo(cx + w * 0.070, h * 0.12);
+    ctx.bezierCurveTo(cx + w * 0.15, h * 0.28, cx + w * 0.25, h * 0.44, cx + w * 0.42, h * 0.64);
+    ctx.lineTo(cx + w * 0.385, h * 0.68);
+    ctx.bezierCurveTo(cx + w * 0.22, h * 0.44, cx + w * 0.12, h * 0.28, cx + w * 0.024, h * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    // Left stripe
+    ctx.beginPath();
+    ctx.moveTo(cx - w * 0.024, h * 0.12);
+    ctx.lineTo(cx - w * 0.070, h * 0.12);
+    ctx.bezierCurveTo(cx - w * 0.15, h * 0.28, cx - w * 0.25, h * 0.44, cx - w * 0.42, h * 0.64);
+    ctx.lineTo(cx - w * 0.385, h * 0.68);
+    ctx.bezierCurveTo(cx - w * 0.22, h * 0.44, cx - w * 0.12, h * 0.28, cx - w * 0.024, h * 0.15);
+    ctx.closePath();
+    ctx.fill();
+
+    // 4. Central Fuselage Main Armor
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.moveTo(cx, h * 0.095);
+    ctx.bezierCurveTo(cx + w * 0.042, h * 0.19, cx + w * 0.062, h * 0.32, cx + w * 0.062, h * 0.58);
+    ctx.lineTo(cx - w * 0.062, h * 0.58);
+    ctx.bezierCurveTo(cx - w * 0.062, h * 0.32, cx - w * 0.042, h * 0.19, cx, h * 0.095);
+    ctx.closePath();
+    ctx.fill();
+
+    // 5. Dorsal Stabilizer Fin
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(cx - 5, h * 0.13, 10, h * 0.30);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(cx - 2, h * 0.14, 4, h * 0.26);
+
+    // 6. Cockpit Canopy Glass (Electric Cyan)
+    const glassGrad = ctx.createRadialGradient(cx, h * 0.23, 4, cx, h * 0.25, h * 0.09);
+    glassGrad.addColorStop(0, '#ffffff');
+    glassGrad.addColorStop(0.35, '#7dd3fc');
+    glassGrad.addColorStop(0.85, '#0284c7');
+    glassGrad.addColorStop(1, '#0c4a6e');
+    ctx.fillStyle = glassGrad;
+    ctx.beginPath();
+    ctx.ellipse(cx, h * 0.255, w * 0.034, h * 0.092, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#090d16';
+    ctx.stroke();
+
+    // Canopy glass specular highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.ellipse(cx - 10, h * 0.23, 9, 20, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 7. Twin Jet Engine Nacelles
+    const drawEngineNacelle = (ex: number) => {
+        // Outer Shroud
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.115, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#090d16';
+        ctx.stroke();
+
+        // Mid Titanium Ring
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.092, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner Turbine Cavity
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.074, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Plasma Jet Core Rim (Bright Cyan Glow)
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.050, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.028, 0, Math.PI * 2);
+        ctx.fill();
+    };
+    drawEngineNacelle(cx - w * 0.155);
+    drawEngineNacelle(cx + w * 0.155);
+
+    // 8. Central Auxiliary Thruster Nozzle
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(cx, h * 0.66, h * 0.056, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#090d16';
+    ctx.stroke();
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.arc(cx, h * 0.66, h * 0.032, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 9. Comic Panel Seam Inking & Avionics Decals
+    ctx.strokeStyle = '#090d16';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(cx + w * 0.18, h * 0.46); ctx.lineTo(cx + w * 0.37, h * 0.67);
+    ctx.moveTo(cx - w * 0.18, h * 0.46); ctx.lineTo(cx - w * 0.37, h * 0.67);
+    ctx.moveTo(cx + w * 0.24, h * 0.40); ctx.lineTo(cx + w * 0.33, h * 0.54);
+    ctx.moveTo(cx - w * 0.24, h * 0.40); ctx.lineTo(cx - w * 0.33, h * 0.54);
+    ctx.stroke();
+
+    // Wingtip hazard warning decals
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(cx + w * 0.41, h * 0.67, 24, 10);
+    ctx.fillRect(cx - w * 0.435, h * 0.67, 24, 10);
+}
+
+function drawProceduralShipNormal(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.fillStyle = '#8080ff';
+    ctx.fillRect(0, 0, w, h);
+
+    const cx = w * 0.5;
+    const drawEngineNormal = (ex: number) => {
+        const grad = ctx.createRadialGradient(ex, h * 0.67, 2, ex, h * 0.67, h * 0.11);
+        grad.addColorStop(0, '#8080ff');
+        grad.addColorStop(0.7, '#9090ff');
+        grad.addColorStop(1, '#7070ff');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.11, 0, Math.PI * 2);
+        ctx.fill();
+    };
+    drawEngineNormal(cx - w * 0.155);
+    drawEngineNormal(cx + w * 0.155);
+}
+
+function drawProceduralShipEmissive(canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, w, h);
+
+    const cx = w * 0.5;
+
+    // Cockpit cyan glow
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.ellipse(cx, h * 0.255, w * 0.030, h * 0.085, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Twin engine cores
+    const drawCoreEmissive = (ex: number) => {
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.050, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(ex, h * 0.67, h * 0.026, 0, Math.PI * 2);
+        ctx.fill();
+    };
+    drawCoreEmissive(cx - w * 0.155);
+    drawCoreEmissive(cx + w * 0.155);
+
+    // Wingtip nav markers
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(cx - w * 0.435, h * 0.67, 20, 8);
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(cx + w * 0.415, h * 0.67, 20, 8);
 }
 
 /**
@@ -595,7 +832,7 @@ export class Spaceship3D {
         const worldWidth = 4.95;
         const worldHeight = worldWidth * (571 / 1024); // Exact aspect ratio (2.76)
 
-        // High-density 180x102 grid so every comic fire spike deforms smoothly at 60 FPS
+        // High-density 180x102 grid with authentic starfighter delta profile
         const gridW = 180;
         const gridH = 102;
         const initAlpha = new Float32Array(gridW * gridH);
@@ -603,8 +840,14 @@ export class Spaceship3D {
             const v = (cy + 0.5) / gridH;
             for (let cx = 0; cx < gridW; cx++) {
                 const u = (cx + 0.5) / gridW;
-                const d = Math.hypot((u - 0.5) * 1.4, (v - 0.5) * 1.3);
-                initAlpha[cy * gridW + cx] = d < 0.55 ? 1.0 : 0.0;
+                const dx = Math.abs(u - 0.5);
+                const noseT = Math.max(0, Math.min(1, (v - 0.08) / 0.42));
+                const deltaW = 0.08 + noseT * 0.40;
+                const wingSweep = v > 0.46 ? 0.48 - (v - 0.46) * 0.16 : deltaW;
+                const isFuselage = dx < Math.max(deltaW, wingSweep) && v >= 0.08 && v <= 0.88;
+                const isLeftEngine = Math.hypot((u - 0.345) * 1.5, (v - 0.65) * 1.2) < 0.18;
+                const isRightEngine = Math.hypot((u - 0.655) * 1.5, (v - 0.65) * 1.2) < 0.18;
+                initAlpha[cy * gridW + cx] = (isFuselage || isLeftEngine || isRightEngine) ? 1.0 : 0.0;
             }
         }
 
@@ -616,62 +859,118 @@ export class Spaceship3D {
             worldHeight
         );
 
-        const texLoader = new THREE.TextureLoader();
-        const albedoTex = texLoader.load('/assets/ship_albedo.png', (loadedTex) => {
-            loadedTex.colorSpace = THREE.SRGBColorSpace;
-            loadedTex.anisotropy = 8;
-            loadedTex.needsUpdate = true;
+        // 1. Synchronous High-Fidelity Procedural Textures (guarantees solid opaque starfighter from frame 0)
+        const albedoCanvas = document.createElement('canvas');
+        albedoCanvas.width = 1024;
+        albedoCanvas.height = 571;
+        drawProceduralShipAlbedo(albedoCanvas);
+        const albedoTex = new THREE.CanvasTexture(albedoCanvas);
+        albedoTex.colorSpace = THREE.SRGBColorSpace;
+        albedoTex.anisotropy = 8;
+        albedoTex.needsUpdate = true;
 
+        const normalCanvas = document.createElement('canvas');
+        normalCanvas.width = 512;
+        normalCanvas.height = 285;
+        drawProceduralShipNormal(normalCanvas);
+        const normalTex = new THREE.CanvasTexture(normalCanvas);
+        normalTex.anisotropy = 8;
+        normalTex.needsUpdate = true;
+
+        const emissiveCanvas = document.createElement('canvas');
+        emissiveCanvas.width = 512;
+        emissiveCanvas.height = 285;
+        drawProceduralShipEmissive(emissiveCanvas);
+        const emissiveTex = new THREE.CanvasTexture(emissiveCanvas);
+        emissiveTex.colorSpace = THREE.SRGBColorSpace;
+        emissiveTex.anisotropy = 8;
+        emissiveTex.needsUpdate = true;
+
+        // 2. Progressive Asset Upgrade with Universal Relative Path Fallback
+        const texLoader = new THREE.TextureLoader();
+        loadTextureSafe(texLoader, 'assets/ship_albedo.png', (loadedTex) => {
             const img = loadedTex.image as HTMLImageElement;
             if (img && img.width > 0 && img.height > 0) {
-                const offCanvas = document.createElement('canvas');
-                offCanvas.width = gridW;
-                offCanvas.height = gridH;
-                const ctx = offCanvas.getContext('2d')!;
-                ctx.drawImage(img, 0, 0, gridW, gridH);
-                const imgData = ctx.getImageData(0, 0, gridW, gridH).data;
-                const exactAlpha = new Float32Array(gridW * gridH);
-                for (let i = 0; i < gridW * gridH; i++) {
-                    exactAlpha[i] = imgData[i * 4 + 3] / 255.0;
+                const ctx = albedoCanvas.getContext('2d');
+                if (ctx) {
+                    ctx.clearRect(0, 0, albedoCanvas.width, albedoCanvas.height);
+                    ctx.drawImage(img, 0, 0, albedoCanvas.width, albedoCanvas.height);
+                    albedoTex.needsUpdate = true;
                 }
-                const exactBundle = buildSculpted3DShipGeometry(
-                    gridW,
-                    gridH,
-                    exactAlpha,
-                    worldWidth,
-                    worldHeight
-                );
-                this.sculptedShipMesh.geometry.dispose();
-                this.sculptedShipMesh.geometry = exactBundle.geo;
-                this.plumeBundle = exactBundle;
+
+                try {
+                    const offCanvas = document.createElement('canvas');
+                    offCanvas.width = gridW;
+                    offCanvas.height = gridH;
+                    const octx = offCanvas.getContext('2d');
+                    if (octx) {
+                        octx.drawImage(img, 0, 0, gridW, gridH);
+                        const imgData = octx.getImageData(0, 0, gridW, gridH).data;
+                        let solidPixels = 0;
+                        const exactAlpha = new Float32Array(gridW * gridH);
+                        for (let i = 0; i < gridW * gridH; i++) {
+                            const a = imgData[i * 4 + 3] / 255.0;
+                            exactAlpha[i] = a;
+                            if (a > 0.2) solidPixels++;
+                        }
+                        if (solidPixels > 100) {
+                            const exactBundle = buildSculpted3DShipGeometry(
+                                gridW,
+                                gridH,
+                                exactAlpha,
+                                worldWidth,
+                                worldHeight
+                            );
+                            this.sculptedShipMesh.geometry.dispose();
+                            this.sculptedShipMesh.geometry = exactBundle.geo;
+                            this.plumeBundle = exactBundle;
+                        }
+                    }
+                } catch {
+                    // Safe CORS / tainted canvas fallback: retains procedural geometry
+                }
             }
         });
-        albedoTex.colorSpace = THREE.SRGBColorSpace;
 
-        const normalTex = texLoader.load('/assets/ship_normal.png', (t) => {
-            t.anisotropy = 8;
-            t.needsUpdate = true;
+        loadTextureSafe(texLoader, 'assets/ship_normal.png', (loadedTex) => {
+            const img = loadedTex.image as HTMLImageElement;
+            if (img && img.width > 0 && img.height > 0) {
+                const ctx = normalCanvas.getContext('2d');
+                if (ctx) {
+                    ctx.clearRect(0, 0, normalCanvas.width, normalCanvas.height);
+                    ctx.drawImage(img, 0, 0, normalCanvas.width, normalCanvas.height);
+                    normalTex.needsUpdate = true;
+                }
+            }
         });
 
-        const emissiveTex = texLoader.load('/assets/ship_emissive.png', (t) => {
-            t.colorSpace = THREE.SRGBColorSpace;
-            t.anisotropy = 8;
-            t.needsUpdate = true;
+        loadTextureSafe(texLoader, 'assets/ship_emissive.png', (loadedTex) => {
+            const img = loadedTex.image as HTMLImageElement;
+            if (img && img.width > 0 && img.height > 0) {
+                const ctx = emissiveCanvas.getContext('2d');
+                if (ctx) {
+                    ctx.clearRect(0, 0, emissiveCanvas.width, emissiveCanvas.height);
+                    ctx.drawImage(img, 0, 0, emissiveCanvas.width, emissiveCanvas.height);
+                    emissiveTex.needsUpdate = true;
+                }
+            }
         });
-        emissiveTex.colorSpace = THREE.SRGBColorSpace;
 
+        // 3. Bulletproof Solid Material: NEVER transparent, ALWAYS writes to depth buffer!
         this.sculptedShipMat = new THREE.MeshStandardMaterial({
             map: albedoTex,
             normalMap: normalTex,
-            normalScale: new THREE.Vector2(0.52, 0.52),
+            normalScale: new THREE.Vector2(0.55, 0.55),
             emissiveMap: emissiveTex,
             emissive: new THREE.Color(0xffffff),
-            emissiveIntensity: 0.34,
-            roughness: 0.68,
-            metalness: 0.14,
-            envMapIntensity: 0.28,
-            alphaTest: 0.015,
-            transparent: true,
+            emissiveIntensity: 0.35,
+            roughness: 0.55,
+            metalness: 0.22,
+            envMapIntensity: 0.35,
+            transparent: false,
+            alphaTest: 0.25,
+            depthWrite: true,
+            depthTest: true,
             side: THREE.DoubleSide
         });
 
