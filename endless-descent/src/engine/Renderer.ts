@@ -6889,8 +6889,9 @@ export class PixiRenderer {
             const activeGroup = this.isSlotActive ? this.miniSlotGroup : this.giantRouletteGroup;
             const rouZ = activeGroup.position.z;
             const rouX = activeGroup.position.x;
-            const camTargetZ = rouZ + (isPortrait916 ? 16.8 : 15.6);
-            const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 2.6 : 2.0);
+            const mobileBonusDist = 24.2 + Math.max(0, (0.60 - aspect) * 22.0);
+            const camTargetZ = rouZ + (isPortrait916 ? mobileBonusDist : 15.6);
+            const camTargetY = SHIP_FLIGHT_Y + (isPortrait916 ? 2.2 : 2.0);
             const camTargetX = rouX * 0.12;
 
             this.camPos.x = THREE.MathUtils.lerp(this.camPos.x, camTargetX, dt * 5.0);
@@ -6899,11 +6900,17 @@ export class PixiRenderer {
 
             this.camera.position.copy(this.camPos).add(this.vfx.shakeOffset);
 
-            const lookY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.6 : 1.3);
+            const lookY = SHIP_FLIGHT_Y + (isPortrait916 ? 1.5 : 1.3);
             const desiredLook = this.scratchDesiredLook.set(rouX, lookY, rouZ);
             this.camLookAt.lerp(desiredLook, dt * 8);
             this.camera.lookAt(this.camLookAt);
             this.camera.rotation.z += this.vfx.shakeRoll;
+
+            const bonusBaseFov = isPortrait916 ? 58 : 54;
+            if (Math.abs(this.camera.fov - bonusBaseFov) > 0.05) {
+                this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, bonusBaseFov, dt * 15);
+                this.camera.updateProjectionMatrix();
+            }
             return;
         }
 

@@ -383,7 +383,7 @@ export function createControlsUI(
               <div class="replay-metrics-row">
                 <span class="replay-metric-item">${t.betAmountLabel}: <strong id="replay-base-bet">${stakeRGS.formatCurrency(rp.amount)}</strong></span>
                 <span class="replay-metric-item">${t.replayFinalMultiplierLabel}: <strong id="replay-mult-val">0.00×</strong></span>
-                <span class="replay-metric-item">${t.replayTotalWinLabel}: <strong id="replay-payout-val" style="color: #00e676;">${stakeRGS.formatCurrency(0)}</strong></span>
+                <span class="replay-metric-item">${t.replayTotalWinLabel}: <strong id="replay-payout-val" style="color: #10b981;">${stakeRGS.formatCurrency(0)}</strong></span>
               </div>
             </div>
             <button class="replay-btn-action" id="btn-replay-action" type="button">
@@ -1509,17 +1509,17 @@ export function createControlsUI(
 
         if (multStatusDot) {
             if (isHidingWheelOutcome || isPlaying) {
-                multStatusDot.style.background = '#00f0ff';
-                multStatusDot.style.boxShadow = '0 0 10px #00f0ff, 0 0 18px rgba(0, 240, 255, 0.7)';
+                multStatusDot.style.background = '#38bdf8';
+                multStatusDot.style.boxShadow = '0 0 6px rgba(56, 189, 248, 0.4)';
             } else if (engine.state === GameState.WON) {
-                multStatusDot.style.background = '#00e676';
-                multStatusDot.style.boxShadow = '0 0 10px #00e676, 0 0 18px rgba(0, 230, 118, 0.7)';
+                multStatusDot.style.background = '#10b981';
+                multStatusDot.style.boxShadow = '0 0 6px rgba(16, 185, 129, 0.4)';
             } else if (engine.state === GameState.CRASHED) {
                 multStatusDot.style.background = '#ef4444';
-                multStatusDot.style.boxShadow = '0 0 10px #ef4444, 0 0 18px rgba(239, 68, 68, 0.7)';
+                multStatusDot.style.boxShadow = '0 0 6px rgba(239, 68, 68, 0.4)';
             } else {
                 multStatusDot.style.background = '#10b981';
-                multStatusDot.style.boxShadow = '0 0 8px #10b981';
+                multStatusDot.style.boxShadow = '0 0 4px rgba(16, 185, 129, 0.3)';
             }
         }
 
@@ -1671,8 +1671,8 @@ export function createControlsUI(
 
             gsap.killTweensOf(hitStopStamp);
             hitStopStamp.textContent = `ROW ${pick.row} CLEARED · +${stakeRGS.formatCurrency(stepWin)}`;
-            hitStopStamp.style.borderColor = '#00e676';
-            hitStopStamp.style.color = '#00e676';
+            hitStopStamp.style.borderColor = '#10b981';
+            hitStopStamp.style.color = '#10b981';
 
             gsap.fromTo(
                 hitStopStamp,
@@ -1694,7 +1694,7 @@ export function createControlsUI(
                 multHeroVal,
                 {
                     scale: 1.12,
-                    color: '#00e676'
+                    color: '#10b981'
                 },
                 {
                     scale: 1,

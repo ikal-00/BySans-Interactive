@@ -3463,7 +3463,7 @@ body {
   font-family: var(--font-mono);
 }
 
-.rules-metric-value.rtp { color: #00e701; }
+.rules-metric-value.rtp { color: #10b981; }
 .rules-metric-value.maxwin { color: #fbbf24; }
 .rules-metric-value.volatility { color: #38bdf8; }
 
@@ -3571,7 +3571,7 @@ body {
   font-weight: 700;
 }
 
-.rules-table td.num.high { color: #00e701; }
+.rules-table td.num.high { color: #10b981; }
 .rules-table td.num.med { color: #38bdf8; }
 .rules-table td.num.low { color: #fbbf24; }
 .rules-table td.num.ext { color: #f87171; }
@@ -3637,7 +3637,7 @@ body {
   margin-top: 2px;
 }
 
-.rules-mc-stat .val.high { color: #00e701; }
+.rules-mc-stat .val.high { color: #10b981; }
 .rules-mc-stat .val.med { color: #38bdf8; }
 .rules-mc-stat .val.low { color: #fbbf24; }
 .rules-mc-stat .val.ext { color: #f87171; }
@@ -3670,13 +3670,21 @@ body {
   letter-spacing: 0.04em;
 }
 
-.rules-mod-tag.warp { color: #fbbf24; }
+.rules-mod-tag.warp { color: #f59e0b; }
 .rules-mod-tag.shield { color: #38bdf8; }
+.rules-mod-tag.gold { color: #f59e0b; }
+.rules-mod-tag.purple { color: #c084fc; }
+.rules-mod-tag.ufo { color: #38bdf8; }
+
+.rules-mod-card.full-width {
+  grid-column: 1 / -1;
+}
 
 .rules-mod-cost {
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   font-family: var(--font-mono);
-  color: #00e701;
+  color: #94a3b8;
+  font-weight: 600;
 }
 
 .rules-mod-desc {
@@ -3767,21 +3775,22 @@ body {
 }
 
 .rules-modal-confirm-btn {
-  padding: 8px 24px;
+  padding: 9px 24px;
   border-radius: 8px;
-  background: #00e701;
-  border: none;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-family: var(--font-sans);
   font-weight: 700;
   font-size: 0.8rem;
-  color: #051408;
+  color: #f8fafc;
   cursor: pointer;
   transition: all 0.16s ease;
 }
 
 .rules-modal-confirm-btn:hover {
-  background: #00ff00;
-  box-shadow: 0 4px 14px rgba(0, 231, 1, 0.3);
+  background: #334155;
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
 }
 
 /* Modal Open Body Lock to Prevent Background Interaction & Hide Bottom Dock */
@@ -4284,7 +4293,7 @@ body.rules-modal-open #rules-modal-overlay {
   background: rgba(13, 19, 32, 0.98);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85), 0 0 30px rgba(0, 240, 255, 0.08);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -4447,9 +4456,9 @@ body.rules-modal-open #rules-modal-overlay {
 }
 
 .bonus-chip-pill.active {
-  background: rgba(0, 240, 255, 0.16);
-  border-color: #00f0ff;
-  color: #00f0ff;
+  background: rgba(245, 158, 11, 0.16);
+  border-color: #f59e0b;
+  color: #fbbf24;
   font-weight: 700;
 }
 
@@ -4613,7 +4622,7 @@ body.rules-modal-open #rules-modal-overlay {
 
 .bonus-buy-cta-btn.gold-btn:hover:not(.disabled) {
   background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  box-shadow: 0 0 16px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
 }
 
 .bonus-buy-cta-btn.purple-btn {
@@ -4623,7 +4632,7 @@ body.rules-modal-open #rules-modal-overlay {
 
 .bonus-buy-cta-btn.purple-btn:hover:not(.disabled) {
   background: linear-gradient(135deg, #a855f7, #9333ea);
-  box-shadow: 0 0 16px rgba(168, 85, 247, 0.5);
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.35);
 }
 
 .bonus-buy-cta-btn.disabled {
@@ -4641,5 +4650,13 @@ body.rules-modal-open #rules-modal-overlay {
   color: #fde047;
   line-height: 1.3;
   text-align: center;
+}
+
+@media (max-width: 640px) {
+  #mr-dollar-speech-bubble {
+    font-size: 11.5px !important;
+    padding: 6px 12px !important;
+    max-width: min(190px, 65vw) !important;
+  }
 }
 

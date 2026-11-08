@@ -91,6 +91,20 @@ export interface Translations {
     modShieldTitle: string;
     modShieldCost: string;
     modShieldDesc: string;
+    modCratesTitle: string;
+    modCratesDesc: string;
+    modUfoTitle: string;
+    modUfoDesc: string;
+
+    sectionBonusesTitle: string;
+    bonusWheelTitle: string;
+    bonusWheelCost: string;
+    bonusWheelDesc: string;
+    bonusSlotTitle: string;
+    bonusSlotCost: string;
+    bonusSlotDesc: string;
+    bonusBuyTitle: string;
+    bonusBuyDesc: string;
 
     section4Title: string;
     cashoutTotalTitle: string;
@@ -100,12 +114,17 @@ export interface Translations {
     winCapTitle: string;
     winCapDesc: string;
 
+    sectionFairnessTitle: string;
+    fairnessDesc1: string;
+    fairnessDesc2: string;
+
     section5Title: string;
     controlsSectionTitle: string;
     ctrlPrimaryBtn: string;
     ctrlPartialBtn: string;
     ctrlBetAdjust: string;
     ctrlMines: string;
+    ctrlBonusKey: string;
     ctrlPowerups: string;
     ctrlSound: string;
     ctrlFairness: string;
@@ -178,49 +197,68 @@ const enStandard: Translations = {
     volatilityValue: 'Adjustable',
     rulesUnderstandBtn: 'Understood',
 
-    section1Title: '01 · Game Dynamics',
-    section1Body1: 'Endless Descent is a high-speed vertical evasion and multiplier game. Each level presents 5 holographic gates hiding quantum hazard mines based on your chosen settings.',
-    section1Body2: 'Passing through a safe gate exponentially increases the round multiplier. You can cash out your winnings at any point after clearing the first gate.',
+    section1Title: '01 · Vertical Flight & Descent Dynamics',
+    section1Body1: 'Endless Descent is an orbital vertical evasion game structured across 15 atmospheric levels and 5 navigational descent lanes. For each level, the player commands the pod into one of the five lanes.',
+    section1Body2: 'Navigating through a clear lane multiplies the accumulated payout exponentially. Hitting a quantum hazard mine causes immediate catastrophic hull collision and ends the round, unless guarded by an active Quantum Energy Shield.',
 
-    section2Title: '02 · Mines Configuration & Odds',
+    section2Title: '02 · Mines Configuration & Probability Matrix',
     tableThMines: 'Mines',
-    tableThSafeGates: 'Safe Gates',
-    tableThProb: 'Probability',
+    tableThSafeGates: 'Safe Lanes',
+    tableThProb: 'Survival Odds',
     tableThBaseMult: 'Base Multiplier',
-    tableThRisk: 'Profile',
+    tableThRisk: 'Risk Profile',
     riskLow: 'Low Risk',
     riskBalanced: 'Balanced',
     riskHigh: 'High Volatility',
-    riskExtreme: 'Extreme Risk',
+    riskExtreme: 'Extreme Volatility',
 
-    section3Title: '03 · Tactical Modifiers',
+    section3Title: '03 · Tactical Flight Modifiers',
     modWarpTitle: 'TURBO WARP',
-    modWarpCost: '+25% cost',
+    modWarpCost: '+25% Base Bet',
     modWarpDesc: 'Increases the frequency of Golden Gates (×2 or ×3 boosts) and activates Alien Mothership encounters that disintegrate hazard fields for the next 2 levels.',
-    modShieldTitle: 'ENERGY SHIELD',
-    modShieldCost: '+25% cost',
-    modShieldDesc: 'Deploys a forcefield that absorbs 1 fatal mine detonation, allowing the descent to continue to the next level without losing the round.',
+    modShieldTitle: 'QUANTUM ENERGY SHIELD',
+    modShieldCost: '+25% Base Bet',
+    modShieldDesc: 'Deploys an electromagnetic deflector barrier that neutralizes 1 fatal mine detonation, dissipating the explosion and preserving 50% of the accumulated multiplier to allow the descent to proceed.',
+    modCratesTitle: 'GOLDEN CARGO BOOST CRATES',
+    modCratesDesc: 'High-value golden supply modules occasionally concealed within safe lanes that bestow a 2× or 3× multiplier surge to the current step.',
+    modUfoTitle: 'ALIEN UFO ROW-SWEEPER',
+    modUfoDesc: 'An orbital Mothership flyby event that obliterates all quantum hazard fields across the next 2 upcoming descent rows.',
 
-    section4Title: '04 · Cashout & 50% Partial Cashout',
+    sectionBonusesTitle: '04 · Cosmic VIP Bonuses & Minigames',
+    bonusWheelTitle: 'COSMIC PRIZE WHEEL (20× BASE BET)',
+    bonusWheelCost: '20× Base Bet',
+    bonusWheelDesc: 'Hosted in real-time 3D by Mr. Dollar. A 12-sector precision wheel awarding direct multipliers (up to 1,000×), Respin extra chances with accumulator retention, or immediate triggering of the 1×3 Slot Vault. Landing on a Wipeout sector concludes the bonus sequence.',
+    bonusSlotTitle: '1×3 ARCADE SLOT VAULT (50× BASE BET)',
+    bonusSlotCost: '50× Base Bet',
+    bonusSlotDesc: '5 VIP spins on a physical 3D arcade cabinet with mechanical reels and a digital LED accumulator. Symbols landing on the central payline add multipliers (up to 88× total) multiplying the base bet upon completion.',
+    bonusBuyTitle: 'VIP DIRECT ACCESS STORE',
+    bonusBuyDesc: 'Players may purchase direct access to the Cosmic Prize Wheel (20×) or 1×3 Slot Vault (50×) from idle mode at any authorized bet denomination.',
+
+    section4Title: '05 · Cashout & 50% Partial Cashout',
     cashoutTotalTitle: 'Full Cashout (100%):',
-    cashoutTotalDesc: 'Available from Row 1. Withdraws 100% of accumulated winnings to your balance and concludes the round in victory.',
+    cashoutTotalDesc: 'Available from Row 1. Withdraws 100% of accumulated winnings into your balance and concludes the round with victory.',
     cashoutPartialTitle: 'Partial Cashout (50% Bankroll Lock):',
-    cashoutPartialDesc: 'Available from Row 2. Secures 50% of current winnings directly into your safe balance while keeping the remaining 50% active on the pod to pursue higher multipliers. Usable once per level.',
-    winCapTitle: 'Maximum Win Cap (10,000×):',
-    winCapDesc: 'Upon reaching the maximum win cap of 10,000× bet, the round automatically concludes and credits full winnings.',
+    cashoutPartialDesc: 'Available from Row 2. Instantly locks and credits 50% of current accumulated winnings directly into your safe balance, while leaving the remaining 50% in play on the pod to pursue higher multipliers (usable once per level).',
+    winCapTitle: 'Maximum Win Limit (10,000×):',
+    winCapDesc: 'When the total multiplier reaches or exceeds 10,000× base bet, the round concludes automatically and credits the capped jackpot.',
 
-    section5Title: '05 · Complete Controls & Shortcuts Guide',
+    sectionFairnessTitle: '06 · Cryptographic Integrity & Provably Fair',
+    fairnessDesc1: 'Endless Descent utilizes an immutable Provably Fair algorithm governed by SHA-256 HMAC cryptographic hashing. Round outcomes are determined before launch through a combination of the Server Seed (hashed and verified), Client Seed, and Nonce counter, guaranteeing complete mathematical transparency and preventing any post-launch alteration.',
+    fairnessDesc2: 'The theoretical long-term Return to Player (RTP) across all mine settings is certified at 96.00%.',
+
+    section5Title: '07 · Controls & Keyboard Shortcuts',
     controlsSectionTitle: 'Interaction Guide',
-    ctrlPrimaryBtn: 'Spacebar / Primary CTA: Drops the descent pod at round start, and cashes out accumulated winnings while active.',
-    ctrlPartialBtn: 'Key P / 50% Button: Secures 50% of the accumulated prize directly into your bankroll.',
-    ctrlBetAdjust: 'Bet Controls (Min, ½, 2×, Max): Steps through authorized RGS bet levels.',
-    ctrlMines: 'Mine Selectors (1, 2, 3, 4): Configures the hazard mine density per gate.',
-    ctrlPowerups: 'Modifier Keys (W for Turbo, E for Shield): Toggles special tactical perks.',
-    ctrlSound: 'Audio Icon: Mutes or unmutes all music, ambient drone, and sound effects.',
-    ctrlFairness: 'Fairness Shield: Displays the cryptographic seed modal for audit verification.',
-    ctrlRules: 'Info Icon: Displays this comprehensive rulebook and paytable.',
+    ctrlPrimaryBtn: 'Spacebar / Primary Button: Launches the pod at round start, and cashes out accumulated winnings while in flight.',
+    ctrlPartialBtn: 'Key P / 50% Button: Executes a 50% partial cashout, locking half your prize into your balance.',
+    ctrlBetAdjust: '½ / 2× Buttons: Adjusts bet size across authorized RGS denominations.',
+    ctrlMines: 'Mine Selectors (1, 2, 3, 4): Configures the hazard mine density per level.',
+    ctrlBonusKey: 'Key B / VIP Icon: Opens the VIP Bonus Store for direct feature buy.',
+    ctrlPowerups: 'Shield Button: Arms or disarms the +25% Quantum Energy Shield.',
+    ctrlSound: 'Audio Icon: Toggles sound effects, music, and ambient audio.',
+    ctrlFairness: 'Shield Icon: Opens the Provably Fair audit and seed inspector.',
+    ctrlRules: 'Info Icon: Displays this certified game manual.',
 
-    section6Title: '06 · Verification & Legal Disclaimer',
+    section6Title: '08 · Official Terms & Disconnection Policy',
     disclaimerText: 'Malfunction voids all wins and plays. A consistent internet connection is required. In the event of a disconnection, reload the game to finish any uncompleted rounds. The expected return is calculated over many plays. The game display is not representative of any physical device and is for illustrative purposes only. Winnings are settled according to the amount received from the Remote Game Server and not from events within the web browser. TM and © 2026 Engine.',
 
     replayBadge: 'REPLAY MODE',
@@ -246,7 +284,7 @@ const enSocial: Translations = {
     roundWonSub: 'Win Credited',
     rulesDialogTitle: 'Game Rules & Win Table',
     section2Title: '02 · Mines Configuration & Win Table',
-    section4Title: '04 · Collect & 50% Partial Collect',
+    section4Title: '05 · Collect & 50% Partial Collect',
     cashoutTotalTitle: 'Full Collect (100%):',
     cashoutTotalDesc: 'Available from Row 1. Collects 100% of accumulated wins into your coin balance and concludes the round.',
     cashoutPartialTitle: 'Partial Collect (50% Coin Lock):',
@@ -312,49 +350,68 @@ const esStandard: Translations = {
     volatilityValue: 'Ajustable',
     rulesUnderstandBtn: 'Entendido',
 
-    section1Title: '01 · Dinámica de Juego',
-    section1Body1: 'Endless Descent es un juego espacial de evasión de peligros y multiplicadores progresivos. Cada nivel presenta 5 compuertas holográficas donde se ocultan minas cuánticas según la configuración seleccionada.',
-    section1Body2: 'Cruzar una compuerta segura incrementa exponencialmente el multiplicador de la ronda. Puedes retirar tus ganancias en cualquier momento a partir de la primera compuerta superada.',
+    section1Title: '01 · Dinámica de Vuelo y Descenso Espacial',
+    section1Body1: 'Endless Descent es un juego de evasión y multiplicadores orbitales estructurado en 15 niveles de profundidad y 5 carriles de navegación. En cada nivel, el piloto guía la cápsula hacia uno de los cinco carriles.',
+    section1Body2: 'Cruzar un carril libre multiplica exponencialmente el premio acumulado de la ronda. Impactar una mina cuántica provoca una colisión crítica y finaliza la ronda, a menos que la nave cuente con la protección de un Escudo Deflector Cuántico activo.',
 
-    section2Title: '02 · Configuración de Minas & Retornos',
+    section2Title: '02 · Matriz de Minas y Probabilidades Certificadas',
     tableThMines: 'Minas',
-    tableThSafeGates: 'Compuertas Seguras',
+    tableThSafeGates: 'Carriles Seguros',
     tableThProb: 'Probabilidad',
     tableThBaseMult: 'Multiplicador Base',
-    tableThRisk: 'Perfil',
-    riskLow: 'Bajo riesgo',
+    tableThRisk: 'Perfil de Riesgo',
+    riskLow: 'Bajo Riesgo',
     riskBalanced: 'Equilibrado',
-    riskHigh: 'Alta volatilidad',
-    riskExtreme: 'Riesgo extremo',
+    riskHigh: 'Alta Volatilidad',
+    riskExtreme: 'Volatilidad Extrema',
 
-    section3Title: '03 · Modificadores Tácticos',
+    section3Title: '03 · Modificadores Tácticos de Vuelo',
     modWarpTitle: 'TURBO WARP',
     modWarpCost: '+25% costo',
     modWarpDesc: 'Incrementa la probabilidad de Cartas Doradas (multiplicadores extra de ×2 o ×3) y activa el encuentro con la Nave Nodriza Alienígena, que desintegra los campos de minas de las 2 compuertas siguientes.',
-    modShieldTitle: 'ESCUDO DEFLECTOR',
-    modShieldCost: '+25% costo',
-    modShieldDesc: 'Genera una barrera que absorbe 1 detonación de mina fatal. Si la nave impacta un sector minado, el escudo disipa la explosión y permite continuar el descenso.',
+    modShieldTitle: 'ESCUDO DEFLECTOR CUÁNTICO',
+    modShieldCost: '+25% de la Apuesta Base',
+    modShieldDesc: 'Despliega una barrera electromagnética que neutraliza 1 detonación letal de mina, disipando la explosión y conservando el 50% del multiplicador acumulado para continuar el descenso.',
+    modCratesTitle: 'CAJAS DORADAS DE SUMINISTROS',
+    modCratesDesc: 'Módulos dorados ocultos aleatoriamente en carriles seguros que aplican un impulso sorpresa de 2× o 3× al multiplicador del paso.',
+    modUfoTitle: 'BARRIDO ALIENÍGENA UFO',
+    modUfoDesc: 'Aparición orbital de una nave nodriza que barre y desintegra los campos de minas en las dos filas subsiguientes.',
 
-    section4Title: '04 · Retiros & Cobro Parcial (50%)',
+    sectionBonusesTitle: '04 · Bonos VIP y Minijuegos Cósmicos',
+    bonusWheelTitle: 'RULETA CÓSMICA (20× APUESTA BASE)',
+    bonusWheelCost: '20× Apuesta Base',
+    bonusWheelDesc: 'Conducida en tiempo real 3D por Mr. Dollar. Rueda de 12 sectores que otorga multiplicadores directos (hasta 1,000×), Tiradas Extra (Respin con retención de acumulador) o activación directa de la Bóveda Slot. El sector Wipeout concluye la ronda.',
+    bonusSlotTitle: 'BÓVEDA MINI-SLOT 1×3 (50× APUESTA BASE)',
+    bonusSlotCost: '50× Apuesta Base',
+    bonusSlotDesc: '5 tiradas VIP en gabinete arcade 3D con rodillos mecánicos y visor digital LED. Los símbolos en la línea de pago central acumulan multiplicadores (hasta 88× acumulados) multiplicando la apuesta base al término de los 5 giros.',
+    bonusBuyTitle: 'TIENDA DE ACCESO VIP',
+    bonusBuyDesc: 'Permite comprar acceso directo a la Ruleta Cósmica (20×) o a la Bóveda Mini-Slot (50×) desde el estado inactivo con cualquier denominación autorizada.',
+
+    section4Title: '05 · Cobro Total y Cobro Parcial (50%)',
     cashoutTotalTitle: 'Cobro Total (100%):',
-    cashoutTotalDesc: 'Disponible desde la Fila 1. Retira el 100% del premio acumulado a tu balance y concluye la ronda con victoria.',
+    cashoutTotalDesc: 'Disponible desde la Fila 1. Retira el 100% del premio acumulado directamente a tu saldo y concluye la ronda con victoria.',
     cashoutPartialTitle: 'Cobro Parcial (50% Bankroll Lock):',
-    cashoutPartialDesc: 'Disponible desde la Fila 2. Asegura el 50% de las ganancias acumuladas directamente en tu saldo seguro y mantiene el 50% restante activo en la nave para buscar mayores premios. Usable una vez por nivel.',
-    winCapTitle: 'Límite de Ganancia (10,000×):',
-    winCapDesc: 'Al alcanzar el multiplicador máximo de 10,000×, el sistema cierra automáticamente la ronda y acredita el pago íntegro.',
+    cashoutPartialDesc: 'Disponible desde la Fila 2. Asegura y transfiere al instante el 50% de las ganancias acumuladas a tu balance seguro, manteniendo el 50% restante activo en la nave para perseguir mayores multiplicadores (utilizable una vez por fila).',
+    winCapTitle: 'Límite Máximo de Ganancia (10,000×):',
+    winCapDesc: 'Al alcanzar el multiplicador máximo de 10,000× sobre la apuesta base, el sistema liquida y acredita automáticamente el premio íntegro.',
 
-    section5Title: '05 · Guía Completa de Controles y Atajos',
+    sectionFairnessTitle: '06 · Integridad Criptográfica (Provably Fair) y RTP',
+    fairnessDesc1: 'Endless Descent opera bajo un algoritmo Provably Fair certificado basado en HMAC SHA-256. El resultado de cada ronda se predetermina criptográficamente antes del despegue combinando la Semilla del Servidor (comprometida mediante hash), la Semilla del Cliente y el contador Nonce, garantizando absoluta transparencia e inalterabilidad de los resultados.',
+    fairnessDesc2: 'El Retorno Teórico al Jugador (RTP) a largo plazo está certificado en 96.00% en todas las configuraciones de minas.',
+
+    section5Title: '07 · Guía Oficial de Controles y Atajos',
     controlsSectionTitle: 'Guía de Interacción',
-    ctrlPrimaryBtn: 'Barra Espaciadora / Botón Principal: Lanza la cápsula al inicio de la ronda y cobra las ganancias acumuladas durante el descenso.',
-    ctrlPartialBtn: 'Tecla P / Botón 50%: Bloquea y transfiere el 50% de las ganancias acumuladas a tu balance seguro.',
-    ctrlBetAdjust: 'Botones de Ajuste (Mín, ½, 2×, Máx): Recorren los niveles de apuesta oficiales del RGS.',
-    ctrlMines: 'Selectores de Minas (1, 2, 3, 4): Configuran la cantidad de minas por nivel de compuertas.',
-    ctrlPowerups: 'Teclas W y E: Activan los potenciadores tácticos (Turbo Warp y Escudo Deflector).',
-    ctrlSound: 'Icono de Audio: Silencia o reactiva la música ambiental, el zumbido de motor y los efectos de sonido.',
-    ctrlFairness: 'Escudo de Verificación: Despliega el modal de semillas SHA-256 para auditoría criptográfica.',
-    ctrlRules: 'Icono de Información: Despliega este manual de reglas y tabla de premios.',
+    ctrlPrimaryBtn: 'Barra Espaciadora / Botón Principal: Lanza la cápsula al inicio y cobra las ganancias acumuladas durante el vuelo.',
+    ctrlPartialBtn: 'Tecla P / Botón 50%: Ejecuta el cobro parcial asegurando el 50% del premio en tu balance.',
+    ctrlBetAdjust: 'Botones ½ y 2×: Ajustan el valor de apuesta entre los niveles autorizados por el RGS.',
+    ctrlMines: 'Selectores de Minas (1, 2, 3, 4): Configuran la densidad de minas por nivel.',
+    ctrlBonusKey: 'Tecla B / Icono VIP: Abre la Tienda de Bonos VIP para compra directa.',
+    ctrlPowerups: 'Botón Escudo: Activa o desactiva la protección del Escudo Cuántico (+25%).',
+    ctrlSound: 'Icono de Audio: Silencia o reactiva la música y los efectos de sonido.',
+    ctrlFairness: 'Icono de Escudo: Despliega el panel de verificación criptográfica Provably Fair.',
+    ctrlRules: 'Icono de Información: Despliega este manual de reglas certificado.',
 
-    section6Title: '06 · Verificación & Aviso Legal',
+    section6Title: '08 · Términos Oficiales y Política de Desconexión',
     disclaimerText: 'Cualquier fallo de funcionamiento anula todas las ganancias y partidas. Se requiere una conexión a internet estable. En caso de desconexión, reinicie el juego para completar las rondas inconclusas. El retorno esperado se calcula a lo largo de varias partidas. La pantalla del juego no representa ningún dispositivo físico y tiene fines meramente ilustrativos. Las ganancias se liquidan según la cantidad recibida del servidor remoto del juego y no según los eventos que ocurran en el navegador web. TM y © 2026 Engine.',
 
     replayBadge: 'MODO REPETICIÓN',
@@ -380,7 +437,7 @@ const esSocial: Translations = {
     roundWonSub: 'Premio acreditado',
     rulesDialogTitle: 'Reglas de Juego y Tabla de Premios',
     section2Title: '02 · Configuración de Minas & Tabla de Premios',
-    section4Title: '04 · Premios & Recolección Parcial (50%)',
+    section4Title: '05 · Premios & Recolección Parcial (50%)',
     cashoutTotalTitle: 'Recolección Total (100%):',
     cashoutTotalDesc: 'Disponible desde la Fila 1. Asegura el 100% de las monedas acumuladas en tu balance y concluye la ronda.',
     cashoutPartialTitle: 'Recolección Parcial (50% Bloqueo):',

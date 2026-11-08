@@ -225,7 +225,54 @@ export function renderRulesModalContent() {
 
           </div>
 
-          <!-- Section 3: Cashout & Partial Cashout -->
+          <!-- Section 3: Tactical Modifiers -->
+          <div class="rules-section">
+            <h3 class="rules-section-title">${t.section3Title}</h3>
+            <div class="rules-modifiers-grid">
+              <div class="rules-mod-card">
+                <div class="rules-mod-header">
+                  <span class="rules-mod-tag shield">${t.modShieldTitle}</span>
+                  <span class="rules-mod-cost">${t.modShieldCost}</span>
+                </div>
+                <p class="rules-mod-desc">${t.modShieldDesc}</p>
+              </div>
+              <div class="rules-mod-card">
+                <div class="rules-mod-header">
+                  <span class="rules-mod-tag gold">${t.modCratesTitle}</span>
+                </div>
+                <p class="rules-mod-desc">${t.modCratesDesc}</p>
+              </div>
+              <div class="rules-mod-card full-width">
+                <div class="rules-mod-header">
+                  <span class="rules-mod-tag ufo">${t.modUfoTitle}</span>
+                </div>
+                <p class="rules-mod-desc">${t.modUfoDesc}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 4: VIP Bonuses & Minigames -->
+          <div class="rules-section">
+            <h3 class="rules-section-title">${t.sectionBonusesTitle}</h3>
+            <div class="rules-modifiers-grid">
+              <div class="rules-mod-card">
+                <div class="rules-mod-header">
+                  <span class="rules-mod-tag gold">${t.bonusWheelTitle}</span>
+                  <span class="rules-mod-cost">${t.bonusWheelCost}</span>
+                </div>
+                <p class="rules-mod-desc">${t.bonusWheelDesc}</p>
+              </div>
+              <div class="rules-mod-card">
+                <div class="rules-mod-header">
+                  <span class="rules-mod-tag purple">${t.bonusSlotTitle}</span>
+                  <span class="rules-mod-cost">${t.bonusSlotCost}</span>
+                </div>
+                <p class="rules-mod-desc">${t.bonusSlotDesc}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 5: Cashout & Partial Cashout -->
           <div class="rules-section">
             <h3 class="rules-section-title">${t.section4Title}</h3>
             <div class="rules-cashout-clean-box">
@@ -250,7 +297,14 @@ export function renderRulesModalContent() {
             </div>
           </div>
 
-          <!-- Section 5: Complete Controls Guide [235] -->
+          <!-- Section 6: Cryptographic Integrity & Provably Fair -->
+          <div class="rules-section">
+            <h3 class="rules-section-title">${t.sectionFairnessTitle}</h3>
+            <p class="rules-text">${t.fairnessDesc1}</p>
+            <p class="rules-text">${t.fairnessDesc2}</p>
+          </div>
+
+          <!-- Section 7: Complete Controls Guide -->
           <div class="rules-section">
             <h3 class="rules-section-title">${t.section5Title}</h3>
             <div class="rules-cashout-clean-box">
@@ -263,12 +317,24 @@ export function renderRulesModalContent() {
                 <div class="rules-ccb-info">${t.ctrlPartialBtn}</div>
               </div>
               <div class="rules-ccb-item">
+                <span class="rules-ccb-badge">B</span>
+                <div class="rules-ccb-info">${t.ctrlBonusKey}</div>
+              </div>
+              <div class="rules-ccb-item">
                 <span class="rules-ccb-badge">½ / 2×</span>
                 <div class="rules-ccb-info">${t.ctrlBetAdjust}</div>
               </div>
               <div class="rules-ccb-item">
                 <span class="rules-ccb-badge">1 – 4</span>
                 <div class="rules-ccb-info">${t.ctrlMines}</div>
+              </div>
+              <div class="rules-ccb-item">
+                <span class="rules-ccb-badge">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  </svg>
+                </span>
+                <div class="rules-ccb-info">${t.ctrlPowerups}</div>
               </div>
               <div class="rules-ccb-item">
                 <span class="rules-ccb-badge">
@@ -282,7 +348,9 @@ export function renderRulesModalContent() {
               <div class="rules-ccb-item">
                 <span class="rules-ccb-badge">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
                   </svg>
                 </span>
                 <div class="rules-ccb-info">${t.ctrlFairness}</div>
@@ -300,7 +368,7 @@ export function renderRulesModalContent() {
             </div>
           </div>
 
-          <!-- Section 6: Official Legal Disclaimer [185] -->
+          <!-- Section 8: Official Legal Disclaimer -->
           <div class="rules-section legal">
             <p class="rules-legal-text">${t.disclaimerText}</p>
           </div>

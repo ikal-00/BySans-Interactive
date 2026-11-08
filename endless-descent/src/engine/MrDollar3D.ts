@@ -1449,9 +1449,9 @@ export class MrDollar3D {
             if (this.scratchHeadWorld.z < 1.0) {
                 const sx = (this.scratchHeadWorld.x * 0.5 + 0.5) * viewportW;
                 const sy = (-this.scratchHeadWorld.y * 0.5 + 0.5) * viewportH;
-                const halfBubble = Math.min(125, viewportW * 0.4);
+                const halfBubble = Math.min(105, viewportW * 0.35);
                 const clampedX = Math.max(halfBubble + 10, Math.min(viewportW - halfBubble - 10, sx));
-                const clampedY = Math.max(90, Math.min(viewportH - 180, sy));
+                const clampedY = Math.max(68, Math.min(viewportH - 180, sy));
                 this.speechEl.style.left = `${clampedX.toFixed(1)}px`;
                 this.speechEl.style.top = `${clampedY.toFixed(1)}px`;
             }

@@ -166,8 +166,8 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
         <!-- Minimalist Header -->
         <div class="bonus-modal-header">
           <div class="bonus-title-cluster">
-            <h2 id="bonus-dialog-title">${lang === 'es' ? 'COMPRA DE BONOS' : 'BONUS BUY'}</h2>
-            <span class="bonus-tag-clean">VIP</span>
+            <h2 id="bonus-dialog-title">${lang === 'es' ? 'COMPRA DE BONOS VIP' : 'VIP BONUS STORE'}</h2>
+            <span class="bonus-tag-clean">${lang === 'es' ? 'ACCESO DIRECTO' : 'DIRECT ACCESS'}</span>
           </div>
           <button class="bonus-close-btn" id="btn-bonus-close" type="button" aria-label="${lang === 'es' ? 'Cerrar' : 'Close'}">✕</button>
         </div>
@@ -197,7 +197,7 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
               </div>
             </div>
             <div class="bonus-balance-note">
-              <span>${lang === 'es' ? 'Saldo:' : 'Balance:'} <strong>${stakeRGS.formatCurrency(engine.balance)}</strong></span>
+              <span>${lang === 'es' ? 'Saldo disponible:' : 'Available balance:'} <strong>${stakeRGS.formatCurrency(engine.balance)}</strong></span>
             </div>
           </div>
 
@@ -219,10 +219,10 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
                 </div>
                 <div class="bonus-card-info">
                   <div class="bonus-card-header-row">
-                    <h3 class="bonus-card-title">${lang === 'es' ? 'Ruleta Cósmica' : 'Cosmic Wheel'}</h3>
+                    <h3 class="bonus-card-title">${lang === 'es' ? 'Ruleta Cósmica' : 'Cosmic Prize Wheel'}</h3>
                     <span class="bonus-mult-pill gold">20×</span>
                   </div>
-                  <span class="bonus-card-sub">${lang === 'es' ? '12 sectores · Jackpots hasta 1,000×' : '12 sectors · Jackpots up to 1,000×'}</span>
+                  <span class="bonus-card-sub">${lang === 'es' ? '12 sectores operados por Mr. Dollar · Premios hasta 1,000× y pase a Bóveda' : '12-sector wheel hosted by Mr. Dollar · Payouts up to 1,000× and Slot Vault access'}</span>
                 </div>
               </div>
 
@@ -233,7 +233,7 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
                   type="button"
                   ${!canAffordWheel ? 'disabled' : ''}
                 >
-                  ${canAffordWheel ? (lang === 'es' ? `Comprar · ${stakeRGS.formatCurrency(wheelTotalCost)}` : `Buy · ${stakeRGS.formatCurrency(wheelTotalCost)}`) : (lang === 'es' ? 'Saldo Insuficiente' : 'Insufficient Balance')}
+                  ${canAffordWheel ? (lang === 'es' ? `Comprar Ruleta · ${stakeRGS.formatCurrency(wheelTotalCost)}` : `Buy Wheel · ${stakeRGS.formatCurrency(wheelTotalCost)}`) : (lang === 'es' ? 'Saldo Insuficiente' : 'Insufficient Balance')}
                 </button>
               </div>
             </div>
@@ -253,10 +253,10 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
                 </div>
                 <div class="bonus-card-info">
                   <div class="bonus-card-header-row">
-                    <h3 class="bonus-card-title">${lang === 'es' ? 'Mini-Slot 1×3' : '1×3 Arcade Slot'}</h3>
+                    <h3 class="bonus-card-title">${lang === 'es' ? 'Bóveda Mini-Slot 1×3' : '1×3 Arcade Slot Vault'}</h3>
                     <span class="bonus-mult-pill purple">50×</span>
                   </div>
-                  <span class="bonus-card-sub">${lang === 'es' ? '5 Tiradas VIP · Multiplicadores 4×..88×' : '5 VIP Spins · Multipliers 4×..88×'}</span>
+                  <span class="bonus-card-sub">${lang === 'es' ? '5 Tiradas VIP en rodillos 3D · Acumulador progresivo con premios hasta 88×' : '5 VIP spins on 3D mechanical reels · Progressive accumulator up to 88×'}</span>
                 </div>
               </div>
 
@@ -267,7 +267,7 @@ export function renderBonusBuyModal(engine: GameEngine, renderer: PixiRenderer, 
                   type="button"
                   ${!canAffordSlot ? 'disabled' : ''}
                 >
-                  ${canAffordSlot ? (lang === 'es' ? `Comprar · ${stakeRGS.formatCurrency(slotTotalCost)}` : `Buy · ${stakeRGS.formatCurrency(slotTotalCost)}`) : (lang === 'es' ? 'Saldo Insuficiente' : 'Insufficient Balance')}
+                  ${canAffordSlot ? (lang === 'es' ? `Comprar Slot · ${stakeRGS.formatCurrency(slotTotalCost)}` : `Buy Slot · ${stakeRGS.formatCurrency(slotTotalCost)}`) : (lang === 'es' ? 'Saldo Insuficiente' : 'Insufficient Balance')}
                 </button>
               </div>
             </div>
